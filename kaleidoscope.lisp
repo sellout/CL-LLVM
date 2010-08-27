@@ -65,11 +65,11 @@
 
 (defclass number-expression (expression)
   ((value :initarg :value :reader value))
-  (:documentation "Expression class for numeric literals like \"1.0\"."))
+  (:documentation "Expression class for numeric literals like “1.0”."))
 
 (defclass variable-expression (expression)
   ((name :initarg :name :reader name))
-  (:documentation "Expression class for referencing a variable, like \"a\"."))
+  (:documentation "Expression class for referencing a variable, like “a”."))
 
 (defclass unary-expression (expression)
   ((opcode :initarg :opcode :reader opcode)
@@ -91,7 +91,7 @@
   ((condition :initarg :condition :reader condition)
    (then :initarg :then :reader then)
    (else :initarg :else :reader else))
-  (:documentation "Expression cass for if/then/else."))
+  (:documentation "Expression class for if/then/else."))
 
 (defclass for-expression (expression)
   ((var-name :initarg :var-name :reader var-name)
@@ -113,7 +113,7 @@
    (operatorp :initform nil :initarg :operatorp :reader operatorp)
    (precedence :initform 0 :initarg :precedence :reader precedence))
   (:documentation
-   "This class represents the \"prototype\" for a function, which captures its
+   "This class represents the “prototype” for a function, which captures its
     name, and its argument names (thus implicitly the number of arguments the
     function takes)."))
 
@@ -158,8 +158,8 @@
                            collecting arg
                            until (eql *current-token* #\))
                            do (or (eql *current-token* #\,)
-                                  (error
-                                   "Expected ')' or ',' in argument list"))
+                                  (error 'kaleidoscope-error
+                                         :message "Expected ')' or ',' in argument list"))
                            do (get-next-token))))
         (get-next-token)) ; eat the ')'.
       (make-instance 'variable-expression :name id-name))))
@@ -174,7 +174,7 @@
     (when v
       (if (eql *current-token* #\))
         (get-next-token)
-        (error "expected ')'"))
+        (error 'kaleidoscope-error :message "expected ')'"))
       v)))
 
 (defun parse-if-expression ()
@@ -182,12 +182,12 @@
   (let ((condition (parse-expression)))
     (when condition
       (unless (eql *current-token* 'tok-then)
-        (error "expected then"))
+        (error 'kaleidoscope-error :message "expected then"))
       (get-next-token) ; eat the then
       (let ((then (parse-expression)))
         (when then
           (unless (eql *current-token* 'tok-else)
-            (error "expected else"))
+            (error 'kaleidoscope-error :message "expected else"))
           (get-next-token) ; eat the else
           (let ((else (parse-expression)))
             (when else
@@ -197,16 +197,16 @@
 (defun parse-for-expression ()
   (get-next-token) ; eat the for.
   (unless (eql *current-token* 'tok-identifier)
-    (error "expected identifier after for"))
+    (error 'kaleidoscope-error :message "expected identifier after for"))
   (let ((id-name *identifier-string*))
     (get-next-token) ; eat identifier.
     (unless (eql *current-token* #\=)
-      (error "expected '=' after for"))
+      (error 'kaleidoscope-error :message "expected '=' after for"))
     (get-next-token)
     (let ((start (parse-expression)))
       (when start
         (unless (eql *current-token* #\,)
-          (error "expected ',' after for start value"))
+          (error 'kaleidoscope-error :message "expected ',' after for start value"))
         (get-next-token)
         (let ((end (parse-expression)))
           (when end
@@ -218,7 +218,7 @@
                 (unless step
                   (return-from parse-for-expression)))
               (unless (eql *current-token* 'tok-in)
-                (error "expected 'in' after for"))
+                (error 'kaleidoscope-error :message "expected 'in' after for"))
               (get-next-token) ; eat 'in',
               (let ((body (parse-expression)))
                 (when body
@@ -229,7 +229,7 @@
 (defun parse-var-expression ()
   (get-next-token)
   (unless (eql *current-token* 'tok-identifier)
-    (error "expected identifier after var"))
+    (error 'kaleidoscope-error :message "expected identifier after var"))
   (let ((var-names (loop
                      for name = *identifier-string*
                      for init = nil
@@ -243,9 +243,10 @@
                      while (eql *current-token* #\,)
                      do (get-next-token)
                      do (unless (eql *current-token* 'tok-identifier)
-                          (error "expected identifier list after var")))))
+                          (error 'kaleidoscope-error
+                                 :message "expected identifier list after var")))))
     (unless (eql *current-token* 'tok-in)
-      (error "expected 'in' keyword after 'var'"))
+      (error 'kaleidoscope-error :message "expected 'in' keyword after 'var'"))
     (get-next-token)
     (let ((body (parse-expression)))
       (when body
@@ -259,7 +260,8 @@
     (tok-if (parse-if-expression))
     (tok-for (parse-for-expression))
     (tok-var (parse-var-expression))
-    (otherwise (error "unknown token when expecting an expression"))))
+    (otherwise (error 'kaleidoscope-error
+                      :message "unknown token when expecting an expression"))))
 
 (defun parse-unary ()
   ;; If the current token is not an operator, it must be a primary expr.
@@ -312,31 +314,31 @@
       (tok-unary
        (get-next-token)
        (unless (characterp *current-token*)
-         (error "Expected unary operator"))
+         (error 'kaleidoscope-error :message "Expected unary operator"))
        (setf function-name (format nil "unary~a" *current-token*)
              operator-arity 1))
       (tok-binary
        (get-next-token)
        (unless (characterp *current-token*)
-         (error "Expected binary operator"))
+         (error 'kaleidoscope-error :message "Expected binary operator"))
        (setf function-name (format nil "binary~a" *current-token*)
              operator-arity 2)
        (get-next-token)
        (when (eql *current-token* 'tok-number)
          (unless (<= 1 *number-value* 100)
-           (error "Invalid precedence: must be 1..100"))
+           (error 'kaleidoscope-error :message "Invalid precedence: must be 1..100"))
          (setf binary-precedence *number-value*)))
-      (otherwise (error "Expected function name in prototype")))
+      (otherwise (error 'kaleidoscope-error :message "Expected function name in prototype")))
     (unless (eql (get-next-token) #\()
-      (error "Expected '(' in prototype"))
+      (error 'kaleidoscope-error :message "Expected '(' in prototype"))
     (let ((arg-names (coerce (loop while (eql (get-next-token) 'tok-identifier)
                                collecting *identifier-string*)
                              'vector)))
       (unless (eql *current-token* #\))
-        (error "Expected ')' in prototype"))
+        (error 'kaleidoscope-error :message "Expected ')' in prototype"))
       (get-next-token)
       (when (and operator-arity (/= (length arg-names) operator-arity))
-        (error "Invalid number of operands for operator"))
+        (error 'kaleidoscope-error :message "Invalid number of operands for operator"))
       (make-instance 'prototype
         :name function-name :arguments arg-names
         :operatorp operator-arity :precedence binary-precedence))))
@@ -383,7 +385,7 @@
 (defmethod codegen ((expression variable-expression))
   (let ((v (gethash (name expression) *named-values*)))
     (unless v
-      (error "unknown variable name"))
+      (error 'kaleidoscope-error :message "unknown variable name"))
     ; NOTE: before chapter 7: v
     (llvm:build-load *builder* v (name expression))))
 
@@ -394,7 +396,7 @@
                                     (format nil "unary~a"
                                             (opcode expression)))))
         (unless f
-          (error "Unknown unary operator"))
+          (error 'kaleidoscope-error :message "Unknown unary operator"))
         (llvm:build-call *builder* f (list operand-v) "unop")))))
 
 (defmethod codegen ((expression binary-expression))
@@ -405,7 +407,7 @@
       (when val
         (let ((variable (gethash (name lhse) *named-values*)))
           (unless variable
-            (error "Unknown variable name"))
+            (error 'kaleidoscope-error :message "Unknown variable name"))
           (llvm:build-store *builder* val variable)
           val)))
     (let ((l (codegen (lhs expression)))
@@ -436,8 +438,8 @@
                          callee
                          (map 'vector #'codegen (arguments expression))
                          "calltmp")
-        (error "incorrect # arguments passed"))
-      (error "unknown function referenced"))))
+        (error 'kaleidoscope-error :message "incorrect # arguments passed"))
+      (error 'kaleidoscope-error :message "unknown function referenced"))))
 
 (defmethod codegen ((expression if-expression))
   (let ((cond-v (codegen (condition expression))))
@@ -575,7 +577,7 @@
     ;; body, don't allow redefinition or reextern.
     (when (not (string= (llvm:value-name function) (name expression)))
       (llvm:delete-function function)
-      (setf function (llvm:named-function (name expression) *module*))
+      (setf function (llvm:named-function *module* (name expression)))
       (if (= (llvm:count-basic-blocks function) 0)
         (if (= (llvm:count-params function) (length (arguments expression)))
           (progn
@@ -586,8 +588,8 @@
                  (llvm:params function)
                  (arguments expression))
             function)
-          (error "redefinition of function with different # args"))
-        (error "redefinition of function")))
+          (error 'kaleidoscope-error :message "redefinition of function with different # args"))
+        (error 'kaleidoscope-error :message "redefinition of function")))
     ;; Set names for all arguments.
     (map nil
          (lambda (argument name)
@@ -622,7 +624,7 @@
           (progn
             (llvm:build-ret *builder* retval)
             (unless (llvm:verify-function function)
-              (error "Function verification failure."))
+              (error 'kaleidoscope-error :message "Function verification failure."))
             (llvm:run-function-pass-manager *fpm* function)
             function)
           (llvm:delete-function function))))))
@@ -664,15 +666,21 @@
             (format *error-output* "Evaluated to ~f"
                     (cffi:foreign-funcall-pointer ptr () :double)))))
       (get-next-token))))
- 
+
+(define-condition kaleidoscope-error (error)
+  ((message :initarg :message :reader message))
+  (:report (lambda (condition stream)
+             (write-string (message condition) stream))))
+
 (defun main-loop ()
   (do () ((eql *current-token* 'tok-eof))
     (format *error-output* "~&ready> ")
-    (case *current-token*
-      (#\; (get-next-token))
-      (tok-def (handle-definition))
-      (tok-extern (handle-extern))
-      (otherwise (handle-top-level-expression)))))
+    (handler-case (case *current-token*
+                    (#\; (get-next-token))
+                    (tok-def (handle-definition))
+                    (tok-extern (handle-extern))
+                    (otherwise (handle-top-level-expression)))
+      (kaleidoscope-error (e) (format *error-output* "error: ~a~%" e)))))
 
 ;;; "Library" functions that can be "extern'd" from user code.
 
@@ -693,7 +701,7 @@
   (llvm:with-objects ((*builder* 'llvm:builder)
                       (*module* 'llvm:module :name "my cool jit")
                       (module-provider 'llvm:module-provider :module *module*)
-                      (*execution-engine* 'llvm:interpreter
+                      (*execution-engine* 'llvm:execution-engine
                                           :module-provider module-provider)
                       (*fpm* 'llvm:function-pass-manager
                              :module-provider module-provider))
