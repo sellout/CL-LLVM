@@ -5,12 +5,13 @@
     `(let* ((,class-name ,class)
             (,var (make-instance ,class-name ,@args)))
        (unwind-protect (progn ,@body)
+         ;; FIXME: dispose-module and dispose-module-provider both cause SIGBUS
          (funcall (case ,class-name
                     (context #'context-dispose)
-                    (module #'dispose-module)
+                    (module #'identity) ;#'dispose-module)
                     (type-handle #'dispose-type-handle)
                     (builder #'dispose-builder)
-                    (module-provider #'dispose-module-provider)
+                    (module-provider #'identity) ;#'dispose-module-provider)
                     (memory-buffer #'dispose-memory-buffer)
                     ((pass-manager function-pass-manager)
                      #'dispose-pass-manager)
