@@ -4,7 +4,7 @@
 (defmethod make-instance ((class (eql 'context)) &key &allow-other-keys)
   (context-create))
 (defcfun (global-context "LLVMGetGlobalContext") context)
-(defcfun "LLVMContextDispose" :void (c context))
+(defcfun (dispose-context "LLVMContextDispose") :void (c context))
 
 (defcfun "LLVMModuleCreateWithNameInContext" module
   (module-id :string) (c context))
