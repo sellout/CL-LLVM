@@ -51,7 +51,8 @@
              'tok-number)
             ((eql last-char #\#) ; comment until end of line
              (loop do (setf last-char (read-char))
-               until (find last-char '(nil #\linefeed #\return))))
+               until (find last-char '(nil #\linefeed #\return)))
+             (if (null last-char) 'tok-eof (read-token)))
             (t
              (let ((this-char last-char))
                (setf last-char (read-char))
