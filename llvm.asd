@@ -3,16 +3,8 @@
 
 (in-package :llvm-system)
 
-;;; NOTE: before this will work, you need to have LLVM installed, and need to
-;;;       build a shared lib using something like:
-#|
-g++ -shared -o libLLVM.dylib `llvm-config --ldflags` `llvm-config --libs` \
-    -u _LLVMGetGlobalContext -u _LLVMCreateExecutionEngine \
-    -u _LLVMLinkInJIT -u _LLVMLinkInInterpreter \
-    -u _LLVMAddTargetData -u _LLVMAddInstructionCombiningPass \
-    -u _LLVMVerifyFunction
-sudo cp libLLVM.dylib /usr/local/lib
-|#
+;;; NOTE: before this will work, you need to have LLVM installed (and don't forget
+;;;       to build the shared lib with --enable-shared)
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (oos 'load-op 'cffi-grovel))
@@ -37,7 +29,6 @@ sudo cp libLLVM.dylib /usr/local/lib
                          (:file "types" :depends-on ("grovel" "modules"))
                          (:file "values" :depends-on ("grovel" "modules"))
                          (:file "instruction-builders" :depends-on ("grovel"))
-                         (:file "module-providers" :depends-on ("grovel"))
                          (:file "memory-buffers" :depends-on ("grovel"))
                          (:file "pass-managers" :depends-on ("grovel"))))
    (:module "" :pathname ""

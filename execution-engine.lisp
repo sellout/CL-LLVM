@@ -40,48 +40,47 @@
 
 ;;; operations on execution engines
 
-(defcfun "LLVMCreateExecutionEngine" :boolean
+(defcfun "LLVMCreateExecutionEngineForModule" :boolean
   (out-ee (:pointer execution-engine))
-  (mp module-provider)
+  (m module)
   (out-error (:pointer :string)))
 (defmethod make-instance
            ((class (eql 'execution-engine))
             &key
-            (module-provider
-             (error 'required-parameter-error :name 'module-provider)))
+            (module (error 'required-parameter-error :name 'module)))
   (with-foreign-objects ((out-ee '(:pointer execution-engine))
                          (out-error '(:pointer :string)))
-    (if (create-execution-engine out-ee module-provider out-error)
+    (if (create-execution-engine-for-module out-ee module out-error)
       (error 'llvm-error :message out-error)
       (mem-ref out-ee 'execution-engine))))
 
-(defcfun "LLVMCreateInterpreter" :boolean
+(defcfun "LLVMCreateInterpreterForModule" :boolean
   (out-interp (:pointer execution-engine))
-  (mp module-provider)
+  (m module)
   (out-error (:pointer :string)))
 (defmethod make-instance
            ((class (eql 'interpreter))
             &key
-            (module-provider
-             (error 'required-parameter-error :name 'module-provider)))
+            (module (error 'required-parameter-error :name 'module)))
   (with-foreign-objects ((out-interp '(:pointer execution-engine))
                          (out-error '(:pointer :string)))
-    (if (create-interpreter out-interp module-provider out-error)
+    (if (create-interpreter-for-module out-interp module out-error)
       (error 'llvm-error :message out-error)
       (mem-ref out-interp 'execution-engine))))
 
-(defcfun "LLVMCreateJITCompiler" :boolean
+(defcfun "LLVMCreateJITCompilerForModule" :boolean
   (out-jit (:pointer execution-engine))
-  (mp module-provider)
+  (m module)
+  (opt-level optimization-level)
   (out-error (:pointer :string)))
 (defmethod make-instance
            ((class (eql 'jit-compiler))
             &key
-            (module-provider
-             (error 'required-parameter-error :name 'module-provider)))
+            (module (error 'required-parameter-error :name 'module))
+            (optimization-level :default))
   (with-foreign-objects ((out-jit '(:pointer execution-engine))
                          (out-error '(:pointer :string)))
-    (if (create-jit-compiler out-jit module-provider out-error)
+    (if (create-jit-compiler-for-module out-jit module optimization-level out-error)
       (error 'llvm-error :message out-error)
       (mem-ref out-jit 'execution-engine))))
 
@@ -91,28 +90,30 @@
 
 (defcfun "LLVMRunStaticDestructors" :void (ee execution-engine))
 
-(defcfun "LLVMRunFunctionAsMain" :int
+;; FIXME: not sure how to handle the env-p parameter
+(defcfun (%run-function-as-main "LLVMRunFunctionAsMain") :int
   (ee execution-engine) (f value)
-  (arg-c :unsigned-int) (arg-v (:pointer :string)) (env-p (:pointer :string)))
+  (arg-c :unsigned-int) (arg-v (carray :string)) (env-p (:pointer :string)))
+(defun run-function-as-main (execution-engine function args env)
+  (%run-function-as-main execution-engine function (length args) args env))
 
-(defcfun (%run-function "LLVMRunFunction") value
+(defcfun (%run-function "LLVMRunFunction") generic-value
   (ee execution-engine) (f value)
-  (num-args :unsigned-int) (args (carray value)))
+  (num-args :unsigned-int) (args (carray generic-value)))
 (defun run-function (ee f args)
   (%run-function ee f (length args) args))
 
 (defcfun "LLVMFreeMachineCodeForFunction" :void (ee execution-engine) (f value))
 
-(defcfun "LLVMAddModuleProvider" :void
-  (ee execution-engine) (mp module-provider))
+(defcfun "LLVMAddModule" :void (ee execution-engine) (m module))
 
-(defcfun (%remove-module-provider "LLVMRemoveModuleProvider") :boolean
-  (ee execution-engine) (mp module-provider)
+(defcfun (%remove-module "LLVMRemoveModule") :boolean
+  (ee execution-engine) (m module)
   (out-mod (:pointer module)) (out-error (:pointer :string)))
-(defun remove-module-provider (ee mp)
+(defun remove-module-provider (ee m)
   (with-foreign-objects ((out-mod '(:pointer module))
                          (out-error '(:pointer :string)))
-    (if (%remove-module-provider ee mp out-mod out-error)
+    (if (%remove-module ee m out-mod out-error)
       (error 'llvm-error :message out-error)
       (mem-ref out-mod 'module))))
 

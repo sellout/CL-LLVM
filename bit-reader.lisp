@@ -10,13 +10,12 @@
       (mem-ref out-module 'module)
       (error 'llvm-error :message out-message))))
 
-(defcfun "LLVMGetBitcodeModuleProviderInContext" :boolean
+(defcfun "LLVMGetBitcodeModuleInContext" :boolean
   (context context) (mem-buf memory-buffer)
-  (out-mp (:pointer module-provider)) (out-message (:pointer :string)))
-(defun bitcode-module-provider (mem-buf &key (context (global-context)))
+  (out-m (:pointer module)) (out-message (:pointer :string)))
+(defun bitcode-module (mem-buf &key (context (global-context)))
   (with-foreign-objects ((out-message '(:pointer :string))
-                         (out-mp '(:pointer module)))
-    (if (get-bitcode-module-provider-in-context context mem-buf
-                                                out-mp out-message)
-      (mem-ref out-mp 'module)
+                         (out-m '(:pointer module)))
+    (if (get-bitcode-module-in-context context mem-buf out-m out-message)
+      (mem-ref out-m 'module)
       (error 'llvm-error :message out-message))))

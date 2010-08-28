@@ -5,13 +5,12 @@
     `(let* ((,class-name ,class)
             (,var (make-instance ,class-name ,@args)))
        (unwind-protect (progn ,@body)
-         ;; FIXME: dispose-module and dispose-module-provider both cause SIGBUS
          (funcall (case ,class-name
                     (context #'dispose-context)
+                    ;; FIXME: dispose-module causes SIGBUS
                     (module #'identity) ;#'dispose-module)
                     (type-handle #'dispose-type-handle)
                     (builder #'dispose-builder)
-                    (module-provider #'identity) ;#'dispose-module-provider)
                     (memory-buffer #'dispose-memory-buffer)
                     ((pass-manager function-pass-manager)
                      #'dispose-pass-manager)
@@ -50,6 +49,7 @@
   (:report (lambda (condition stream)
              (format stream "~a is a required parameter."
                      (name condition)))))
+
 ;;; Core
 (defctype context :pointer) ; "LLVMContextRef")
 (defctype module :pointer) ; "LLVMModuleRef")
@@ -58,7 +58,6 @@
 (defctype value :pointer) ; "LLVMValueRef")
 (defctype basic-block :pointer) ; "LLVMBasicBlockRef")
 (defctype builder :pointer) ; "LLVMBuilderRef")
-(defctype module-provider :pointer) ; "LLVMModuleProviderRef")
 (defctype memory-buffer :pointer) ; "LLVMMemoryBufferRef")
 (defctype pass-manager :pointer) ; "LLVMPassManagerRef")
 ;;; Target
@@ -115,3 +114,22 @@
                       collecting value)))
       (make-array (length contents)
                   :element-type (value-type type) :initial-contents contents))))
+
+;;; optimization-level should be a cenum, but only exists in C++.
+
+(let ((opt-level '((:none . 0)
+                   (:less . 1)
+                   (:default . 2)
+                   (:aggressive . 3))))
+  (define-foreign-type optimization-level ()
+    ()
+    (:actual-type :unsigned-int))
+
+  (define-parse-method optimization-level ()
+    (make-instance 'optimization-level))
+
+  (defmethod translate-to-foreign (object (type optimization-level))
+    (cdr (assoc object opt-level)))
+
+  (defmethod translate-from-foreign (object (type optimization-level))
+    (car (rassoc object opt-level))))

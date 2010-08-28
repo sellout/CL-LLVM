@@ -4,14 +4,13 @@
 (defmethod make-instance ((class (eql 'pass-manager)) &key)
   (create-pass-manager))
 
-(defcfun "LLVMCreateFunctionPassManager" pass-manager (mp module-provider))
+(defcfun "LLVMCreateFunctionPassManagerForModule" pass-manager (m module))
 (defmethod make-instance
            ((class (eql 'function-pass-manager))
-            &key (module-provider
-                  (error 'required-parameter-error :name 'module-provider)))
-  (create-function-pass-manager module-provider))
+            &key (module (error 'required-parameter-error :name 'module)))
+  (create-function-pass-manager-for-module module))
 
-(defcfun "LLVMRunPassManager" :boolean (pm pass-manager) (mp module-provider))
+(defcfun "LLVMRunPassManager" :boolean (pm pass-manager) (m module))
 
 (defcfun "LLVMInitializeFunctionPassManager" :boolean (fpm pass-manager))
 

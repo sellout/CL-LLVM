@@ -129,9 +129,6 @@
            #:build-extract-element #:build-insert-element #:build-shuffle-vector
            #:build-extract-value #:build-insert-value
            #:build-nullp #:build-not-null-p #:build-pointer-diff
-           ;; module providers
-           #:module-provider
-           #:dispose-module-provider
            ;; memory buffers
            #:memory-buffer #:dispose-memory-buffer
            ;; pass managers
@@ -149,7 +146,7 @@
            #:view-function-cfg-only
            ;; bit-reader
            #:parse-bitcode
-           #:bitcode-module-provider
+           #:bitcode-module
            ;; bit-writer
            #:write-bitcode-to-file-handle
            #:write-bitcode-to-file
@@ -192,8 +189,8 @@
            #:run-function-as-main
            #:run-function
            #:free-machine-code-for-function
-           #:add-module-provider
-           #:remove-module-provider
+           #:add-module
+           #:remove-module
            #:find-function
            #:execution-engine-target-data
            #:add-global-mapping

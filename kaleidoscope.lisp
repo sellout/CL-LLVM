@@ -659,12 +659,15 @@
         (when lf
           (llvm:dump-value lf)
           (let ((ptr (llvm:pointer-to-global *execution-engine* lf)))
-            (break "~a" ptr)
             ;; FIXME: hopefully it's not necessary to explicitly set the memory
             ;;        to be executable.
             ;;(#_mprotect ptr 1024 (logior #$PROT_READ #$PROT_WRITE #$PROT_EXEC))
             (format *error-output* "Evaluated to ~f"
-                    (cffi:foreign-funcall-pointer ptr () :double)))))
+                    (if (eql ptr lf) ; we have an interpreter
+                      (llvm:generic-value-to-float
+                       (llvm:double-type)
+                       (llvm:run-function *execution-engine* ptr ()))
+                      (cffi:foreign-funcall-pointer ptr () :double))))))
       (get-next-token))))
 
 (define-condition kaleidoscope-error (error)
@@ -700,11 +703,8 @@
         (gethash #\* *binop-precedence*) 40)
   (llvm:with-objects ((*builder* 'llvm:builder)
                       (*module* 'llvm:module :name "my cool jit")
-                      (module-provider 'llvm:module-provider :module *module*)
-                      (*execution-engine* 'llvm:execution-engine
-                                          :module-provider module-provider)
-                      (*fpm* 'llvm:function-pass-manager
-                             :module-provider module-provider))
+                      (*execution-engine* 'llvm:execution-engine :module *module*)
+                      (*fpm* 'llvm:function-pass-manager :module *module*))
     (llvm:add-target-data (llvm:target-data *execution-engine*) *fpm*)
     (llvm:add-promote-memory-to-register-pass *fpm*)
     (llvm:add-instruction-combining-pass *fpm*)
