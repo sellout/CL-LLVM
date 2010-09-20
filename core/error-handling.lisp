@@ -92,28 +92,28 @@
 (defmethod translate-to-foreign (object (type carray))
   (if (and (capacity type) (/= (capacity type) (length object)))
     (error "Not the correct array length")
-    ;; FIXME: make this not CCL-specific, and not pointer specific
-    (multiple-value-bind (vector pointer)
-                         (ccl:make-heap-ivector (length object)
-                                                '(signed-byte 64))
-      (dotimes (index (length object) pointer)
-        (setf (aref vector index)
-              (pointer-address (elt object index)))))))
+    (let ((array (coerce object 'array)))
+      (funcall (first (waaf-cffi::%get-transformation-function-pair (array-element-type array)
+                                                                    (value-type type)
+                                                                    nil))
+               array nil nil t))))
 
 (defmethod translate-from-foreign (pointer (type carray))
-  (if (capacity type)
-    (make-array (capacity type)
-                :element-type (value-type type)
-                :initial-contents (loop for i from 0 to (capacity type)
-                                    collecting (mem-aref pointer
-                                                         (value-type type)
-                                                         i)))
-    (let ((contents (loop for i from 0
-                      for value = (mem-aref pointer (value-type type) i)
-                      while (not (null-pointer-p value))
-                      collecting value)))
-      (make-array (length contents)
-                  :element-type (value-type type) :initial-contents contents))))
+  (let* ((length (or (capacity type)
+                     (loop for i from 0
+                       while (not (null-pointer-p (mem-aref pointer (value-type type)
+                                                            i)))
+                       finally (return i))))
+         (array (make-array length)))
+    (funcall (second (waaf-cffi::%get-transformation-function-pair t
+                                                                   (value-type type)
+                                                                   nil))
+             array pointer 0 length)
+    array))
+
+(defmethod free-translated-object (value (type carray) param)
+  (declare (ignore param))
+  (foreign-free value))
 
 ;;; optimization-level should be a cenum, but only exists in C++.
 

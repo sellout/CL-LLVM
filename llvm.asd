@@ -16,7 +16,7 @@
                      hopefully intuitive) to use them in Common Lisp."
   :license "undecided"
   :author "Greg Pfeil <greg@technomadic.org>"
-  :depends-on (cffi cffi-grovel)
+  :depends-on (cffi cffi-grovel waaf-cffi)
   ;;:pathname "source"
   :components
   ((:file "package")
