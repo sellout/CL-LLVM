@@ -20,21 +20,21 @@
                        "UI"
                        "VA"
                        "X86")))
-  (defmethod cffi:lisp-name
-             ((spec string) (package (eql (find-package :llvm))) &optional varp)
+  (defmethod cffi:translate-name-from-foreign
+             (foreign-name (package (eql (find-package :llvm))) &optional varp)
     "LLVMUpperCamelCase -> 'llvm:upper-camel-case"
     (intern (format nil (if varp "*~a*" "~a")
-                    (translate-camelcase-name (subseq spec 4)
+                    (translate-camelcase-name (subseq foreign-name 4)
                                               :upper-initial-p t
                                               :special-words special-words))))
-  (defmethod cffi:foreign-name
-             ((spec symbol) (package (eql (find-package :llvm))) &optional varp)
+  (defmethod cffi:translate-name-to-foreign
+             (lisp-name (package (eql (find-package :llvm))) &optional varp)
     "'llvm:lisp-name -> LLVMLispName"
-    (let ((name (translate-camelcase-name spec
+    (let ((name (translate-camelcase-name lisp-name
                                           :upper-initial-p t
                                           :special-words special-words)))
       (concatenate 'string
-                   (package-name (symbol-package spec))
+                   (package-name (symbol-package lisp-name))
                    (if varp
                      (subseq name 1 (1- (length name)))
                      name)))))
