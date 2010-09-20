@@ -415,9 +415,9 @@
           (r (codegen (rhs expression))))
       (when (and l r)
         (case (operator expression)
-          (#\+ (llvm:build-add *builder* l r "addtmp"))
-          (#\- (llvm:build-sub *builder* l r "subtmp"))
-          (#\* (llvm:build-mul *builder* l r "multmp"))
+          (#\+ (llvm:build-f-add *builder* l r "addtmp"))
+          (#\- (llvm:build-f-sub *builder* l r "subtmp"))
+          (#\* (llvm:build-f-mul *builder* l r "multmp"))
           (#\< (llvm:build-ui-to-fp *builder*
                                     (llvm:build-f-cmp *builder*
                                                       :unordered-< l r

@@ -109,10 +109,12 @@
            #:build-ret #:build-br #:build-cond-br #:build-switch #:build-invoke
            #:build-unwind #:build-unreachable
            #:add-case
-           #:build-add #:build-nsw-add #:build-f-add #:build-sub #:build-f-sub
-           #:build-mul #:build-f-mul #:build-u-div #:build-s-div
-           #:build-exact-s-div #:build-f-div #:build-u-rem #:build-s-rem
-           #:build-f-rem #:build-and #:build-or #:build-xor #:build-neg
+           #:build-add #:build-nsw-add #:build-nuw-add #:build-f-add
+           #:build-sub #:build-nsw-sub #:build-nuw-sub #:build-f-sub
+           #:build-mul #:build-nsw-mul #:build-nuw-mul #:build-f-mul
+           #:build-u-div #:build-s-div #:build-exact-s-div #:build-f-div
+           #:build-u-rem #:build-s-rem #:build-f-rem
+           #:build-and #:build-or #:build-xor #:build-neg
            #:build-f-neg #:build-not
            #:build-malloc #:build-array-malloc #:build-alloca
            #:build-array-alloca #:build-free #:build-load #:build-store

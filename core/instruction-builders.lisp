@@ -53,13 +53,23 @@
   (builder builder) (lhs value) (rhs value) (name :string))
 (defcfun "LLVMBuildNSWAdd" value
   (builder builder) (lhs value) (rhs value) (name :string))
+(defcfun "LLVMBuildNUWAdd" value
+  (builder builder) (lhs value) (rhs value) (name :string))
 (defcfun "LLVMBuildFAdd" value
   (builder builder) (lhs value) (rhs value) (name :string))
 (defcfun "LLVMBuildSub" value
   (builder builder) (lhs value) (rhs value) (name :string))
+(defcfun "LLVMBuildNSWSub" value
+  (builder builder) (lhs value) (rhs value) (name :string))
+(defcfun "LLVMBuildNUWSub" value
+  (builder builder) (lhs value) (rhs value) (name :string))
 (defcfun "LLVMBuildFSub" value
   (builder builder) (lhs value) (rhs value) (name :string))
 (defcfun "LLVMBuildMul" value
+  (builder builder) (lhs value) (rhs value) (name :string))
+(defcfun "LLVMBuildNSWMul" value
+  (builder builder) (lhs value) (rhs value) (name :string))
+(defcfun "LLVMBuildNUWMul" value
   (builder builder) (lhs value) (rhs value) (name :string))
 (defcfun "LLVMBuildFMul" value
   (builder builder) (lhs value) (rhs value) (name :string))

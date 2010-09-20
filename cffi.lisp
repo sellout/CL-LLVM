@@ -14,6 +14,7 @@
                        "JIT"
                        "LICM"
                        "NSW"
+                       "NUW"
                        "SCCP"
                        "SI"
                        "STDIN"
