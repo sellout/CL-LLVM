@@ -161,7 +161,7 @@
                            do (or (eql *current-token* #\,)
                                   (error 'kaleidoscope-error
                                          :message "Expected ')' or ',' in argument list"))
-                           do (get-next-token))))
+                              (get-next-token))))
         (get-next-token)) ; eat the ')'.
       (make-instance 'variable-expression :name id-name))))
 
@@ -207,7 +207,8 @@
     (let ((start (parse-expression)))
       (when start
         (unless (eql *current-token* #\,)
-          (error 'kaleidoscope-error :message "expected ',' after for start value"))
+          (error 'kaleidoscope-error
+                 :message "expected ',' after for start value"))
         (get-next-token)
         (let ((end (parse-expression)))
           (when end
@@ -243,9 +244,10 @@
                      collecting (cons name init)
                      while (eql *current-token* #\,)
                      do (get-next-token)
-                     do (unless (eql *current-token* 'tok-identifier)
+                        (unless (eql *current-token* 'tok-identifier)
                           (error 'kaleidoscope-error
-                                 :message "expected identifier list after var")))))
+                                 :message
+                                 "expected identifier list after var")))))
     (unless (eql *current-token* 'tok-in)
       (error 'kaleidoscope-error :message "expected 'in' keyword after 'var'"))
     (get-next-token)
@@ -327,9 +329,11 @@
        (get-next-token)
        (when (eql *current-token* 'tok-number)
          (unless (<= 1 *number-value* 100)
-           (error 'kaleidoscope-error :message "Invalid precedence: must be 1..100"))
+           (error 'kaleidoscope-error
+                  :message "Invalid precedence: must be 1..100"))
          (setf binary-precedence *number-value*)))
-      (otherwise (error 'kaleidoscope-error :message "Expected function name in prototype")))
+      (otherwise (error 'kaleidoscope-error
+                        :message "Expected function name in prototype")))
     (unless (eql (get-next-token) #\()
       (error 'kaleidoscope-error :message "Expected '(' in prototype"))
     (let ((arg-names (coerce (loop while (eql (get-next-token) 'tok-identifier)
@@ -339,7 +343,8 @@
         (error 'kaleidoscope-error :message "Expected ')' in prototype"))
       (get-next-token)
       (when (and operator-arity (/= (length arg-names) operator-arity))
-        (error 'kaleidoscope-error :message "Invalid number of operands for operator"))
+        (error 'kaleidoscope-error
+               :message "Invalid number of operands for operator"))
       (make-instance 'prototype
         :name function-name :arguments arg-names
         :operatorp operator-arity :precedence binary-precedence))))
@@ -589,7 +594,8 @@
                  (llvm:params function)
                  (arguments expression))
             function)
-          (error 'kaleidoscope-error :message "redefinition of function with different # args"))
+          (error 'kaleidoscope-error
+                 :message "redefinition of function with different # args"))
         (error 'kaleidoscope-error :message "redefinition of function")))
     ;; Set names for all arguments.
     (map nil
@@ -625,7 +631,8 @@
           (progn
             (llvm:build-ret *builder* retval)
             (unless (llvm:verify-function function)
-              (error 'kaleidoscope-error :message "Function verification failure."))
+              (error 'kaleidoscope-error
+                     :message "Function verification failure."))
             (llvm:run-function-pass-manager *fpm* function)
             function)
           (llvm:delete-function function))))))
@@ -660,10 +667,9 @@
         (when lf
           (llvm:dump-value lf)
           (let ((ptr (llvm:pointer-to-global *execution-engine* lf)))
-            ;; FIXME: hopefully it's not necessary to explicitly set the memory
-            ;;        to be executable.
-            ;;(#_mprotect ptr 1024 (logior #$PROT_READ #$PROT_WRITE #$PROT_EXEC))
             (format *error-output* "Evaluated to ~f"
+                    ;; NOTE: The C version of the tutorial only has the JIT side
+                    ;;       of this, so if you have an interpreter, it breaks.
                     (if (eql ptr lf) ; we have an interpreter
                       (llvm:generic-value-to-float
                        (llvm:double-type)
@@ -695,6 +701,9 @@
 ;;; driver
 
 (defun toplevel ()
+  ;; NOTE: The C version of the tutorial doesn't initialize any target, but
+  ;;       expects that a JIT is created. I think it's just out of date.
+  (llvm:initialize-native-target)
   ;; install standard binary operators
   ;; 1 is lowest precedence
   (setf (gethash #\= *binop-precedence*) 2
@@ -704,7 +713,8 @@
         (gethash #\* *binop-precedence*) 40)
   (llvm:with-objects ((*builder* 'llvm:builder)
                       (*module* 'llvm:module :name "my cool jit")
-                      (*execution-engine* 'llvm:execution-engine :module *module*)
+                      (*execution-engine* 'llvm:execution-engine
+                                          :module *module*)
                       (*fpm* 'llvm:function-pass-manager :module *module*))
     (llvm:add-target-data (llvm:target-data *execution-engine*) *fpm*)
     (llvm:add-promote-memory-to-register-pass *fpm*)
