@@ -1,6 +1,6 @@
 (in-package :llvm)
 
-(defcfun "LLVMParseBitcodeInContext" :boolean
+(defcfun* "LLVMParseBitcodeInContext" :boolean
   (context context) (mem-buf memory-buffer)
   (out-module (:pointer module)) (out-message (:pointer :string)))
 (defun parse-bitcode (mem-buf &key (context (global-context)))
@@ -10,7 +10,7 @@
       (mem-ref out-module 'module)
       (error 'llvm-error :message out-message))))
 
-(defcfun "LLVMGetBitcodeModuleInContext" :boolean
+(defcfun* "LLVMGetBitcodeModuleInContext" :boolean
   (context context) (mem-buf memory-buffer)
   (out-m (:pointer module)) (out-message (:pointer :string)))
 (defun bitcode-module (mem-buf &key (context (global-context)))

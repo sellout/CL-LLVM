@@ -1,11 +1,11 @@
 (in-package :llvm)
 
-(defcfun "LLVMLinkInJIT" :void)
-(defcfun "LLVMLinkInInterpreter" :void)
+(defcfun* "LLVMLinkInJIT" :void)
+(defcfun* "LLVMLinkInInterpreter" :void)
 
 ;;; operations on generic values
 
-(defcfun "LLVMCreateGenericValueOfInt" generic-value
+(defcfun* "LLVMCreateGenericValueOfInt" generic-value
   (ty type) (n :unsigned-long-long) (is-signed :boolean))
 (defmethod make-instance
            ((class (eql 'generic-value-of-int))
@@ -14,33 +14,33 @@
                  (signedp (error 'required-parameter-error :name 'signedp)))
   (create-generic-value-of-int type value signedp))
 
-(defcfun "LLVMCreateGenericValueOfPointer" generic-value (p (:pointer :void)))
+(defcfun* "LLVMCreateGenericValueOfPointer" generic-value (p (:pointer :void)))
 (defmethod make-instance
            ((class (eql 'generic-value-of-pointer))
             &key (pointer (error 'required-parameter-error :name 'pointer)))
   (create-generic-value-of-pointer pointer))
 
-(defcfun "LLVMCreateGenericValueOfFloat" generic-value (ty type) (n :double))
+(defcfun* "LLVMCreateGenericValueOfFloat" generic-value (ty type) (n :double))
 (defmethod make-instance
            ((class (eql 'generic-value-of-float))
             &key (type (error 'required-parameter-error :name 'type))
                  (value (error 'required-parameter-error :name 'value)))
   (create-generic-value-of-float type value))
 
-(defcfun "LLVMGenericValueIntWidth" :unsigned-int (gen-val generic-value))
+(defcfun* "LLVMGenericValueIntWidth" :unsigned-int (gen-val generic-value))
 
-(defcfun "LLVMGenericValueToInt" :unsigned-long-long
+(defcfun* "LLVMGenericValueToInt" :unsigned-long-long
   (gen-val generic-value) (is-signed :boolean))
 
-(defcfun "LLVMGenericValueToPointer" (:pointer :void) (gen-val generic-value))
+(defcfun* "LLVMGenericValueToPointer" (:pointer :void) (gen-val generic-value))
 
-(defcfun "LLVMGenericValueToFloat" :double (ty type) (gen-val generic-value))
+(defcfun* "LLVMGenericValueToFloat" :double (ty type) (gen-val generic-value))
 
-(defcfun "LLVMDisposeGenericValue" :void (gen-val generic-value))
+(defcfun* "LLVMDisposeGenericValue" :void (gen-val generic-value))
 
 ;;; operations on execution engines
 
-(defcfun "LLVMCreateExecutionEngineForModule" :boolean
+(defcfun* "LLVMCreateExecutionEngineForModule" :boolean
   (out-ee (:pointer execution-engine))
   (m module)
   (out-error (:pointer :string)))
@@ -54,7 +54,7 @@
       (error 'llvm-error :message out-error)
       (mem-ref out-ee 'execution-engine))))
 
-(defcfun "LLVMCreateInterpreterForModule" :boolean
+(defcfun* "LLVMCreateInterpreterForModule" :boolean
   (out-interp (:pointer execution-engine))
   (m module)
   (out-error (:pointer :string)))
@@ -68,7 +68,7 @@
       (error 'llvm-error :message out-error)
       (mem-ref out-interp 'execution-engine))))
 
-(defcfun "LLVMCreateJITCompilerForModule" :boolean
+(defcfun* "LLVMCreateJITCompilerForModule" :boolean
   (out-jit (:pointer execution-engine))
   (m module)
   (opt-level optimization-level)
@@ -84,11 +84,11 @@
       (error 'llvm-error :message out-error)
       (mem-ref out-jit 'execution-engine))))
 
-(defcfun "LLVMDisposeExecutionEngine" :void (ee execution-engine))
+(defcfun* "LLVMDisposeExecutionEngine" :void (ee execution-engine))
 
-(defcfun "LLVMRunStaticConstructors" :void (ee execution-engine))
+(defcfun* "LLVMRunStaticConstructors" :void (ee execution-engine))
 
-(defcfun "LLVMRunStaticDestructors" :void (ee execution-engine))
+(defcfun* "LLVMRunStaticDestructors" :void (ee execution-engine))
 
 ;; FIXME: not sure how to handle the env-p parameter
 (defcfun (%run-function-as-main "LLVMRunFunctionAsMain") :int
@@ -103,9 +103,9 @@
 (defun run-function (ee f args)
   (%run-function ee f (length args) args))
 
-(defcfun "LLVMFreeMachineCodeForFunction" :void (ee execution-engine) (f value))
+(defcfun* "LLVMFreeMachineCodeForFunction" :void (ee execution-engine) (f value))
 
-(defcfun "LLVMAddModule" :void (ee execution-engine) (m module))
+(defcfun* "LLVMAddModule" :void (ee execution-engine) (m module))
 
 (defcfun (%remove-module "LLVMRemoveModule") :boolean
   (ee execution-engine) (m module)
@@ -127,7 +127,7 @@
 (defcfun (target-data "LLVMGetExecutionEngineTargetData") target-data
   (ee execution-engine))
 
-(defcfun "LLVMAddGlobalMapping" :void
+(defcfun* "LLVMAddGlobalMapping" :void
   (ee execution-engine) (global value) (addr (:pointer :void)))
 
 (defcfun (pointer-to-global "LLVMGetPointerToGlobal") (:pointer :void)

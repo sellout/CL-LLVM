@@ -30,7 +30,7 @@
        (with-objects ,(cdr bindings)
          ,@body))))
 
-(defcfun "LLVMDisposeMessage" :void (message (:pointer :char)))
+(defcfun* "LLVMDisposeMessage" :void (message (:pointer :char)))
 
 (define-condition llvm-error (error)
   ((message-string :reader message))

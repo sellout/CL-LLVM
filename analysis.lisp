@@ -13,5 +13,5 @@
 (defun verify-function (fn)
   (not (%verify-function fn :return-status)))
 
-(defcfun "LLVMViewFunctionCFG" :void (fn value))
-(defcfun "LLVMViewFunctionCFGOnly" :void (fn value))
+(defcfun* "LLVMViewFunctionCFG" :void (fn value))
+(defcfun* "LLVMViewFunctionCFGOnly" :void (fn value))
