@@ -3,8 +3,8 @@
 
 (in-package :llvm-system)
 
-;;; NOTE: before this will work, you need to have LLVM installed (and don't forget
-;;;       to build the shared lib with --enable-shared)
+;;; NOTE: before this will work, you need to have LLVM installed (and don't
+;;;       forget to build the shared lib with --enable-shared)
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (oos 'load-op 'cffi-grovel))
@@ -16,7 +16,7 @@
                      hopefully intuitive) to use them in Common Lisp."
   :license "undecided"
   :author "Greg Pfeil <greg@technomadic.org>"
-  :depends-on (cffi cffi-grovel waaf-cffi)
+  :depends-on (cffi cffi-grovel waaf-cffi trivial-features)
   ;;:pathname "source"
   :components
   ((:file "package")

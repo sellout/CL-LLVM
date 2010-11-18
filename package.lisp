@@ -153,6 +153,9 @@
            #:write-bitcode-to-file-handle
            #:write-bitcode-to-file
            ;; target
+           ;; NOTE: The individual INITIALIZE-*-TARGET[-INFO] functions are also
+           ;;       exported, but they are created dynamically, and exported at
+           ;;       the point of creation (see target.lisp)
            #:initialize-all-target-infos
            #:initialize-all-targets
            #:initialize-native-target

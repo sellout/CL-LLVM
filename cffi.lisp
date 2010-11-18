@@ -48,6 +48,7 @@
 ;; FIXME: this should really handle arbitrary mappings:
 ;;        Ptr->pointer, Get->"", Var->variable, etc.
 (let ((special-words '("ABI"
+                       "ARM"
                        "CFG"
                        "DCE"
                        "FP80" "FP128"
@@ -57,10 +58,15 @@
                        "Int8" "Int16" "Int1" "Int32" "Int64"
                        "JIT"
                        "LICM"
+                       "MSIL"
+                       "MSP430"
                        "NSW"
                        "NUW"
+                       "PIC16"
+                       "PowerPC"
                        "SCCP"
                        "SI"
+                       "SPU"
                        "STDIN"
                        "UI"
                        "VA"
