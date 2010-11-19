@@ -90,26 +90,14 @@
   (make-instance 'carray :value-type value-type :capacity capacity))
 
 (defmethod translate-to-foreign (object (type carray))
-  (if (and (capacity type) (/= (capacity type) (length object)))
-    (error "Not the correct array length")
-    (let ((array (coerce object 'array)))
-      (funcall (first (waaf-cffi::%get-transformation-function-pair (array-element-type array)
-                                                                    (value-type type)
-                                                                    nil))
-               array nil nil t))))
+  (foreign-alloc (value-type type)
+                 :initial-contents object :count (length object)))
 
 (defmethod translate-from-foreign (pointer (type carray))
-  (let* ((length (or (capacity type)
-                     (loop for i from 0
-                       while (not (null-pointer-p (mem-aref pointer (value-type type)
-                                                            i)))
-                       finally (return i))))
-         (array (make-array length)))
-    (funcall (second (waaf-cffi::%get-transformation-function-pair t
-                                                                   (value-type type)
-                                                                   nil))
-             array pointer 0 length)
-    array))
+  (loop for i from 0
+     for value = (mem-aref pointer (value-type type) i)
+     while (not (null-pointer-p value))
+     collect value))
 
 (defmethod free-translated-object (value (type carray) param)
   (declare (ignore param))
