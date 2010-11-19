@@ -7,8 +7,7 @@
        (unwind-protect (progn ,@body)
          (funcall (case ,class-name
                     (context #'dispose-context)
-                    ;; FIXME: dispose-module causes SIGBUS
-                    (module #'identity) ;#'dispose-module)
+                    (module #'dispose-module)
                     (type-handle #'dispose-type-handle)
                     (builder #'dispose-builder)
                     (memory-buffer #'dispose-memory-buffer)
