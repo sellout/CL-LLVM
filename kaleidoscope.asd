@@ -7,7 +7,8 @@
   :description "A translation of the language created in the LLVM tutorial."
   :depends-on (llvm)
   :pathname "tutorial/"
-  :components ((:file "chapter2")
+  :components ((:file "cffi")
+               (:file "chapter2")
                (:file "chapter3")
                (:file "chapter4")
                (:file "chapter5")

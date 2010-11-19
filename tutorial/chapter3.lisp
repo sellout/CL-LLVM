@@ -336,9 +336,7 @@
 
 ;;; "Library" functions that can be "extern'd" from user code.
 
-(cffi:defcallback putchard :double ((x :double))
-  (cffi:foreign-funcall "putchar" :char x)
-  0)
+;;; NOTE: These functions are defined in kaleidoscope-extern.c
 
 ;;; driver
 
