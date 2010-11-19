@@ -1,8 +1,8 @@
-(defpackage kaleidoscope
+(defpackage kaleidoscope.chapter5
   (:use #:cl) ; would normally use #:llvm, but wanted to make usage clear
   (:export #:toplevel))
 
-(in-package :kaleidoscope)
+(in-package :kaleidoscope.chapter5)
 
 ;;; lexer
 
@@ -34,9 +34,6 @@
                    ((string= *identifier-string* "else") 'tok-else)
                    ((string= *identifier-string* "for") 'tok-for)
                    ((string= *identifier-string* "in") 'tok-in)
-                   ((string= *identifier-string* "binary") 'tok-binary)
-                   ((string= *identifier-string* "unary") 'tok-unary)
-                   ((string= *identifier-string* "var") 'tok-var)
                    (t 'tok-identifier)))
             ((or (digit-char-p last-char) (char= last-char #\.))
              (setf *number-value*
@@ -72,11 +69,6 @@
   ((name :initarg :name :reader name))
   (:documentation "Expression class for referencing a variable, like “a”."))
 
-(defclass unary-expression (expression)
-  ((opcode :initarg :opcode :reader opcode)
-   (operand :initarg :operand :reader operand))
-  (:documentation "Expression class for a unary operator."))
-
 (defclass binary-expression (expression)
   ((operator :initarg :operator :reader operator)
    (lhs :initarg :lhs :reader lhs)
@@ -103,29 +95,13 @@
    (body :initarg :body :reader body))
   (:documentation "Expression class for for/in."))
 
-(defclass var-expression (expression)
-  ((var-names :initarg :var-names :reader var-names)
-   (body :initarg :body :reader body))
-  (:documentation "Expression class for var/in"))
-
 (defclass prototype ()
   ((name :initform "" :initarg :name :reader name)
-   (arguments :initform (make-array 0) :initarg :arguments :reader arguments)
-   (operatorp :initform nil :initarg :operatorp :reader operatorp)
-   (precedence :initform 0 :initarg :precedence :reader precedence))
+   (arguments :initform (make-array 0) :initarg :arguments :reader arguments))
   (:documentation
    "This class represents the “prototype” for a function, which captures its
     name, and its argument names (thus implicitly the number of arguments the
     function takes)."))
-
-(defmethod unary-operator-p ((expression prototype))
-  (and (operatorp expression) (= (length (arguments expression)) 1)))
-(defmethod binary-operator-p ((expression prototype))
-  (and (operatorp expression) (= (length (arguments expression)) 2)))
-
-(defmethod operator-name ((expression prototype))
-  (assert (or (unary-operator-p expression) (binary-operator-p expression)))
-  (elt (name expression) (1- (length (name expression)))))
 
 (defclass function-definition ()
   ((prototype :initarg :prototype :reader prototype)
@@ -228,33 +204,6 @@
                     :var-name id-name :start start :end end :step step
                     :body body))))))))))
 
-(defun parse-var-expression ()
-  (get-next-token)
-  (unless (eql *current-token* 'tok-identifier)
-    (error 'kaleidoscope-error :message "expected identifier after var"))
-  (let ((var-names (loop
-                     for name = *identifier-string*
-                     for init = nil
-                     do (get-next-token)
-                        (when (eql *current-token* #\=)
-                          (get-next-token)
-                          (setf init (parse-expression))
-                          (unless init
-                            (return-from parse-var-expression)))
-                     collecting (cons name init)
-                     while (eql *current-token* #\,)
-                     do (get-next-token)
-                        (unless (eql *current-token* 'tok-identifier)
-                          (error 'kaleidoscope-error
-                                 :message
-                                 "expected identifier list after var")))))
-    (unless (eql *current-token* 'tok-in)
-      (error 'kaleidoscope-error :message "expected 'in' keyword after 'var'"))
-    (get-next-token)
-    (let ((body (parse-expression)))
-      (when body
-        (make-instance 'var-expression :var-names var-names :body body)))))
-
 (defun parse-primary ()
   (case *current-token*
     (tok-identifier (parse-identifier-expression))
@@ -262,21 +211,8 @@
     (#\( (parse-paren-expression))
     (tok-if (parse-if-expression))
     (tok-for (parse-for-expression))
-    (tok-var (parse-var-expression))
     (otherwise (error 'kaleidoscope-error
                       :message "unknown token when expecting an expression"))))
-
-(defun parse-unary ()
-  ;; If the current token is not an operator, it must be a primary expr.
-  (if (or (not (characterp *current-token*))
-          (find *current-token* '(#\( #\,)))
-    (parse-primary)
-    ;; If this is a unary operator, read it.
-    (let ((opcode *current-token*))
-      (get-next-token)
-      (let ((operand (parse-unary)))
-        (when operand
-          (make-instance 'unary-expression :opcode opcode :operand operand))))))
 
 (defun parse-bin-op-rhs (expression-precedence lhs)
   (do () ()
@@ -285,8 +221,7 @@
         (return-from parse-bin-op-rhs lhs)
         (let ((binary-operator *current-token*))
           (get-next-token)
-          (let ((rhs ; NOTE: before chapter 6: (parse-primary)
-                 (parse-unary)))
+          (let ((rhs (parse-primary)))
             (when rhs
               (let ((next-precedence (get-precedence *current-token*)))
                 (when (< token-precedence next-precedence)
@@ -299,55 +234,27 @@
                       :lhs lhs :rhs rhs)))))))))
 
 (defun parse-expression ()
-  (let ((lhs ; NOTE: before chapter 6: (parse-primary)
-         (parse-unary)))
+  (let ((lhs (parse-primary)))
     (when lhs
       (parse-bin-op-rhs 0 lhs))))
 
 (defun parse-prototype ()
   "prototype
-     ::= id '(' id* ')'
-     ::= binary LETTER number? (id, id)
-     ::= unary LETTER (id)"
-  (let ((function-name)
-        (operator-arity nil)
-        (binary-precedence 30))
-    (case *current-token*
-      (tok-identifier (setf function-name *identifier-string*))
-      (tok-unary
-       (get-next-token)
-       (unless (characterp *current-token*)
-         (error 'kaleidoscope-error :message "Expected unary operator"))
-       (setf function-name (format nil "unary~a" *current-token*)
-             operator-arity 1))
-      (tok-binary
-       (get-next-token)
-       (unless (characterp *current-token*)
-         (error 'kaleidoscope-error :message "Expected binary operator"))
-       (setf function-name (format nil "binary~a" *current-token*)
-             operator-arity 2)
-       (get-next-token)
-       (when (eql *current-token* 'tok-number)
-         (unless (<= 1 *number-value* 100)
-           (error 'kaleidoscope-error
-                  :message "Invalid precedence: must be 1..100"))
-         (setf binary-precedence *number-value*)))
-      (otherwise (error 'kaleidoscope-error
-                        :message "Expected function name in prototype")))
-    (unless (eql (get-next-token) #\()
-      (error 'kaleidoscope-error :message "Expected '(' in prototype"))
-    (let ((arg-names (coerce (loop while (eql (get-next-token) 'tok-identifier)
-                               collecting *identifier-string*)
-                             'vector)))
-      (unless (eql *current-token* #\))
-        (error 'kaleidoscope-error :message "Expected ')' in prototype"))
-      (get-next-token)
-      (when (and operator-arity (/= (length arg-names) operator-arity))
-        (error 'kaleidoscope-error
-               :message "Invalid number of operands for operator"))
-      (make-instance 'prototype
-        :name function-name :arguments arg-names
-        :operatorp operator-arity :precedence binary-precedence))))
+     ::= id '(' id* ')'"
+  (if (eql *current-token* 'tok-identifier)
+      (let ((function-name *identifier-string*))
+        (unless (eql (get-next-token) #\()
+          (error 'kaleidoscope-error :message "Expected '(' in prototype"))
+        (let ((arg-names (coerce (loop while (eql (get-next-token)
+                                                  'tok-identifier)
+                                    collecting *identifier-string*)
+                                 'vector)))
+          (unless (eql *current-token* #\))
+            (error 'kaleidoscope-error :message "Expected ')' in prototype"))
+          (get-next-token)
+          (make-instance 'prototype :name function-name :arguments arg-names)))
+      (error 'kaleidoscope-error
+             :message "Expected function name in prototype")))
 
 (defun parse-definition ()
   (get-next-token) ; eat def
@@ -374,67 +281,33 @@
 
 (defvar *module*)
 (defvar *builder*)
-(defvar *named-values* (make-hash-table :test #'equal))
+(defvar *named-values*)
 (defvar *fpm*)
-
-(defun create-entry-block-alloca (function var-name)
-  "Create an alloca instruction in the entry block of the function. This is used
-   for mutable variables etc."
-  (let ((tmp-b (make-instance 'llvm:builder)))
-    ;; FIXME: this doesn't set the proper insertion point
-    (llvm:position-builder tmp-b (llvm:entry-basic-block function))
-    (llvm:build-alloca tmp-b (llvm:double-type) var-name)))
 
 (defmethod codegen ((expression number-expression))
   (llvm:const-real (llvm:double-type) (value expression)))
 
 (defmethod codegen ((expression variable-expression))
   (let ((v (gethash (name expression) *named-values*)))
-    (unless v
-      (error 'kaleidoscope-error :message "unknown variable name"))
-    ; NOTE: before chapter 7: v
-    (llvm:build-load *builder* v (name expression))))
-
-(defmethod codegen ((expression unary-expression))
-  (let ((operand-v (codegen (operand expression))))
-    (when operand-v
-      (let ((f (llvm:named-function *module*
-                                    (format nil "unary~a"
-                                            (opcode expression)))))
-        (unless f
-          (error 'kaleidoscope-error :message "Unknown unary operator"))
-        (llvm:build-call *builder* f (list operand-v) "unop")))))
+    (or v
+        (error 'kaleidoscope-error :message "unknown variable name"))))
 
 (defmethod codegen ((expression binary-expression))
-  (if (eql (operator expression) #\=)
-    ;; TODO: can we typecheck (lhs expression) here?
-    (let ((lhse (lhs expression))
-          (val (codegen (rhs expression))))
-      (when val
-        (let ((variable (gethash (name lhse) *named-values*)))
-          (unless variable
-            (error 'kaleidoscope-error :message "Unknown variable name"))
-          (llvm:build-store *builder* val variable)
-          val)))
-    (let ((l (codegen (lhs expression)))
-          (r (codegen (rhs expression))))
-      (when (and l r)
-        (case (operator expression)
-          (#\+ (llvm:build-f-add *builder* l r "addtmp"))
-          (#\- (llvm:build-f-sub *builder* l r "subtmp"))
-          (#\* (llvm:build-f-mul *builder* l r "multmp"))
-          (#\< (llvm:build-ui-to-fp *builder*
-                                    (llvm:build-f-cmp *builder*
-                                                      :unordered-< l r
-                                                      "cmptmp")
-                                    (llvm:double-type)
-                                    "booltmp"))
-          (otherwise ; NOTE: pre-chapter 6: (error "invalid binary operators")
-           (let ((f (llvm:named-function *module*
-                                         (format nil "binary~a"
-                                                 (operator expression)))))
-             (assert f () "binary operator not found!")
-             (llvm:build-call *builder* f (list l r) "binop"))))))))
+  (let ((l (codegen (lhs expression)))
+        (r (codegen (rhs expression))))
+    (when (and l r)
+      (case (operator expression)
+        (#\+ (llvm:build-f-add *builder* l r "addtmp"))
+        (#\- (llvm:build-f-sub *builder* l r "subtmp"))
+        (#\* (llvm:build-f-mul *builder* l r "multmp"))
+        (#\< (llvm:build-ui-to-fp *builder*
+                                  (llvm:build-f-cmp *builder*
+                                                    :unordered-< l r
+                                                    "cmptmp")
+                                  (llvm:double-type)
+                                  "booltmp"))
+        (otherwise (error 'kaleidoscope-error
+                          :message "invalid binary operators"))))))
 
 (defmethod codegen ((expression call-expression))
   (let ((callee (llvm:named-function *module* (callee expression))))
@@ -485,12 +358,8 @@
                   pn)))))))))
 
 (defmethod codegen ((expression for-expression))
-  (let ((alloca (create-entry-block-alloca (llvm:basic-block-parent
-                                            (llvm:insertion-block *builder*))
-                                           (var-name expression)))
-        (start-val (codegen (start expression))))
+  (let ((start-val (codegen (start expression))))
     (when start-val
-      (llvm:build-store *builder* start-val alloca)
       ;; Make the new basic block for the loop header, inserting after current
       ;; block.
       (let* ((preheader-bb (llvm:insertion-block *builder*))
@@ -509,17 +378,12 @@
                                 (codegen (step* expression))
                                 (llvm:const-real (llvm:double-type) 1))))
                 (when step-val
-                  (let ((next-var (llvm:build-add *builder*
-                                                  variable step-val "nextvar"))
+                  (let ((next-var (llvm:build-f-add *builder*
+                                                    variable
+                                                    step-val
+                                                    "nextvar"))
                         (end-cond (codegen (end expression))))
                     (when end-cond
-                      (llvm:build-store
-                       *builder*
-                       (llvm:build-add *builder*
-                                       (llvm:build-load *builder* alloca "")
-                                       step-val
-                                       "nextvar")
-                       alloca)
                       (setf end-cond
                             (llvm:build-f-cmp *builder*
                                               :/=
@@ -542,90 +406,37 @@
                         ;; for expr always returns 0.
                         (llvm:const-null (llvm:double-type))))))))))))))
 
-(defmethod codegen ((expression var-expression))
-  (let* ((function (llvm:basic-block-parent (llvm:insertion-block *builder*)))
-         (old-bindings (map 'vector
-                            (lambda (var-binding)
-                              (destructuring-bind (var-name . init) var-binding
-                                (let ((alloca
-                                       (create-entry-block-alloca function
-                                                                  var-name)))
-                                  (llvm:build-store *builder*
-                                                    (if init
-                                                      ;; FIXME: handle error
-                                                      (codegen init)
-                                                      (llvm:const-real
-                                                       (llvm:double-type)
-                                                       0))
-                                                    alloca)
-                                  (prog1 (gethash var-name *named-values*)
-                                    (setf (gethash var-name *named-values*)
-                                          alloca)))))
-                            (var-names expression)))
-         (body-val (codegen (body expression))))
-    (when body-val
-      (map 'vector
-           (lambda (var-binding old-binding)
-             (setf (gethash (car var-binding) *named-values*) old-binding))
-           (var-names expression) old-bindings)
-      body-val)))
-             
-
 (defmethod codegen ((expression prototype))
-  (let ((function (llvm:add-function
-                   *module*
-                   (name expression)
-                   (llvm:function-type
-                    (llvm:double-type)
-                    (make-array (length (arguments expression))
-                                :initial-element (llvm:double-type))))))
+  (let* ((doubles (make-array (length (arguments expression))
+                              :initial-element (llvm:double-type)))
+         (f-type (llvm:function-type (llvm:double-type) doubles))
+         (function (llvm:add-function *module* (name expression) f-type)))
     ;; If F conflicted, there was already something named 'Name'.  If it has a
     ;; body, don't allow redefinition or reextern.
     (when (not (string= (llvm:value-name function) (name expression)))
       (llvm:delete-function function)
-      (setf function (llvm:named-function *module* (name expression)))
-      (if (= (llvm:count-basic-blocks function) 0)
+      (setf function (llvm:named-function *module* (name expression))))
+    (if (= (llvm:count-basic-blocks function) 0)
         (if (= (llvm:count-params function) (length (arguments expression)))
-          (progn
-            (map 'vector
-                 (lambda (param argument)
-                   (setf (llvm:value-name param) argument
-                         (gethash argument *named-values*) param))
-                 (llvm:params function)
-                 (arguments expression))
-            function)
-          (error 'kaleidoscope-error
-                 :message "redefinition of function with different # args"))
-        (error 'kaleidoscope-error :message "redefinition of function")))
-    ;; Set names for all arguments.
-    (map nil
-         (lambda (argument name)
-           (setf (llvm:value-name argument) name
-                 (gethash name *named-values*) argument))
-         (llvm:params function)
-         (arguments expression))
+            (when (boundp '*named-values*)
+              ;; Set names for all arguments.
+              (map nil
+                   (lambda (argument name)
+                     (setf (llvm:value-name argument) name
+                           (gethash name *named-values*) argument))
+                   (llvm:params function)
+                   (arguments expression)))
+            (error 'kaleidoscope-error
+                   :message "redefinition of function with different # args"))
+        (error 'kaleidoscope-error :message "redefinition of function"))
     function))
 
-(defmethod create-argument-allocas ((expression prototype) f)
-  (map nil
-       (lambda (parameter argument)
-         (let ((alloca (create-entry-block-alloca f argument)))
-           (llvm:build-store *builder* parameter alloca)
-           (setf (gethash argument *named-values*) alloca)))
-       (llvm:params f) (arguments expression)))
-
 (defmethod codegen ((expression function-definition))
-  (clrhash *named-values*)
-  (let ((function (codegen (prototype expression))))
+  (let* ((*named-values* (make-hash-table :test #'equal))
+         (function (codegen (prototype expression))))
     (when function
-      ;; If this is an operator, install it.
-      (when (binary-operator-p (prototype expression))
-        (setf (gethash (operator-name (prototype expression))
-                       *binop-precedence*)
-              (precedence (prototype expression))))
       (llvm:position-builder-at-end *builder*
                                     (llvm:append-basic-block function "entry"))
-      (create-argument-allocas (prototype expression) function)
       (let ((retval (codegen (body expression))))
         (if retval
           (progn
@@ -661,21 +472,21 @@
 
 (defun handle-top-level-expression ()
   "Evaluate a top-level expression into an anonymous function."
-  (let ((function (parse-top-level-expression)))
-    (if function
-      (let ((lf (codegen function)))
-        (when lf
-          (llvm:dump-value lf)
-          (let ((ptr (llvm:pointer-to-global *execution-engine* lf)))
-            (format *error-output* "Evaluated to ~f"
-                    ;; NOTE: The C version of the tutorial only has the JIT side
-                    ;;       of this, so if you have an interpreter, it breaks.
-                    (if (eql ptr lf) ; we have an interpreter
-                      (llvm:generic-value-to-float
-                       (llvm:double-type)
-                       (llvm:run-function *execution-engine* ptr ()))
-                      (cffi:foreign-funcall-pointer ptr () :double))))))
-      (get-next-token))))
+  (handler-case 
+      (let* ((lf (codegen (parse-top-level-expression)))
+             (ptr (llvm:pointer-to-global *execution-engine* lf)))
+        (llvm:dump-value lf)
+        (format *error-output* "Evaluated to ~f"
+                ;; NOTE: The C version of the tutorial only has the JIT side
+                ;;       of this, so if you have an interpreter, it breaks.
+                (if (eql ptr lf)        ; we have an interpreter
+                    (llvm:generic-value-to-float
+                     (llvm:double-type)
+                     (llvm:run-function *execution-engine* ptr ()))
+                    (cffi:foreign-funcall-pointer ptr () :double))))
+    (kaleidoscope-error (e)
+      (get-next-token)
+      (format *error-output* "error: ~a~%" e))))
 
 (define-condition kaleidoscope-error (error)
   ((message :initarg :message :reader message))
@@ -701,13 +512,10 @@
 ;;; driver
 
 (defun toplevel ()
-  ;; NOTE: The C version of the tutorial doesn't initialize any target, but
-  ;;       expects that a JIT is created. I think it's just out of date.
   (llvm:initialize-native-target)
   ;; install standard binary operators
   ;; 1 is lowest precedence
-  (setf (gethash #\= *binop-precedence*) 2
-        (gethash #\< *binop-precedence*) 10
+  (setf (gethash #\< *binop-precedence*) 10
         (gethash #\+ *binop-precedence*) 20
         (gethash #\- *binop-precedence*) 30
         (gethash #\* *binop-precedence*) 40)
@@ -717,7 +525,6 @@
                                           :module *module*)
                       (*fpm* 'llvm:function-pass-manager :module *module*))
     (llvm:add-target-data (llvm:target-data *execution-engine*) *fpm*)
-    (llvm:add-promote-memory-to-register-pass *fpm*)
     (llvm:add-instruction-combining-pass *fpm*)
     (llvm:add-reassociate-pass *fpm*)
     (llvm:add-gvn-pass *fpm*)

@@ -41,8 +41,3 @@
                          (cffi-grovel:grovel-file "target-grovel")
                          (:file "target" :depends-on ("target-grovel"))
                          (:file "scalar-transforms")))))
-
-(defsystem kaleidoscope
-  :description "A translation of the language created in the LLVM tutorial."
-  :depends-on (llvm)
-  :components ((:file "kaleidoscope")))
