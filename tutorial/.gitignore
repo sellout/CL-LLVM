@@ -1,0 +1,13 @@
+.deps
+.libs
+Makefile
+Makefile.in
+aclocal.m4
+autom4te.cache/
+config.log
+config.status
+configure
+kaleidoscope-extern.lo
+kaleidoscope-extern.o
+libkaleidoscope.la
+libtool
