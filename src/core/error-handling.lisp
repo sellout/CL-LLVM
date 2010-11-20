@@ -7,7 +7,7 @@
        (unwind-protect (progn ,@body)
          (funcall (case ,class-name
                     (context #'dispose-context)
-                    (module #'dispose-module)
+                    (module #'identity) ; #'dispose-module
                     (type-handle #'dispose-type-handle)
                     (builder #'dispose-builder)
                     (memory-buffer #'dispose-memory-buffer)
