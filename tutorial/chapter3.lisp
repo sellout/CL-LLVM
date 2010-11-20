@@ -305,7 +305,7 @@
     (if prototype
         (let ((function (codegen prototype)))
           (when function
-            (format *error-output* "Read extern: ~%")
+            (format *error-output* "Read extern: ")
             (llvm:dump-value function)))
         (get-next-token))))
 
@@ -313,7 +313,7 @@
   "Evaluate a top-level expression into an anonymous function."
   (handler-case 
       (let ((lf (codegen (parse-top-level-expression))))
-        (format *error-output* "Read top-level expression: ~%")
+        (format *error-output* "Read top-level expression:")
         (llvm:dump-value lf))
     (kaleidoscope-error (e)
       (get-next-token)

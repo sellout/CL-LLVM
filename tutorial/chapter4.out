@@ -1,0 +1,116 @@
+ready> 
+ready> 
+define double @0() {
+entry:
+  ret double 9.000000e+00
+}
+
+Evaluated to 9.0D0
+ready> 
+ready> Read function definition:
+define double @testfunc(double %x, double %y) {
+entry:
+  %multmp = fmul double %y, 2.000000e+00          ; <double> [#uses=1]
+  %addtmp = fadd double %multmp, %x               ; <double> [#uses=1]
+  ret double %addtmp
+}
+
+
+ready> 
+ready> 
+define double @1() {
+entry:
+  %calltmp = call double @testfunc(double 4.000000e+00, double 1.000000e+01) ; <double> [#uses=1]
+  ret double %calltmp
+}
+
+Evaluated to 24.0D0
+ready> 
+ready> Read extern: 
+declare double @sin(double)
+
+
+ready> 
+ready> Read extern: 
+declare double @cos(double)
+
+
+ready> 
+ready> 
+define double @2() {
+entry:
+  ret double 0x3FEAED548F090CEE
+}
+
+Evaluated to 0.8414709848078965D0
+ready> 
+ready> Read function definition:
+define double @foo(double %x) {
+entry:
+  %calltmp = call double @sin(double %x)          ; <double> [#uses=1]
+  %calltmp1 = call double @sin(double %x)         ; <double> [#uses=1]
+  %multmp = fmul double %calltmp, %calltmp1       ; <double> [#uses=1]
+  %calltmp2 = call double @cos(double %x)         ; <double> [#uses=1]
+  %calltmp3 = call double @cos(double %x)         ; <double> [#uses=1]
+  %multmp4 = fmul double %calltmp2, %calltmp3     ; <double> [#uses=1]
+  %addtmp = fadd double %multmp, %multmp4         ; <double> [#uses=1]
+  ret double %addtmp
+}
+
+
+ready> 
+ready> 
+define double @3() {
+entry:
+  %calltmp = call double @foo(double 4.000000e+00) ; <double> [#uses=1]
+  ret double %calltmp
+}
+
+Evaluated to 1.0D0
+ready> ; ModuleID = 'my cool jit'
+
+define double @0() {
+entry:
+  ret double 9.000000e+00
+}
+
+define double @testfunc(double %x, double %y) {
+entry:
+  %multmp = fmul double %y, 2.000000e+00          ; <double> [#uses=1]
+  %addtmp = fadd double %multmp, %x               ; <double> [#uses=1]
+  ret double %addtmp
+}
+
+define double @1() {
+entry:
+  %calltmp = call double @testfunc(double 4.000000e+00, double 1.000000e+01) ; <double> [#uses=1]
+  ret double %calltmp
+}
+
+declare double @sin(double)
+
+declare double @cos(double)
+
+define double @2() {
+entry:
+  ret double 0x3FEAED548F090CEE
+}
+
+define double @foo(double %x) {
+entry:
+  %calltmp = call double @sin(double %x)          ; <double> [#uses=1]
+  %calltmp1 = call double @sin(double %x)         ; <double> [#uses=1]
+  %multmp = fmul double %calltmp, %calltmp1       ; <double> [#uses=1]
+  %calltmp2 = call double @cos(double %x)         ; <double> [#uses=1]
+  %calltmp3 = call double @cos(double %x)         ; <double> [#uses=1]
+  %multmp4 = fmul double %calltmp2, %calltmp3     ; <double> [#uses=1]
+  %addtmp = fadd double %multmp, %multmp4         ; <double> [#uses=1]
+  ret double %addtmp
+}
+
+define double @3() {
+entry:
+  %calltmp = call double @foo(double 4.000000e+00) ; <double> [#uses=1]
+  ret double %calltmp
+}
+

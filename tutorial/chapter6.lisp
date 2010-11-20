@@ -546,7 +546,7 @@
     (if prototype
       (let ((function (codegen prototype)))
         (when function
-          (format *error-output* "Read extern: ~%")
+          (format *error-output* "Read extern: ")
           (llvm:dump-value function)))
       (get-next-token))))
 
@@ -555,7 +555,6 @@
   (handler-case 
       (let* ((lf (codegen (parse-top-level-expression)))
              (ptr (llvm:pointer-to-global *execution-engine* lf)))
-        (llvm:dump-value lf)
         (format *error-output* "Evaluated to ~f"
                 ;; NOTE: The C version of the tutorial only has the JIT side
                 ;;       of this, so if you have an interpreter, it breaks.

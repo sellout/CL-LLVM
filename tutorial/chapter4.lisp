@@ -308,7 +308,7 @@
     (if prototype
       (let ((function (codegen prototype)))
         (when function
-          (format *error-output* "Read extern: ~%")
+          (format *error-output* "Read extern: ")
           (llvm:dump-value function)))
       (get-next-token))))
 

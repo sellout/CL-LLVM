@@ -1,0 +1,138 @@
+ready> 
+ready> Read function definition:
+define double @fib(double %x) {
+entry:
+  %cmptmp = fcmp ult double %x, 3.000000e+00      ; <i1> [#uses=1]
+  br i1 %cmptmp, label %ifcont, label %else
+
+else:                                             ; preds = %entry
+  %subtmp = fadd double %x, -1.000000e+00         ; <double> [#uses=1]
+  %calltmp = call double @fib(double %subtmp)     ; <double> [#uses=1]
+  %subtmp1 = fadd double %x, -2.000000e+00        ; <double> [#uses=1]
+  %calltmp2 = call double @fib(double %subtmp1)   ; <double> [#uses=1]
+  %addtmp = fadd double %calltmp, %calltmp2       ; <double> [#uses=1]
+  ret double %addtmp
+
+ifcont:                                           ; preds = %entry
+  ret double 1.000000e+00
+}
+
+
+ready> 
+ready> Read extern: 
+declare double @foo()
+
+
+ready> 
+ready> Read extern: 
+declare double @bar()
+
+
+ready> 
+ready> Read function definition:
+define double @baz(double %x) {
+entry:
+  %ifcond = fcmp ueq double %x, 0.000000e+00      ; <i1> [#uses=1]
+  br i1 %ifcond, label %else, label %then
+
+then:                                             ; preds = %entry
+  %calltmp = call double @foo()                   ; <double> [#uses=1]
+  ret double %calltmp
+
+else:                                             ; preds = %entry
+  %calltmp1 = call double @bar()                  ; <double> [#uses=1]
+  ret double %calltmp1
+}
+
+
+ready> 
+ready> Read extern: 
+declare double @putchard(double)
+
+
+ready> Read function definition:
+define double @printstar(double %n) {
+entry:
+  br label %loop
+
+loop:                                             ; preds = %loop, %entry
+  %i = phi double [ 1.000000e+00, %entry ], [ %nextvar, %loop ] ; <double> [#uses=2]
+  %calltmp = call double @putchard(double 4.200000e+01) ; <double> [#uses=0]
+  %nextvar = fadd double %i, 1.000000e+00         ; <double> [#uses=1]
+  %cmptmp = fcmp ult double %i, %n                ; <i1> [#uses=1]
+  br i1 %cmptmp, label %loop, label %afterloop
+
+afterloop:                                        ; preds = %loop
+  ret double 0.000000e+00
+}
+
+
+ready> 
+ready> 
+define double @0() {
+entry:
+  %calltmp = call double @printstar(double 1.000000e+02) ; <double> [#uses=1]
+  ret double %calltmp
+}
+
+Evaluated to 0.0D0
+ready> ; ModuleID = 'my cool jit'
+
+define double @fib(double %x) {
+entry:
+  %cmptmp = fcmp ult double %x, 3.000000e+00      ; <i1> [#uses=1]
+  br i1 %cmptmp, label %ifcont, label %else
+
+else:                                             ; preds = %entry
+  %subtmp = fadd double %x, -1.000000e+00         ; <double> [#uses=1]
+  %calltmp = call double @fib(double %subtmp)     ; <double> [#uses=1]
+  %subtmp1 = fadd double %x, -2.000000e+00        ; <double> [#uses=1]
+  %calltmp2 = call double @fib(double %subtmp1)   ; <double> [#uses=1]
+  %addtmp = fadd double %calltmp, %calltmp2       ; <double> [#uses=1]
+  ret double %addtmp
+
+ifcont:                                           ; preds = %entry
+  ret double 1.000000e+00
+}
+
+declare double @foo()
+
+declare double @bar()
+
+define double @baz(double %x) {
+entry:
+  %ifcond = fcmp ueq double %x, 0.000000e+00      ; <i1> [#uses=1]
+  br i1 %ifcond, label %else, label %then
+
+then:                                             ; preds = %entry
+  %calltmp = call double @foo()                   ; <double> [#uses=1]
+  ret double %calltmp
+
+else:                                             ; preds = %entry
+  %calltmp1 = call double @bar()                  ; <double> [#uses=1]
+  ret double %calltmp1
+}
+
+declare double @putchard(double)
+
+define double @printstar(double %n) {
+entry:
+  br label %loop
+
+loop:                                             ; preds = %loop, %entry
+  %i = phi double [ 1.000000e+00, %entry ], [ %nextvar, %loop ] ; <double> [#uses=2]
+  %calltmp = call double @putchard(double 4.200000e+01) ; <double> [#uses=0]
+  %nextvar = fadd double %i, 1.000000e+00         ; <double> [#uses=1]
+  %cmptmp = fcmp ult double %i, %n                ; <i1> [#uses=1]
+  br i1 %cmptmp, label %loop, label %afterloop
+
+afterloop:                                        ; preds = %loop
+  ret double 0.000000e+00
+}
+
+define double @0() {
+entry:
+  %calltmp = call double @printstar(double 1.000000e+02) ; <double> [#uses=1]
+  ret double %calltmp
+}
+
