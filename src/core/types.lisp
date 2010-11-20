@@ -56,8 +56,10 @@
   (function-ty type))
 (defcfun (return-type "LLVMGetReturnType") type (function-ty type))
 (defcfun* "LLVMCountParamTypes" :unsigned-int (function-ty type))
-(defcfun (param-types "LLVMGetParamTypes") :void
-  (function-ty type) (dest (:pointer type)))
+(defcfun* "LLVMGetParamTypes" :void (function-ty type) (dest (:pointer type)))
+(defun param-types (function-ty)
+  (with-pointer-to-list (pointer type (count-param-types function-ty))
+    (get-param-types function-ty pointer)))
 
 (defcfun* "LLVMStructTypeInContext" type
   (c context)
@@ -66,11 +68,15 @@
 (defun struct-type (element-types packed &key (context (global-context)))
   (struct-type-in-context context element-types (length element-types) packed))
 (defcfun* "LLVMCountStructElementTypes" :unsigned-int (struct-ty type))
-(defcfun (struct-element-types "LLVMGetStructElementTypes") :void
+(defcfun* "LLVMGetStructElementTypes" :void
   (struct-ty type) (dest (:pointer type)))
+(defun struct-element-types (struct-ty)
+  (with-pointer-to-list (pointer type (count-struct-element-types struct-ty))
+    (get-struct-element-types struct-ty pointer)))
 (defcfun (packed-struct-p "LLVMIsPackedStruct") :boolean (struct-ty type))
 
-(defcfun* "LLVMArrayType" type (element-type type) (element-count :unsigned-int))
+(defcfun* "LLVMArrayType" type
+  (element-type type) (element-count :unsigned-int))
 (defcfun* "LLVMPointerType" type
   (element-type type) (address-space :unsigned-int))
 (defcfun* "LLVMVectorType" type

@@ -50,14 +50,7 @@ afterloop:                                        ; preds = %loop
 
 
 ready> 
-ready> 
-define double @0() {
-entry:
-  %calltmp = call double @fibi(double 1.000000e+01) ; <double> [#uses=1]
-  ret double %calltmp
-}
-
-Evaluated to 55.0D0
+ready> Evaluated to 55.0D0
 ready> ; ModuleID = 'my cool jit'
 
 define double @"binary:"(double %x, double %y) {

@@ -28,7 +28,7 @@
 (defcfun* "LLVMBuildRetVoid" value (builder builder))
 (defcfun (%build-ret "LLVMBuildRet") value (builder builder) (v value))
 (defcfun* "LLVMBuildAggregateRet" value
-  (builder builder) (ret-vals (:pointer value)) (n :unsigned-int))
+  (builder builder) (ret-vals (carray value)) (n :unsigned-int))
 (defun build-ret (builder &rest values)
   (case (length values)
     (0 (build-ret-void builder))
@@ -115,13 +115,13 @@
 (defcfun* "LLVMBuildStore" value (builder builder) (val value) (ptr value))
 (defcfun (%build-gep "LLVMBuildGEP") value
   (b builder)
-  (pointer value) (indices (:pointer value)) (num-indices :unsigned-int)
+  (pointer value) (indices (carray value)) (num-indices :unsigned-int)
   (name :string))
 (defun build-gep (b pointer indices name)
   (%build-gep b pointer indices (length indices) name))
 (defcfun (%build-in-bounds-gep "LLVMBuildInBoundsGEP") value
   (b builder)
-  (pointer value) (indices (:pointer value)) (num-indices :unsigned-int)
+  (pointer value) (indices (carray value)) (num-indices :unsigned-int)
   (name :string))
 (defun build-in-bounds-gep (b pointer indices name)
   (%build-in-bounds-gep b pointer indices (length indices) name))

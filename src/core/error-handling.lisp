@@ -89,18 +89,30 @@
   (make-instance 'carray :value-type value-type :capacity capacity))
 
 (defmethod translate-to-foreign (object (type carray))
+  ;; FIXME: should really make this null-terminated, but the actual null value
+  ;;        (0 or +null-pointer+) depends on the value-type.
   (foreign-alloc (value-type type)
-                 :initial-contents object :count (length object)))
+                 :initial-contents object
+                 :count (or (capacity type) (length object))))
 
 (defmethod translate-from-foreign (pointer (type carray))
-  (loop for i from 0
-     for value = (mem-aref pointer (value-type type) i)
-     while (not (null-pointer-p value))
-     collect value))
+  (if (capacity type)
+      (loop for i from 0 to (capacity type)
+         for value = (mem-aref pointer (value-type type) i)
+         collect value)
+      (loop for i from 0
+         for value = (mem-aref pointer (value-type type) i)
+         while (not (null-pointer-p value))
+         collect value)))
 
 (defmethod free-translated-object (value (type carray) param)
   (declare (ignore param))
   (foreign-free value))
+
+(defmacro with-pointer-to-list ((pointer-var type length) &body body)
+  `(with-foreign-object (,pointer-var ',type ,length)
+     ,@body
+     (convert-from-foreign ,pointer-var `(carray ,',type))))
 
 ;;; optimization-level should be a cenum, but only exists in C++.
 

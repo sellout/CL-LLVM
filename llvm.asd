@@ -25,12 +25,18 @@
             :depends-on ("package" "cffi")
             :components ((cffi-grovel:grovel-file "grovel")
                          (:file "error-handling" :depends-on ("grovel"))
-                         (:file "modules" :depends-on ("grovel"))
-                         (:file "types" :depends-on ("grovel" "modules"))
-                         (:file "values" :depends-on ("grovel" "modules"))
-                         (:file "instruction-builders" :depends-on ("grovel"))
-                         (:file "memory-buffers" :depends-on ("grovel"))
-                         (:file "pass-managers" :depends-on ("grovel"))))
+                         (:file "modules"
+                                :depends-on ("grovel" "error-handling"))
+                         (:file "types"
+                                :depends-on ("grovel" "modules" "error-handling"))
+                         (:file "values"
+                                :depends-on ("grovel" "modules" "error-handling"))
+                         (:file "instruction-builders"
+                                :depends-on ("grovel" "error-handling"))
+                         (:file "memory-buffers"
+                                :depends-on ("grovel" "error-handling"))
+                         (:file "pass-managers"
+                                :depends-on ("grovel" "error-handling"))))
    (:module "" :pathname ""
             :depends-on ("package" "cffi" "core")
             :components ((cffi-grovel:grovel-file "analysis-grovel")

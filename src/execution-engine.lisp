@@ -80,7 +80,10 @@
             (optimization-level :default))
   (with-foreign-objects ((out-jit '(:pointer execution-engine))
                          (out-error '(:pointer :string)))
-    (if (create-jit-compiler-for-module out-jit module optimization-level out-error)
+    (if (create-jit-compiler-for-module out-jit
+                                        module
+                                        optimization-level
+                                        out-error)
       (error 'llvm-error :message out-error)
       (mem-ref out-jit 'execution-engine))))
 
@@ -90,10 +93,11 @@
 
 (defcfun* "LLVMRunStaticDestructors" :void (ee execution-engine))
 
-;; FIXME: not sure how to handle the env-p parameter
 (defcfun (%run-function-as-main "LLVMRunFunctionAsMain") :int
   (ee execution-engine) (f value)
-  (arg-c :unsigned-int) (arg-v (carray :string)) (env-p (:pointer :string)))
+  (arg-c :unsigned-int) (arg-v (:pointer (carray :string)))
+  (env-p (:pointer (carray :string))))
+;; FIXME: Not handling args and env properly here
 (defun run-function-as-main (execution-engine function args env)
   (%run-function-as-main execution-engine function (length args) args env))
 
@@ -103,7 +107,8 @@
 (defun run-function (ee f args)
   (%run-function ee f (length args) args))
 
-(defcfun* "LLVMFreeMachineCodeForFunction" :void (ee execution-engine) (f value))
+(defcfun* "LLVMFreeMachineCodeForFunction" :void
+  (ee execution-engine) (f value))
 
 (defcfun* "LLVMAddModule" :void (ee execution-engine) (m module))
 

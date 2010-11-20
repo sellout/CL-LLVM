@@ -39,16 +39,16 @@
   (const-string-in-context context str (length str) nil))
 (defcfun* "LLVMConstStructInContext" value
   (c context)
-  (constant-vals (:pointer value)) (count :unsigned-int)
+  (constant-vals (carray value)) (count :unsigned-int)
   (packed :boolean))
 (defun const-struct (constant-vals packed &key (context (global-context)))
   (const-struct-in-context context constant-vals (length constant-vals) packed))
 (defcfun (%const-array "LLVMConstArray") value
-  (element-ty type) (constant-vals (:pointer value)) (length :unsigned-int))
+  (element-ty type) (constant-vals (carray value)) (length :unsigned-int))
 (defun const-array (element-ty constant-vals)
   (%const-array element-ty constant-vals (length constant-vals)))
 (defcfun (%const-vector "LLVMConstVector") value
-  (scalar-constant-vals (:pointer value)) (size :unsigned-int))
+  (scalar-constant-vals (carray value)) (size :unsigned-int))
 (defun const-vector (scalar-constant-vals)
   (%const-vector scalar-constant-vals (length scalar-constant-vals)))
 
@@ -83,12 +83,12 @@
 (defcfun* "LLVMConstAShr" value (lhs-constant value) (rhs-constant value))
 (defcfun (%const-gep "LLVMConstGEP") value
   (constant-val value)
-  (constant-indices (:pointer value)) (num-indices :unsigned-int))
+  (constant-indices (carray value)) (num-indices :unsigned-int))
 (defun const-gep (constant-val constant-indices)
   (%const-gep constant-val constant-indices (length constant-indices)))
 (defcfun (%const-in-bounds-gep "LLVMConstInBoundsGEP") value
   (constant-val value)
-  (constant-indices (:pointer value)) (num-indices :unsigned-int))
+  (constant-indices (carray value)) (num-indices :unsigned-int))
 (defun const-in-bounds-gep (constant-val constant-indices)
   (%const-in-bounds-gep constant-val
                         constant-indices (length constant-indices)))
@@ -123,12 +123,12 @@
   (vector-a-constant value) (vector-b-constant value) (mask-constant value))
 (defcfun (%const-extract-value "LLVMConstExtractValue") value
   (agg-constant value)
-  (idx-list (:pointer :unsigned-int)) (num-idx :unsigned-int))
+  (idx-list (carray :unsigned-int)) (num-idx :unsigned-int))
 (defun const-extract-value (agg-constant idx-list)
   (%const-extract-value agg-constant idx-list (length idx-list)))
 (defcfun (%const-insert-value "LLVMConstInsertValue") value
   (agg-constant value) (element-value-constant value)
-  (idx-list (:pointer :unsigned-int)) (num-idx :unsigned-int))
+  (idx-list (carray :unsigned-int)) (num-idx :unsigned-int))
 (defun const-insert-value (agg-constant element-value-constant idx-list)
   (%const-insert-value agg-constant element-value-constant
                        idx-list (length idx-list)))
@@ -213,15 +213,8 @@
 (defcfun* "LLVMCountParams" :unsigned-int (fn value))
 (defcfun* "LLVMGetParams" :void (fn value) (params (:pointer value)))
 (defun params (fn)
-  (let ((param-count (count-params fn))
-        (list '()))
-    (with-foreign-object (params '(:pointer value) param-count)
-      (get-params fn params)
-      (make-array param-count
-                  :initial-contents
-                  (reverse (dotimes (index param-count list)
-                             (push (mem-aref params 'value index)
-                                   list)))))))
+  (with-pointer-to-list (pointer value (count-params fn))
+    (get-params fn pointer)))
 (defcfun* "LLVMGetParam" value (fn value) (index :unsigned-int))
 (defcfun (param-parent "LLVMGetParamParent") value (inst value))
 (defcfun (first-param "LLVMGetFirstParam") value (fn value))
@@ -243,16 +236,8 @@
 (defcfun* "LLVMGetBasicBlocks" :void
   (fn value) (basic-blocks (:pointer basic-block)))
 (defun basic-blocks (fn)
-  (let ((bb-count (count-basic-blocks fn))
-        (list '()))
-    (with-foreign-object (basic-blocks '(:pointer basic-block) bb-count)
-      (get-basic-blocks fn basic-blocks)
-      (make-array bb-count
-                  :initial-contents
-                  (reverse (dotimes (index bb-count list)
-                             (push (mem-aref basic-blocks 'basic-block
-                                             index)
-                                   list)))))))
+  (with-pointer-to-list (pointer basic-block (count-basic-blocks fn))
+    (get-basic-blocks fn pointer)))
 (defcfun (first-basic-block "LLVMGetFirstBasicBlock") basic-block (fn value))
 (defcfun (last-basic-block "LLVMGetLastBasicBlock") basic-block (fn value))
 (defcfun (next-basic-block "LLVMGetNextBasicBlock") basic-block
