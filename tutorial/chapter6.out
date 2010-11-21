@@ -17,8 +17,8 @@ ready>
 ready> Read function definition:
 define double @"unary!"(double %v) {
 entry:
-  %ifcond = fcmp ueq double %v, 0.000000e+00      ; <i1> [#uses=1]
-  %iftmp = select i1 %ifcond, double 1.000000e+00, double 0.000000e+00 ; <double> [#uses=1]
+  %ifcond = fcmp ueq double %v, 0.000000e+00
+  %iftmp = select i1 %ifcond, double 1.000000e+00, double 0.000000e+00
   ret double %iftmp
 }
 
@@ -27,7 +27,7 @@ ready>
 ready> Read function definition:
 define double @unary-(double %v) {
 entry:
-  %subtmp = fsub double 0.000000e+00, %v          ; <double> [#uses=1]
+  %subtmp = fsub double 0.000000e+00, %v
   ret double %subtmp
 }
 
@@ -36,8 +36,8 @@ ready>
 ready> Read function definition:
 define double @"binary>"(double %LHS, double %RHS) {
 entry:
-  %cmptmp = fcmp ult double %RHS, %LHS            ; <i1> [#uses=1]
-  %booltmp = uitofp i1 %cmptmp to double          ; <double> [#uses=1]
+  %cmptmp = fcmp ult double %RHS, %LHS
+  %booltmp = uitofp i1 %cmptmp to double
   ret double %booltmp
 }
 
@@ -46,12 +46,12 @@ ready>
 ready> Read function definition:
 define double @"binary|"(double %LHS, double %RHS) {
 entry:
-  %ifcond = fcmp ueq double %LHS, 0.000000e+00    ; <i1> [#uses=1]
+  %ifcond = fcmp ueq double %LHS, 0.000000e+00
   br i1 %ifcond, label %else, label %ifcont
 
 else:                                             ; preds = %entry
-  %ifcond1 = fcmp ueq double %RHS, 0.000000e+00   ; <i1> [#uses=1]
-  %iftmp = select i1 %ifcond1, double 0.000000e+00, double 1.000000e+00 ; <double> [#uses=1]
+  %ifcond1 = fcmp ueq double %RHS, 0.000000e+00
+  %iftmp = select i1 %ifcond1, double 0.000000e+00, double 1.000000e+00
   ret double %iftmp
 
 ifcont:                                           ; preds = %entry
@@ -63,13 +63,13 @@ ready>
 ready> Read function definition:
 define double @"binary&"(double %LHS, double %RHS) {
 entry:
-  %unop = call double @"unary!"(double %LHS)      ; <double> [#uses=1]
-  %ifcond = fcmp ueq double %unop, 0.000000e+00   ; <i1> [#uses=1]
+  %unop = call double @"unary!"(double %LHS)
+  %ifcond = fcmp ueq double %unop, 0.000000e+00
   br i1 %ifcond, label %else, label %ifcont
 
 else:                                             ; preds = %entry
-  %unop1 = call double @"unary!"(double %RHS)     ; <double> [#uses=1]
-  %unop2 = call double @"unary!"(double %unop1)   ; <double> [#uses=1]
+  %unop1 = call double @"unary!"(double %RHS)
+  %unop2 = call double @"unary!"(double %unop1)
   ret double %unop2
 
 ifcont:                                           ; preds = %entry
@@ -81,11 +81,11 @@ ready>
 ready> Read function definition:
 define double @"binary="(double %LHS, double %RHS) {
 entry:
-  %cmptmp = fcmp ult double %LHS, %RHS            ; <i1> [#uses=1]
-  %booltmp = uitofp i1 %cmptmp to double          ; <double> [#uses=1]
-  %binop = call double @"binary>"(double %LHS, double %RHS) ; <double> [#uses=1]
-  %binop1 = call double @"binary|"(double %booltmp, double %binop) ; <double> [#uses=1]
-  %unop = call double @"unary!"(double %binop1)   ; <double> [#uses=1]
+  %cmptmp = fcmp ult double %LHS, %RHS
+  %booltmp = uitofp i1 %cmptmp to double
+  %binop = call double @"binary>"(double %LHS, double %RHS)
+  %binop1 = call double @"binary|"(double %booltmp, double %binop)
+  %unop = call double @"unary!"(double %binop1)
   ret double %unop
 }
 
@@ -98,34 +98,34 @@ declare double @putchard(double)
 ready> Read function definition:
 define double @printdensity(double %d) {
 entry:
-  %binop = call double @"binary>"(double %d, double 8.000000e+00) ; <double> [#uses=1]
-  %ifcond = fcmp ueq double %binop, 0.000000e+00  ; <i1> [#uses=1]
+  %binop = call double @"binary>"(double %d, double 8.000000e+00)
+  %ifcond = fcmp ueq double %binop, 0.000000e+00
   br i1 %ifcond, label %else, label %then
 
 then:                                             ; preds = %entry
-  %calltmp = call double @putchard(double 3.200000e+01) ; <double> [#uses=1]
+  %calltmp = call double @putchard(double 3.200000e+01)
   ret double %calltmp
 
 else:                                             ; preds = %entry
-  %binop1 = call double @"binary>"(double %d, double 4.000000e+00) ; <double> [#uses=1]
-  %ifcond2 = fcmp ueq double %binop1, 0.000000e+00 ; <i1> [#uses=1]
+  %binop1 = call double @"binary>"(double %d, double 4.000000e+00)
+  %ifcond2 = fcmp ueq double %binop1, 0.000000e+00
   br i1 %ifcond2, label %else4, label %then3
 
 then3:                                            ; preds = %else
-  %calltmp6 = call double @putchard(double 4.600000e+01) ; <double> [#uses=1]
+  %calltmp6 = call double @putchard(double 4.600000e+01)
   ret double %calltmp6
 
 else4:                                            ; preds = %else
-  %binop7 = call double @"binary>"(double %d, double 2.000000e+00) ; <double> [#uses=1]
-  %ifcond8 = fcmp ueq double %binop7, 0.000000e+00 ; <i1> [#uses=1]
+  %binop7 = call double @"binary>"(double %d, double 2.000000e+00)
+  %ifcond8 = fcmp ueq double %binop7, 0.000000e+00
   br i1 %ifcond8, label %else10, label %then9
 
 then9:                                            ; preds = %else4
-  %calltmp12 = call double @putchard(double 4.300000e+01) ; <double> [#uses=1]
+  %calltmp12 = call double @putchard(double 4.300000e+01)
   ret double %calltmp12
 
 else10:                                           ; preds = %else4
-  %calltmp13 = call double @putchard(double 4.200000e+01) ; <double> [#uses=1]
+  %calltmp13 = call double @putchard(double 4.200000e+01)
   ret double %calltmp13
 }
 
@@ -136,23 +136,23 @@ ready>
 ready> Read function definition:
 define double @mandleconverger(double %real, double %imag, double %iters, double %creal, double %cimag) {
 entry:
-  %binop = call double @"binary>"(double %iters, double 2.550000e+02) ; <double> [#uses=1]
-  %multmp = fmul double %real, %real              ; <double> [#uses=2]
-  %multmp1 = fmul double %imag, %imag             ; <double> [#uses=2]
-  %addtmp = fadd double %multmp, %multmp1         ; <double> [#uses=1]
-  %binop2 = call double @"binary>"(double %addtmp, double 4.000000e+00) ; <double> [#uses=1]
-  %binop3 = call double @"binary|"(double %binop, double %binop2) ; <double> [#uses=1]
-  %ifcond = fcmp ueq double %binop3, 0.000000e+00 ; <i1> [#uses=1]
+  %binop = call double @"binary>"(double %iters, double 2.550000e+02)
+  %multmp = fmul double %real, %real
+  %multmp1 = fmul double %imag, %imag
+  %addtmp = fadd double %multmp, %multmp1
+  %binop2 = call double @"binary>"(double %addtmp, double 4.000000e+00)
+  %binop3 = call double @"binary|"(double %binop, double %binop2)
+  %ifcond = fcmp ueq double %binop3, 0.000000e+00
   br i1 %ifcond, label %else, label %ifcont
 
 else:                                             ; preds = %entry
-  %subtmp = fsub double %multmp, %multmp1         ; <double> [#uses=1]
-  %addtmp6 = fadd double %subtmp, %creal          ; <double> [#uses=1]
-  %multmp7 = fmul double %real, 2.000000e+00      ; <double> [#uses=1]
-  %multmp8 = fmul double %multmp7, %imag          ; <double> [#uses=1]
-  %addtmp9 = fadd double %multmp8, %cimag         ; <double> [#uses=1]
-  %addtmp10 = fadd double %iters, 1.000000e+00    ; <double> [#uses=1]
-  %calltmp = call double @mandleconverger(double %addtmp6, double %addtmp9, double %addtmp10, double %creal, double %cimag) ; <double> [#uses=1]
+  %subtmp = fsub double %multmp, %multmp1
+  %addtmp6 = fadd double %subtmp, %creal
+  %multmp7 = fmul double %real, 2.000000e+00
+  %multmp8 = fmul double %multmp7, %imag
+  %addtmp9 = fadd double %multmp8, %cimag
+  %addtmp10 = fadd double %iters, 1.000000e+00
+  %calltmp = call double @mandleconverger(double %addtmp6, double %addtmp9, double %addtmp10, double %creal, double %cimag)
   ret double %calltmp
 
 ifcont:                                           ; preds = %entry
@@ -164,7 +164,7 @@ ready>
 ready> Read function definition:
 define double @mandleconverge(double %real, double %imag) {
 entry:
-  %calltmp = call double @mandleconverger(double %real, double %imag, double 0.000000e+00, double %real, double %imag) ; <double> [#uses=1]
+  %calltmp = call double @mandleconverger(double %real, double %imag, double 0.000000e+00, double %real, double %imag)
   ret double %calltmp
 }
 
@@ -176,22 +176,22 @@ entry:
   br label %loop
 
 loop:                                             ; preds = %afterloop, %entry
-  %y = phi double [ %ymin, %entry ], [ %nextvar4, %afterloop ] ; <double> [#uses=3]
+  %y = phi double [ %ymin, %entry ], [ %nextvar4, %afterloop ]
   br label %loop1
 
 loop1:                                            ; preds = %loop1, %loop
-  %x = phi double [ %xmin, %loop ], [ %nextvar, %loop1 ] ; <double> [#uses=3]
-  %calltmp = call double @mandleconverge(double %x, double %y) ; <double> [#uses=1]
-  %calltmp2 = call double @printdensity(double %calltmp) ; <double> [#uses=0]
-  %nextvar = fadd double %x, %xstep               ; <double> [#uses=1]
-  %cmptmp = fcmp ult double %x, %xmax             ; <i1> [#uses=1]
+  %x = phi double [ %xmin, %loop ], [ %nextvar, %loop1 ]
+  %calltmp = call double @mandleconverge(double %x, double %y)
+  %calltmp2 = call double @printdensity(double %calltmp)
+  %nextvar = fadd double %x, %xstep
+  %cmptmp = fcmp ult double %x, %xmax
   br i1 %cmptmp, label %loop1, label %afterloop
 
 afterloop:                                        ; preds = %loop1
-  %calltmp3 = call double @putchard(double 1.000000e+01) ; <double> [#uses=1]
-  %binop = call double @"binary:"(double 0.000000e+00, double %calltmp3) ; <double> [#uses=0]
-  %nextvar4 = fadd double %y, %ystep              ; <double> [#uses=1]
-  %cmptmp5 = fcmp ult double %y, %ymax            ; <i1> [#uses=1]
+  %calltmp3 = call double @putchard(double 1.000000e+01)
+  %binop = call double @"binary:"(double 0.000000e+00, double %calltmp3)
+  %nextvar4 = fadd double %y, %ystep
+  %cmptmp5 = fcmp ult double %y, %ymax
   br i1 %cmptmp5, label %loop, label %afterloop8
 
 afterloop8:                                       ; preds = %afterloop
@@ -202,11 +202,11 @@ afterloop8:                                       ; preds = %afterloop
 ready> Read function definition:
 define double @mandel(double %realstart, double %imagstart, double %realmag, double %imagmag) {
 entry:
-  %multmp = fmul double %realmag, 7.800000e+01    ; <double> [#uses=1]
-  %addtmp = fadd double %multmp, %realstart       ; <double> [#uses=1]
-  %multmp1 = fmul double %imagmag, 4.000000e+01   ; <double> [#uses=1]
-  %addtmp2 = fadd double %multmp1, %imagstart     ; <double> [#uses=1]
-  %calltmp = call double @mandelhelp(double %realstart, double %addtmp, double %realmag, double %imagstart, double %addtmp2, double %imagmag) ; <double> [#uses=1]
+  %multmp = fmul double %realmag, 7.800000e+01
+  %addtmp = fadd double %multmp, %realstart
+  %multmp1 = fmul double %imagmag, 4.000000e+01
+  %addtmp2 = fadd double %multmp1, %imagstart
+  %calltmp = call double @mandelhelp(double %realstart, double %addtmp, double %realmag, double %imagstart, double %addtmp2, double %imagmag)
   ret double %calltmp
 }
 
@@ -333,42 +333,42 @@ entry:
 
 define double @0() {
 entry:
-  %calltmp = call double @printd(double 1.230000e+02) ; <double> [#uses=1]
-  %calltmp1 = call double @printd(double 4.560000e+02) ; <double> [#uses=1]
-  %binop = call double @"binary:"(double %calltmp, double %calltmp1) ; <double> [#uses=1]
-  %calltmp2 = call double @printd(double 7.890000e+02) ; <double> [#uses=1]
-  %binop3 = call double @"binary:"(double %binop, double %calltmp2) ; <double> [#uses=1]
+  %calltmp = call double @printd(double 1.230000e+02)
+  %calltmp1 = call double @printd(double 4.560000e+02)
+  %binop = call double @"binary:"(double %calltmp, double %calltmp1)
+  %calltmp2 = call double @printd(double 7.890000e+02)
+  %binop3 = call double @"binary:"(double %binop, double %calltmp2)
   ret double %binop3
 }
 
 define double @"unary!"(double %v) {
 entry:
-  %ifcond = fcmp ueq double %v, 0.000000e+00      ; <i1> [#uses=1]
-  %iftmp = select i1 %ifcond, double 1.000000e+00, double 0.000000e+00 ; <double> [#uses=1]
+  %ifcond = fcmp ueq double %v, 0.000000e+00
+  %iftmp = select i1 %ifcond, double 1.000000e+00, double 0.000000e+00
   ret double %iftmp
 }
 
 define double @unary-(double %v) {
 entry:
-  %subtmp = fsub double 0.000000e+00, %v          ; <double> [#uses=1]
+  %subtmp = fsub double 0.000000e+00, %v
   ret double %subtmp
 }
 
 define double @"binary>"(double %LHS, double %RHS) {
 entry:
-  %cmptmp = fcmp ult double %RHS, %LHS            ; <i1> [#uses=1]
-  %booltmp = uitofp i1 %cmptmp to double          ; <double> [#uses=1]
+  %cmptmp = fcmp ult double %RHS, %LHS
+  %booltmp = uitofp i1 %cmptmp to double
   ret double %booltmp
 }
 
 define double @"binary|"(double %LHS, double %RHS) {
 entry:
-  %ifcond = fcmp ueq double %LHS, 0.000000e+00    ; <i1> [#uses=1]
+  %ifcond = fcmp ueq double %LHS, 0.000000e+00
   br i1 %ifcond, label %else, label %ifcont
 
 else:                                             ; preds = %entry
-  %ifcond1 = fcmp ueq double %RHS, 0.000000e+00   ; <i1> [#uses=1]
-  %iftmp = select i1 %ifcond1, double 0.000000e+00, double 1.000000e+00 ; <double> [#uses=1]
+  %ifcond1 = fcmp ueq double %RHS, 0.000000e+00
+  %iftmp = select i1 %ifcond1, double 0.000000e+00, double 1.000000e+00
   ret double %iftmp
 
 ifcont:                                           ; preds = %entry
@@ -377,13 +377,13 @@ ifcont:                                           ; preds = %entry
 
 define double @"binary&"(double %LHS, double %RHS) {
 entry:
-  %unop = call double @"unary!"(double %LHS)      ; <double> [#uses=1]
-  %ifcond = fcmp ueq double %unop, 0.000000e+00   ; <i1> [#uses=1]
+  %unop = call double @"unary!"(double %LHS)
+  %ifcond = fcmp ueq double %unop, 0.000000e+00
   br i1 %ifcond, label %else, label %ifcont
 
 else:                                             ; preds = %entry
-  %unop1 = call double @"unary!"(double %RHS)     ; <double> [#uses=1]
-  %unop2 = call double @"unary!"(double %unop1)   ; <double> [#uses=1]
+  %unop1 = call double @"unary!"(double %RHS)
+  %unop2 = call double @"unary!"(double %unop1)
   ret double %unop2
 
 ifcont:                                           ; preds = %entry
@@ -392,11 +392,11 @@ ifcont:                                           ; preds = %entry
 
 define double @"binary="(double %LHS, double %RHS) {
 entry:
-  %cmptmp = fcmp ult double %LHS, %RHS            ; <i1> [#uses=1]
-  %booltmp = uitofp i1 %cmptmp to double          ; <double> [#uses=1]
-  %binop = call double @"binary>"(double %LHS, double %RHS) ; <double> [#uses=1]
-  %binop1 = call double @"binary|"(double %booltmp, double %binop) ; <double> [#uses=1]
-  %unop = call double @"unary!"(double %binop1)   ; <double> [#uses=1]
+  %cmptmp = fcmp ult double %LHS, %RHS
+  %booltmp = uitofp i1 %cmptmp to double
+  %binop = call double @"binary>"(double %LHS, double %RHS)
+  %binop1 = call double @"binary|"(double %booltmp, double %binop)
+  %unop = call double @"unary!"(double %binop1)
   ret double %unop
 }
 
@@ -404,74 +404,74 @@ declare double @putchard(double)
 
 define double @printdensity(double %d) {
 entry:
-  %binop = call double @"binary>"(double %d, double 8.000000e+00) ; <double> [#uses=1]
-  %ifcond = fcmp ueq double %binop, 0.000000e+00  ; <i1> [#uses=1]
+  %binop = call double @"binary>"(double %d, double 8.000000e+00)
+  %ifcond = fcmp ueq double %binop, 0.000000e+00
   br i1 %ifcond, label %else, label %then
 
 then:                                             ; preds = %entry
-  %calltmp = call double @putchard(double 3.200000e+01) ; <double> [#uses=1]
+  %calltmp = call double @putchard(double 3.200000e+01)
   ret double %calltmp
 
 else:                                             ; preds = %entry
-  %binop1 = call double @"binary>"(double %d, double 4.000000e+00) ; <double> [#uses=1]
-  %ifcond2 = fcmp ueq double %binop1, 0.000000e+00 ; <i1> [#uses=1]
+  %binop1 = call double @"binary>"(double %d, double 4.000000e+00)
+  %ifcond2 = fcmp ueq double %binop1, 0.000000e+00
   br i1 %ifcond2, label %else4, label %then3
 
 then3:                                            ; preds = %else
-  %calltmp6 = call double @putchard(double 4.600000e+01) ; <double> [#uses=1]
+  %calltmp6 = call double @putchard(double 4.600000e+01)
   ret double %calltmp6
 
 else4:                                            ; preds = %else
-  %binop7 = call double @"binary>"(double %d, double 2.000000e+00) ; <double> [#uses=1]
-  %ifcond8 = fcmp ueq double %binop7, 0.000000e+00 ; <i1> [#uses=1]
+  %binop7 = call double @"binary>"(double %d, double 2.000000e+00)
+  %ifcond8 = fcmp ueq double %binop7, 0.000000e+00
   br i1 %ifcond8, label %else10, label %then9
 
 then9:                                            ; preds = %else4
-  %calltmp12 = call double @putchard(double 4.300000e+01) ; <double> [#uses=1]
+  %calltmp12 = call double @putchard(double 4.300000e+01)
   ret double %calltmp12
 
 else10:                                           ; preds = %else4
-  %calltmp13 = call double @putchard(double 4.200000e+01) ; <double> [#uses=1]
+  %calltmp13 = call double @putchard(double 4.200000e+01)
   ret double %calltmp13
 }
 
 define double @1() {
 entry:
-  %calltmp = call double @printdensity(double 1.000000e+00) ; <double> [#uses=1]
-  %calltmp1 = call double @printdensity(double 2.000000e+00) ; <double> [#uses=1]
-  %binop = call double @"binary:"(double %calltmp, double %calltmp1) ; <double> [#uses=1]
-  %calltmp2 = call double @printdensity(double 3.000000e+00) ; <double> [#uses=1]
-  %binop3 = call double @"binary:"(double %binop, double %calltmp2) ; <double> [#uses=1]
-  %calltmp4 = call double @printdensity(double 4.000000e+00) ; <double> [#uses=1]
-  %binop5 = call double @"binary:"(double %binop3, double %calltmp4) ; <double> [#uses=1]
-  %calltmp6 = call double @printdensity(double 5.000000e+00) ; <double> [#uses=1]
-  %binop7 = call double @"binary:"(double %binop5, double %calltmp6) ; <double> [#uses=1]
-  %calltmp8 = call double @printdensity(double 9.000000e+00) ; <double> [#uses=1]
-  %binop9 = call double @"binary:"(double %binop7, double %calltmp8) ; <double> [#uses=1]
-  %calltmp10 = call double @putchard(double 1.000000e+01) ; <double> [#uses=1]
-  %binop11 = call double @"binary:"(double %binop9, double %calltmp10) ; <double> [#uses=1]
+  %calltmp = call double @printdensity(double 1.000000e+00)
+  %calltmp1 = call double @printdensity(double 2.000000e+00)
+  %binop = call double @"binary:"(double %calltmp, double %calltmp1)
+  %calltmp2 = call double @printdensity(double 3.000000e+00)
+  %binop3 = call double @"binary:"(double %binop, double %calltmp2)
+  %calltmp4 = call double @printdensity(double 4.000000e+00)
+  %binop5 = call double @"binary:"(double %binop3, double %calltmp4)
+  %calltmp6 = call double @printdensity(double 5.000000e+00)
+  %binop7 = call double @"binary:"(double %binop5, double %calltmp6)
+  %calltmp8 = call double @printdensity(double 9.000000e+00)
+  %binop9 = call double @"binary:"(double %binop7, double %calltmp8)
+  %calltmp10 = call double @putchard(double 1.000000e+01)
+  %binop11 = call double @"binary:"(double %binop9, double %calltmp10)
   ret double %binop11
 }
 
 define double @mandleconverger(double %real, double %imag, double %iters, double %creal, double %cimag) {
 entry:
-  %binop = call double @"binary>"(double %iters, double 2.550000e+02) ; <double> [#uses=1]
-  %multmp = fmul double %real, %real              ; <double> [#uses=2]
-  %multmp1 = fmul double %imag, %imag             ; <double> [#uses=2]
-  %addtmp = fadd double %multmp, %multmp1         ; <double> [#uses=1]
-  %binop2 = call double @"binary>"(double %addtmp, double 4.000000e+00) ; <double> [#uses=1]
-  %binop3 = call double @"binary|"(double %binop, double %binop2) ; <double> [#uses=1]
-  %ifcond = fcmp ueq double %binop3, 0.000000e+00 ; <i1> [#uses=1]
+  %binop = call double @"binary>"(double %iters, double 2.550000e+02)
+  %multmp = fmul double %real, %real
+  %multmp1 = fmul double %imag, %imag
+  %addtmp = fadd double %multmp, %multmp1
+  %binop2 = call double @"binary>"(double %addtmp, double 4.000000e+00)
+  %binop3 = call double @"binary|"(double %binop, double %binop2)
+  %ifcond = fcmp ueq double %binop3, 0.000000e+00
   br i1 %ifcond, label %else, label %ifcont
 
 else:                                             ; preds = %entry
-  %subtmp = fsub double %multmp, %multmp1         ; <double> [#uses=1]
-  %addtmp6 = fadd double %subtmp, %creal          ; <double> [#uses=1]
-  %multmp7 = fmul double %real, 2.000000e+00      ; <double> [#uses=1]
-  %multmp8 = fmul double %multmp7, %imag          ; <double> [#uses=1]
-  %addtmp9 = fadd double %multmp8, %cimag         ; <double> [#uses=1]
-  %addtmp10 = fadd double %iters, 1.000000e+00    ; <double> [#uses=1]
-  %calltmp = call double @mandleconverger(double %addtmp6, double %addtmp9, double %addtmp10, double %creal, double %cimag) ; <double> [#uses=1]
+  %subtmp = fsub double %multmp, %multmp1
+  %addtmp6 = fadd double %subtmp, %creal
+  %multmp7 = fmul double %real, 2.000000e+00
+  %multmp8 = fmul double %multmp7, %imag
+  %addtmp9 = fadd double %multmp8, %cimag
+  %addtmp10 = fadd double %iters, 1.000000e+00
+  %calltmp = call double @mandleconverger(double %addtmp6, double %addtmp9, double %addtmp10, double %creal, double %cimag)
   ret double %calltmp
 
 ifcont:                                           ; preds = %entry
@@ -480,7 +480,7 @@ ifcont:                                           ; preds = %entry
 
 define double @mandleconverge(double %real, double %imag) {
 entry:
-  %calltmp = call double @mandleconverger(double %real, double %imag, double 0.000000e+00, double %real, double %imag) ; <double> [#uses=1]
+  %calltmp = call double @mandleconverger(double %real, double %imag, double 0.000000e+00, double %real, double %imag)
   ret double %calltmp
 }
 
@@ -489,22 +489,22 @@ entry:
   br label %loop
 
 loop:                                             ; preds = %afterloop, %entry
-  %y = phi double [ %ymin, %entry ], [ %nextvar4, %afterloop ] ; <double> [#uses=3]
+  %y = phi double [ %ymin, %entry ], [ %nextvar4, %afterloop ]
   br label %loop1
 
 loop1:                                            ; preds = %loop1, %loop
-  %x = phi double [ %xmin, %loop ], [ %nextvar, %loop1 ] ; <double> [#uses=3]
-  %calltmp = call double @mandleconverge(double %x, double %y) ; <double> [#uses=1]
-  %calltmp2 = call double @printdensity(double %calltmp) ; <double> [#uses=0]
-  %nextvar = fadd double %x, %xstep               ; <double> [#uses=1]
-  %cmptmp = fcmp ult double %x, %xmax             ; <i1> [#uses=1]
+  %x = phi double [ %xmin, %loop ], [ %nextvar, %loop1 ]
+  %calltmp = call double @mandleconverge(double %x, double %y)
+  %calltmp2 = call double @printdensity(double %calltmp)
+  %nextvar = fadd double %x, %xstep
+  %cmptmp = fcmp ult double %x, %xmax
   br i1 %cmptmp, label %loop1, label %afterloop
 
 afterloop:                                        ; preds = %loop1
-  %calltmp3 = call double @putchard(double 1.000000e+01) ; <double> [#uses=1]
-  %binop = call double @"binary:"(double 0.000000e+00, double %calltmp3) ; <double> [#uses=0]
-  %nextvar4 = fadd double %y, %ystep              ; <double> [#uses=1]
-  %cmptmp5 = fcmp ult double %y, %ymax            ; <i1> [#uses=1]
+  %calltmp3 = call double @putchard(double 1.000000e+01)
+  %binop = call double @"binary:"(double 0.000000e+00, double %calltmp3)
+  %nextvar4 = fadd double %y, %ystep
+  %cmptmp5 = fcmp ult double %y, %ymax
   br i1 %cmptmp5, label %loop, label %afterloop8
 
 afterloop8:                                       ; preds = %afterloop
@@ -513,35 +513,35 @@ afterloop8:                                       ; preds = %afterloop
 
 define double @mandel(double %realstart, double %imagstart, double %realmag, double %imagmag) {
 entry:
-  %multmp = fmul double %realmag, 7.800000e+01    ; <double> [#uses=1]
-  %addtmp = fadd double %multmp, %realstart       ; <double> [#uses=1]
-  %multmp1 = fmul double %imagmag, 4.000000e+01   ; <double> [#uses=1]
-  %addtmp2 = fadd double %multmp1, %imagstart     ; <double> [#uses=1]
-  %calltmp = call double @mandelhelp(double %realstart, double %addtmp, double %realmag, double %imagstart, double %addtmp2, double %imagmag) ; <double> [#uses=1]
+  %multmp = fmul double %realmag, 7.800000e+01
+  %addtmp = fadd double %multmp, %realstart
+  %multmp1 = fmul double %imagmag, 4.000000e+01
+  %addtmp2 = fadd double %multmp1, %imagstart
+  %calltmp = call double @mandelhelp(double %realstart, double %addtmp, double %realmag, double %imagstart, double %addtmp2, double %imagmag)
   ret double %calltmp
 }
 
 define double @2() {
 entry:
-  %unop = call double @unary-(double 0x4002666660000000) ; <double> [#uses=1]
-  %unop1 = call double @unary-(double 0x3FF4CCCCC0000000) ; <double> [#uses=1]
-  %calltmp = call double @mandel(double %unop, double %unop1, double 0x3FA99999A0000000, double 0x3FB1EB8520000000) ; <double> [#uses=1]
+  %unop = call double @unary-(double 0x4002666660000000)
+  %unop1 = call double @unary-(double 0x3FF4CCCCC0000000)
+  %calltmp = call double @mandel(double %unop, double %unop1, double 0x3FA99999A0000000, double 0x3FB1EB8520000000)
   ret double %calltmp
 }
 
 define double @3() {
 entry:
-  %unop = call double @unary-(double 2.000000e+00) ; <double> [#uses=1]
-  %unop1 = call double @unary-(double 1.000000e+00) ; <double> [#uses=1]
-  %calltmp = call double @mandel(double %unop, double %unop1, double 0x3F947AE140000000, double 0x3FA47AE140000000) ; <double> [#uses=1]
+  %unop = call double @unary-(double 2.000000e+00)
+  %unop1 = call double @unary-(double 1.000000e+00)
+  %calltmp = call double @mandel(double %unop, double %unop1, double 0x3F947AE140000000, double 0x3FA47AE140000000)
   ret double %calltmp
 }
 
 define double @4() {
 entry:
-  %unop = call double @unary-(double 0x3FECCCCCC0000000) ; <double> [#uses=1]
-  %unop1 = call double @unary-(double 0x3FF6666660000000) ; <double> [#uses=1]
-  %calltmp = call double @mandel(double %unop, double %unop1, double 0x3F947AE140000000, double 0x3F9EB851E0000000) ; <double> [#uses=1]
+  %unop = call double @unary-(double 0x3FECCCCCC0000000)
+  %unop1 = call double @unary-(double 0x3FF6666660000000)
+  %calltmp = call double @mandel(double %unop, double %unop1, double 0x3F947AE140000000, double 0x3F9EB851E0000000)
   ret double %calltmp
 }
 

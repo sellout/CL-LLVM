@@ -10,15 +10,15 @@ ready>
 ready> Read function definition:
 define double @fib(double %x) {
 entry:
-  %cmptmp = fcmp ult double %x, 3.000000e+00      ; <i1> [#uses=1]
+  %cmptmp = fcmp ult double %x, 3.000000e+00
   br i1 %cmptmp, label %ifcont, label %else
 
 else:                                             ; preds = %entry
-  %subtmp = fadd double %x, -1.000000e+00         ; <double> [#uses=1]
-  %calltmp = call double @fib(double %subtmp)     ; <double> [#uses=1]
-  %subtmp5 = fadd double %x, -2.000000e+00        ; <double> [#uses=1]
-  %calltmp6 = call double @fib(double %subtmp5)   ; <double> [#uses=1]
-  %addtmp = fadd double %calltmp, %calltmp6       ; <double> [#uses=1]
+  %subtmp = fadd double %x, -1.000000e+00
+  %calltmp = call double @fib(double %subtmp)
+  %subtmp5 = fadd double %x, -2.000000e+00
+  %calltmp6 = call double @fib(double %subtmp5)
+  %addtmp = fadd double %calltmp, %calltmp6
   ret double %addtmp
 
 ifcont:                                           ; preds = %entry
@@ -33,18 +33,18 @@ entry:
   br label %loop
 
 loop:                                             ; preds = %loop, %entry
-  %b.0 = phi double [ 1.000000e+00, %entry ], [ %addtmp, %loop ] ; <double> [#uses=3]
-  %a.0 = phi double [ 1.000000e+00, %entry ], [ %b.0, %loop ] ; <double> [#uses=1]
-  %i.0 = phi double [ 3.000000e+00, %entry ], [ %nextvar, %loop ] ; <double> [#uses=2]
-  %addtmp = fadd double %a.0, %b.0                ; <double> [#uses=4]
-  %binop = call double @"binary:"(double %addtmp, double %b.0) ; <double> [#uses=1]
-  %binop6 = call double @"binary:"(double %binop, double %addtmp) ; <double> [#uses=0]
-  %cmptmp = fcmp ult double %i.0, %x              ; <i1> [#uses=1]
-  %nextvar = fadd double %i.0, 1.000000e+00       ; <double> [#uses=1]
+  %b.0 = phi double [ 1.000000e+00, %entry ], [ %addtmp, %loop ]
+  %a.0 = phi double [ 1.000000e+00, %entry ], [ %b.0, %loop ]
+  %i.0 = phi double [ 3.000000e+00, %entry ], [ %nextvar, %loop ]
+  %addtmp = fadd double %a.0, %b.0
+  %binop = call double @"binary:"(double %addtmp, double %b.0)
+  %binop6 = call double @"binary:"(double %binop, double %addtmp)
+  %cmptmp = fcmp ult double %i.0, %x
+  %nextvar = fadd double %i.0, 1.000000e+00
   br i1 %cmptmp, label %loop, label %afterloop
 
 afterloop:                                        ; preds = %loop
-  %binop11 = call double @"binary:"(double 0.000000e+00, double %addtmp) ; <double> [#uses=1]
+  %binop11 = call double @"binary:"(double 0.000000e+00, double %addtmp)
   ret double %binop11
 }
 
@@ -60,15 +60,15 @@ entry:
 
 define double @fib(double %x) {
 entry:
-  %cmptmp = fcmp ult double %x, 3.000000e+00      ; <i1> [#uses=1]
+  %cmptmp = fcmp ult double %x, 3.000000e+00
   br i1 %cmptmp, label %ifcont, label %else
 
 else:                                             ; preds = %entry
-  %subtmp = fadd double %x, -1.000000e+00         ; <double> [#uses=1]
-  %calltmp = call double @fib(double %subtmp)     ; <double> [#uses=1]
-  %subtmp5 = fadd double %x, -2.000000e+00        ; <double> [#uses=1]
-  %calltmp6 = call double @fib(double %subtmp5)   ; <double> [#uses=1]
-  %addtmp = fadd double %calltmp, %calltmp6       ; <double> [#uses=1]
+  %subtmp = fadd double %x, -1.000000e+00
+  %calltmp = call double @fib(double %subtmp)
+  %subtmp5 = fadd double %x, -2.000000e+00
+  %calltmp6 = call double @fib(double %subtmp5)
+  %addtmp = fadd double %calltmp, %calltmp6
   ret double %addtmp
 
 ifcont:                                           ; preds = %entry
@@ -80,24 +80,24 @@ entry:
   br label %loop
 
 loop:                                             ; preds = %loop, %entry
-  %b.0 = phi double [ 1.000000e+00, %entry ], [ %addtmp, %loop ] ; <double> [#uses=3]
-  %a.0 = phi double [ 1.000000e+00, %entry ], [ %b.0, %loop ] ; <double> [#uses=1]
-  %i.0 = phi double [ 3.000000e+00, %entry ], [ %nextvar, %loop ] ; <double> [#uses=2]
-  %addtmp = fadd double %a.0, %b.0                ; <double> [#uses=4]
-  %binop = call double @"binary:"(double %addtmp, double %b.0) ; <double> [#uses=1]
-  %binop6 = call double @"binary:"(double %binop, double %addtmp) ; <double> [#uses=0]
-  %cmptmp = fcmp ult double %i.0, %x              ; <i1> [#uses=1]
-  %nextvar = fadd double %i.0, 1.000000e+00       ; <double> [#uses=1]
+  %b.0 = phi double [ 1.000000e+00, %entry ], [ %addtmp, %loop ]
+  %a.0 = phi double [ 1.000000e+00, %entry ], [ %b.0, %loop ]
+  %i.0 = phi double [ 3.000000e+00, %entry ], [ %nextvar, %loop ]
+  %addtmp = fadd double %a.0, %b.0
+  %binop = call double @"binary:"(double %addtmp, double %b.0)
+  %binop6 = call double @"binary:"(double %binop, double %addtmp)
+  %cmptmp = fcmp ult double %i.0, %x
+  %nextvar = fadd double %i.0, 1.000000e+00
   br i1 %cmptmp, label %loop, label %afterloop
 
 afterloop:                                        ; preds = %loop
-  %binop11 = call double @"binary:"(double 0.000000e+00, double %addtmp) ; <double> [#uses=1]
+  %binop11 = call double @"binary:"(double 0.000000e+00, double %addtmp)
   ret double %binop11
 }
 
 define double @0() {
 entry:
-  %calltmp = call double @fibi(double 1.000000e+01) ; <double> [#uses=1]
+  %calltmp = call double @fibi(double 1.000000e+01)
   ret double %calltmp
 }
 

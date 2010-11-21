@@ -19,16 +19,36 @@
 (defcfun (undefp "LLVMIsUndef") :boolean (val value))
 (defcfun* "LLVMConstPointerNull" value (ty type))
 
-(defcfun* "LLVMConstInt" value
+(defcfun (%const-int "LLVMConstInt") value
   (int-ty type) (n :unsigned-long-long) (sign-extend :boolean))
 (defcfun* "LLVMConstIntOfString" value
   (int-ty type) (text :string) (radix :uint8))
-(defcfun* "LLVMConstIntOfStringAndSize" value ; FIXME: do we need this one?
-  (int-ty type) (text :string) (s-len :unsigned-int) (radix :uint8))
-(defcfun* "LLVMConstReal" value (real-ty type) (n real-double))
+(defcfun* "LLVMConstIntOfArbitraryPrecision" value
+  (int-ty type) (num-words :unsigned-int) (words (carray :uint64)))
+(defun const-int (int-ty value &optional radix)
+  (if (typep value 'string)
+      (const-int-of-string int-ty value radix)
+      (let* ((+max-primitive-width+ 64)
+             (bitmask (1- (expt 2 +max-primitive-width+)))
+             (width (width int-ty)))
+        (if (<= width +max-primitive-width+)
+            (%const-int int-ty (logand value bitmask) nil)
+            (let* ((length (ceiling width +max-primitive-width+))
+                   (words (loop for num = value
+                             then (ash num (- +max-primitive-width+))
+                             while (< 0 num)
+                             collect (logand num bitmask))))
+              (const-int-of-arbitrary-precision int-ty length words))))))
+(defcfun (%const-real "LLVMConstReal") value (real-ty type) (n real-double))
 (defcfun* "LLVMConstRealOfString" value (real-ty type) (text :string))
-(defcfun* "LLVMConstRealOfStringAndSize" value ; FIXME: do we need this one?
-  (real-ty type) (text :string) (s-len :unsigned-int))
+(defun const-real (real-ty value)
+  (if (typep value 'string)
+      (const-real-of-string real-ty value)
+      (%const-real real-ty value)))
+(defcfun (z-ext-value "LLVMConstIntGetZExtValue") :unsigned-long-long
+  (constant-val value))
+(defcfun (s-ext-value "LLVMConstIntGetSExtValue") :long-long
+  (constant-val value))
 
 (defcfun* "LLVMConstStringInContext" value
   (c context)
@@ -52,6 +72,7 @@
 (defun const-vector (scalar-constant-vals)
   (%const-vector scalar-constant-vals (length scalar-constant-vals)))
 
+(defcfun (const-opcode "LLVMGetConstOpcode") opcode (constant-val value))
 (defcfun* "LLVMAlignOf" value (ty type))
 (defcfun* "LLVMSizeOf" value (ty type))
 (defcfun* "LLVMConstNeg" value (constant-val value))
@@ -160,11 +181,11 @@
   bytes)
 
 (defcfun* "LLVMAddGlobal" value (m module) (ty type) (name :string))
-(defcfun* "LLVMGetNamedGlobal" value (m module) (name :string))
-(defcfun* "LLVMGetFirstGlobal" value (m module))
-(defcfun* "LLVMGetLastGlobal" value (m module))
-(defcfun* "LLVMGetNextGlobal" value (global-var value))
-(defcfun* "LLVMGetPreviousGlobal" value (global-var value))
+(defcfun (named-global "LLVMGetNamedGlobal") value (m module) (name :string))
+(defcfun (first-global "LLVMGetFirstGlobal") value (m module))
+(defcfun (last-global "LLVMGetLastGlobal") value (m module))
+(defcfun (next-global "LLVMGetNextGlobal") value (global-var value))
+(defcfun (previous-global "LLVMGetPreviousGlobal") value (global-var value))
 (defcfun* "LLVMDeleteGlobal" :void (global-var value))
 (defcfun (initializer "LLVMGetInitializer") value (global-var value))
 (defcfun* "LLVMSetInitializer" :void (global-var value) (constant-val value))
@@ -208,7 +229,11 @@
   (set-gc fn name)
   name)
 (defcfun* "LLVMAddFunctionAttribute" :void (fn value) (pa attribute))
+(defun add-function-attributes (fn &rest attributes)
+  (add-function-attribute fn attributes))
 (defcfun* "LLVMRemoveFunctionAttribute" :void (fn value) (pa attribute))
+(defun remove-function-attributes (fn &rest attributes)
+  (remove-function-attribute fn attributes))
 
 (defcfun* "LLVMCountParams" :unsigned-int (fn value))
 (defcfun* "LLVMGetParams" :void (fn value) (params (:pointer value)))
@@ -222,7 +247,11 @@
 (defcfun (next-param "LLVMGetNextParam") value (arg value))
 (defcfun (previous-param "LLVMGetPreviousParam") value (arg value))
 (defcfun* "LLVMAddAttribute" :void (arg value) (pa attribute))
+(defun add-attributes (arg &rest attributes)
+  (add-attribute arg attributes))
 (defcfun* "LLVMRemoveAttribute" :void (arg value) (pa attribute))
+(defun remove-attributes (arg &rest attributes)
+  (remove-attribute arg attributes))
 (defcfun* "LLVMSetParamAlignment" :void (arg value) (align :unsigned-int))
 (defun (setf param-alignment) (align arg)
   (set-param-alignment arg align)
@@ -272,10 +301,14 @@
 (defcfun (instruction-calling-convention "LLVMGetInstructionCallingConvention")
          calling-convention
   (instr value))
-(defcfun (add-instruction-attribute "LLVMAddInstrAttribute") :void
+(defcfun* "LLVMAddInstrAttribute" :void
   (instr value) (index :unsigned-int) (attribute attribute))
-(defcfun (remove-instruction-attribute "LLVMRemoveInstrAttribute") :void
+(defun add-instruction-attributes (instr index &rest attributes)
+  (add-instr-attribute instr index attributes))
+(defcfun "LLVMRemoveInstrAttribute" :void
   (instr value) (index :unsigned-int) (attribute attribute))
+(defun remove-instruction-attributes (instr index &rest attributes)
+  (remove-instr-attribute instr index attributes))
 (defcfun* "LLVMSetInstrParamAlignment" :void
   (instr value) (index :unsigned-int) (align :unsigned-int))
 (defun (setf instruction-param-alignment) (align instr index)

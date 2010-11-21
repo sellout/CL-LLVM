@@ -64,8 +64,9 @@
            #:type-of #:value-name #:dump-value
            #:const-null #:const-all-ones #:undef #:constantp #:nullp #:undefp
            #:const-pointer-null
-           #:const-int #:const-int-of-string #:const-real #:const-real-of-string
+           #:const-int #:const-real #:z-ext-value #:s-ext-value
            #:const-string #:const-array #:const-struct #:const-vector
+           #:const-opcode
            #:align-of #:sign-of #:const-neg #:const-f-neg #:const-not
            #:const-add #:const-nsw-add #:const-f-add #:const-sub #:const-f-sub
            #:const-mul #:const-f-mul #:const-u-div #:const-s-div
@@ -86,11 +87,11 @@
            #:add-alias
            #:add-function #:named-function #:first-function #:last-function
            #:next-function #:previous-function #:delete-function #:intrinsic-id
-           #:function-calling-convention #:gc #:add-function-attribute
-           #:remove-function-attribute
+           #:function-calling-convention #:gc
+           #:add-function-attributes #:remove-function-attributes
            #:count-params #:params #:param #:param-parent #:first-param
-           #:last-param #:next-param #:previous-param #:add-attribute
-           #:remove-attribute #:param-alignment
+           #:last-param #:next-param #:previous-param
+           #:add-attributes #:remove-attributes #:param-alignment
            #:basic-block-as-value #:value-is-basic-block-p
            #:value-as-basic-block #:basic-block-parent #:count-basic-blocks
            #:basic-blocks #:first-basic-block #:last-basic-block
@@ -98,8 +99,8 @@
            #:append-basic-block #:insert-basic-block #:delete-basic-block
            #:instruction-parent #:first-instruction #:last-instruction
            #:next-instruction #:previous-instruction
-           #:instruction-calling-convention #:add-instruction-attribute
-           #:remove-instruction-attribute #:instruction-param-alignment
+           #:instruction-calling-convention #:add-instruction-attributes
+           #:remove-instruction-attributes #:instruction-param-alignment
            #:tail-call-p
            #:add-incoming #:count-incoming #:incoming-value #:incoming-block
            ;; instruction builders
@@ -153,9 +154,9 @@
            #:write-bitcode-to-file-handle
            #:write-bitcode-to-file
            ;; target
-           ;; NOTE: The individual INITIALIZE-*-TARGET[-INFO] functions are also
-           ;;       exported, but they are created dynamically, and exported at
-           ;;       the point of creation (see target.lisp)
+           ;; NOTE: The individual INITIALIZE-*-TARGET[-INFO] functions are
+           ;;       also exported, but they are created dynamically, and
+           ;;       exported at the point of creation (see target.lisp)
            #:initialize-all-target-infos
            #:initialize-all-targets
            #:initialize-native-target
