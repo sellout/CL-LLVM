@@ -23,6 +23,8 @@
   (int-ty type) (n :unsigned-long-long) (sign-extend :boolean))
 (defcfun* "LLVMConstIntOfString" value
   (int-ty type) (text :string) (radix :uint8))
+;; NOTE: This is only available in SVN as of revision 119989, and releases after
+;;       1.8.
 (defcfun* "LLVMConstIntOfArbitraryPrecision" value
   (int-ty type) (num-words :unsigned-int) (words (carray :uint64)))
 (defun const-int (int-ty value &optional radix)
