@@ -8,6 +8,8 @@
 
 (defcfun* "LLVMModuleCreateWithNameInContext" module
   (module-id :string) (c context))
+(defun make-module (name &optional (context (global-context)))
+  (module-create-with-name-in-context name context))
 (defmethod make-instance
            ((class (eql 'module))
             &key (name (error 'required-parameter-error :name 'name))
