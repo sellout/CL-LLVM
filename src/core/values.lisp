@@ -307,7 +307,7 @@
   (instr value) (index :unsigned-int) (attribute attribute))
 (defun add-instruction-attributes (instr index &rest attributes)
   (add-instr-attribute instr index attributes))
-(defcfun "LLVMRemoveInstrAttribute" :void
+(defcfun* "LLVMRemoveInstrAttribute" :void
   (instr value) (index :unsigned-int) (attribute attribute))
 (defun remove-instruction-attributes (instr index &rest attributes)
   (remove-instr-attribute instr index attributes))
