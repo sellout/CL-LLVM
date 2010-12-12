@@ -1,6 +1,8 @@
 (in-package :llvm)
 
 (defcfun* "LLVMCreateBuilderInContext" builder (c context))
+(defun make-builder (&optional (context (global-context)))
+  (create-builder-in-context context))
 (defmethod make-instance
            ((class (eql 'builder)) &key (context (global-context)))
   (create-builder-in-context context))
