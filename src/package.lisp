@@ -98,6 +98,7 @@
            #:basic-blocks #:first-basic-block #:last-basic-block
            #:next-basic-block #:previous-basic-block #:entry-basic-block
            #:append-basic-block #:insert-basic-block #:delete-basic-block
+           #:move-basic-block-before #:move-basic-block-after
            #:instruction-parent #:first-instruction #:last-instruction
            #:next-instruction #:previous-instruction
            #:instruction-calling-convention #:add-instruction-attributes

@@ -287,6 +287,10 @@
   (insert-basic-block-in-context context insert-block name))
 
 (defcfun* "LLVMDeleteBasicBlock" :void (bb basic-block))
+(defcfun* "LLVMMoveBasicBlockBefore" :void
+  (block basic-block) (move-pos basic-block))
+(defcfun* "LLVMMoveBasicBlockAfter" :void
+  (block basic-block) (move-pos basic-block))
 
 (defcfun (instruction-parent "LLVMGetInstructionParent") basic-block
   (inst value))
