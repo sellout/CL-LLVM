@@ -282,9 +282,9 @@
 (defun append-basic-block (fn name &key (context (global-context)))
   (append-basic-block-in-context context fn name))
 (defcfun* "LLVMInsertBasicBlockInContext" basic-block
-  (c context) (fn value) (name :string))
-(defun insert-basic-block (fn name &key (context (global-context)))
-  (insert-basic-block-in-context context fn name))
+  (c context) (insert-block basic-block) (name :string))
+(defun insert-basic-block (insert-block name &key (context (global-context)))
+  (insert-basic-block-in-context context insert-block name))
 
 (defcfun* "LLVMDeleteBasicBlock" :void (bb basic-block))
 
