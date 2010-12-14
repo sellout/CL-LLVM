@@ -13,7 +13,7 @@
 
 (defcfun* "LLVMConstNull" value (ty type))
 (defcfun* "LLVMConstAllOnes" value (ty type))
-(defcfun* "LLVMGetUndef" value (ty type))
+(defcfun (undef "LLVMGetUndef") value (ty type))
 (defcfun (constantp "LLVMIsConstant") :boolean (val value))
 (defcfun (nullp "LLVMIsNull") :boolean (val value))
 (defcfun (undefp "LLVMIsUndef") :boolean (val value))
