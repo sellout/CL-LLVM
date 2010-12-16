@@ -84,6 +84,7 @@
            #:const-extract-value #:const-insert-value #:const-inline-asm
            #:add-global #:named-global #:first-global #:last-global
            #:next-global #:previous-global #:delete-global #:initializer
+           #:set-initializer
            #:thread-local-p #:global-constant-p
            #:add-alias
            #:add-function #:named-function #:first-function #:last-function
