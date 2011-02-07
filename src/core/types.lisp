@@ -77,8 +77,10 @@
 
 (defcfun* "LLVMArrayType" type
   (element-type type) (element-count :unsigned-int))
-(defcfun* "LLVMPointerType" type
+(defcfun (%pointer-type "LLVMPointerType") type
   (element-type type) (address-space :unsigned-int))
+(defun pointer-type (element-type &optional (address-space 0))
+  (%pointer-type element-type address-space))
 (defcfun* "LLVMVectorType" type
   (element-type type) (element-count :unsigned-int))
 
