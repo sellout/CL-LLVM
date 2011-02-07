@@ -54,6 +54,7 @@
                        "FP80" "FP128"
                        "FP"
                        "GC"
+                       "GEP"
                        "GVN"
                        "Int8" "Int16" "Int1" "Int32" "Int64"
                        "JIT"
