@@ -82,6 +82,8 @@
            #:const-pointer-cast #:const-int-cast #:const-fp-cast #:const-select
            #:const-extract-element #:const-insert-element #:const-shuffle-vector
            #:const-extract-value #:const-insert-value #:const-inline-asm
+           #:block-address #:global-parent #:declarationp
+           #:linkage #:section #:visibility #:alignment
            #:add-global #:named-global #:first-global #:last-global
            #:next-global #:previous-global #:delete-global #:initializer
            #:set-initializer
