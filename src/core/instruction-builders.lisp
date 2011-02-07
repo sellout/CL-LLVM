@@ -129,6 +129,8 @@
   (%build-in-bounds-gep b pointer indices (length indices) name))
 (defcfun* "LLVMBuildStructGEP" value
   (b builder) (pointer value) (idx :unsigned-int) (name :string))
+(defcfun* "LLVMBuildGlobalString" value
+  (b builder) (str :string) (name :string))
 (defcfun (build-global-string-pointer "LLVMBuildGlobalStringPtr") value
   (b builder) (str :string) (name :string))
 
