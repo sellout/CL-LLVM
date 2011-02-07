@@ -158,8 +158,8 @@
 (defcfun* "LLVMConstInlineAsm" value
   (ty type) (asm-string :string) (constraints :string)
   (has-side-effects :boolean))
-
-(defcfun* "LLVMGetGlobalParent" module (global value))
+(defcfun* "LLVMBlockAddress" value (f value) (bb basic-block))
+(defcfun (global-parent "LLVMGetGlobalParent") module (global value))
 (defcfun (declarationp "LLVMIsDeclaration") :boolean (global value))
 (defcfun (linkage "LLVMGetLinkage") linkage (global value))
 (defcfun* "LLVMSetLinkage" :void (global value) (linkage linkage))
