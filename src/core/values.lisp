@@ -57,8 +57,8 @@
   (str :string) (length :unsigned-int)
   (dont-null-terminate :boolean))
 ;;; FIXME: is it right to hardcode dont-null-terminate here?
-(defun const-string (str &key (context (global-context)))
-  (const-string-in-context context str (length str) nil))
+(defun const-string (str dont-null-terminate &key (context (global-context)))
+  (const-string-in-context context str (length str) dont-null-terminate))
 (defcfun* "LLVMConstStructInContext" value
   (c context)
   (constant-vals (carray value)) (count :unsigned-int)
