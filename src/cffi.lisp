@@ -82,6 +82,8 @@
          ,return-type ,@arguments)))
 
 (define-foreign-library libllvm
-  (t (:default "libLLVM")))
+  (t (:or (:default "libLLVM")
+          (:default "libLLVM-2.8")
+          (:default "libLLVM-2.7"))))
 
 (use-foreign-library libllvm)
