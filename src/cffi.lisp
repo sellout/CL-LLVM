@@ -82,6 +82,7 @@
          ,return-type ,@arguments)))
 
 (define-foreign-library libllvm
+  (:unix (:or "libLLVM.so.1" "libLLVM-2.8.so.1" "libLLVM-2.7.so.1"))
   (t (:or (:default "libLLVM")
           (:default "libLLVM-2.8")
           (:default "libLLVM-2.7"))))
