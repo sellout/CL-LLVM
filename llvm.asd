@@ -7,7 +7,8 @@
 ;;;       forget to build the shared lib with --enable-shared)
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
-  (oos 'load-op 'cffi-grovel))
+  (mapc #+quicklisp #'ql:quickload #-quicklisp #'asdf:load-system
+        '(cffi-grovel)))
 
 (defsystem llvm
   :description "CFFI bindings to the LLVM libraries."
@@ -48,8 +49,8 @@
                          (:file "target" :depends-on ("target-grovel"))
                          (:file "scalar-transforms")))))
 
-;;; NOTE: In order to load and run the Kaleidoscope tutorial, you first need to run
-;;;       `./build-library.sh` in the tutorial subdirectory.
+;;; NOTE: In order to load and run the Kaleidoscope tutorial, you first need to
+;;;       run `./build-library.sh` in the tutorial subdirectory.
 
 (defsystem kaleidoscope
     :description "A translation of the language created in the LLVM tutorial."
