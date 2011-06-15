@@ -14,7 +14,7 @@
            ((class (eql 'module))
             &key (name (error 'required-parameter-error :name 'name))
                  (context (global-context)))
-  (module-create-with-name-in-context name context))
+  (make-module name context))
 
 (defcfun* "LLVMDisposeModule" :void (m module))
 
