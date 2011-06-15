@@ -183,6 +183,9 @@
            #:invalidate-struct-layout
            #:dispose-target-data
            ;; execution-engine
+           #:create-generic-value-of-int
+           #:create-generic-value-of-pointer
+           #:create-generic-value-of-float
            #:generic-value-of-int
            #:generic-value-of-pointer
            #:generic-value-of-float
