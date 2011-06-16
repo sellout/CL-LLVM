@@ -142,6 +142,8 @@
            ;; pass managers
            #:pass-manager
            #:function-pass-manager
+           #:create-pass-manager
+           #:create-function-pass-manager-for-module
            #:run-pass-manager
            #:initialize-function-pass-manager
            #:run-function-pass-manager
