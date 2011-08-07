@@ -63,6 +63,7 @@
            #:dispose-type-handle
            ;; values
            #:type-of #:value-name #:dump-value
+           #:get-operand #:set-operand #:get-num-operands
            #:const-null #:const-all-ones #:undef #:constantp #:nullp #:undefp
            #:const-pointer-null
            #:const-int #:const-real #:z-ext-value #:s-ext-value
