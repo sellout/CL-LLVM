@@ -83,10 +83,15 @@
 
 (define-foreign-library libllvm
   (:darwin (:or (:default "libLLVM")
+                (:default "libLLVM-2.9")
                 (:default "libLLVM-2.8")
                 (:default "libLLVM-2.7")))
-  (:unix (:or "libLLVM.so.1" "libLLVM-2.8.so.1" "libLLVM-2.7.so.1"))
+  (:unix (:or "libLLVM.so" "libLLVM.so.1"
+              "libLLVM-2.9.so" "libLLVM-2.9.so.1"
+              "libLLVM-2.8.so" "libLLVM-2.8.so.1"
+              "libLLVM-2.7.so" "libLLVM-2.7.so.1"))
   (t (:or (:default "libLLVM")
+          (:default "libLLVM-2.9")
           (:default "libLLVM-2.8")
           (:default "libLLVM-2.7"))))
 
