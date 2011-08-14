@@ -11,6 +11,10 @@
   (finish-output *error-output*)
   (%dump-value val))
 
+(defcfun* "LLVMGetOperand" value (val value) (index :unsigned-int))
+(defcfun* "LLVMSetOperand" value (user value) (index :unsigned-int) (val value))
+(defcfun* "LLVMGetNumOperands" value (val value))
+
 (defcfun* "LLVMConstNull" value (ty type))
 (defcfun* "LLVMConstAllOnes" value (ty type))
 (defcfun (undef "LLVMGetUndef") value (ty type))

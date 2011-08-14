@@ -63,6 +63,7 @@
            #:dispose-type-handle
            ;; values
            #:type-of #:value-name #:dump-value
+           #:get-operand #:set-operand #:get-num-operands
            #:const-null #:const-all-ones #:undef #:constantp #:nullp #:undefp
            #:const-pointer-null
            #:const-int #:const-real #:z-ext-value #:s-ext-value
@@ -142,6 +143,8 @@
            ;; pass managers
            #:pass-manager
            #:function-pass-manager
+           #:create-pass-manager
+           #:create-function-pass-manager-for-module
            #:run-pass-manager
            #:initialize-function-pass-manager
            #:run-function-pass-manager
@@ -183,6 +186,9 @@
            #:invalidate-struct-layout
            #:dispose-target-data
            ;; execution-engine
+           #:create-generic-value-of-int
+           #:create-generic-value-of-pointer
+           #:create-generic-value-of-float
            #:generic-value-of-int
            #:generic-value-of-pointer
            #:generic-value-of-float

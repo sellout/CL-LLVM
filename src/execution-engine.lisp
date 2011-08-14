@@ -44,48 +44,54 @@
   (out-ee (:pointer execution-engine))
   (m module)
   (out-error (:pointer :string)))
+(defun make-execution-engine (module)
+  (with-foreign-objects ((out-ee '(:pointer execution-engine))
+                         (out-error '(:pointer :string)))
+    (if (create-execution-engine-for-module out-ee module out-error)
+        (error 'llvm-error :message out-error)
+        (mem-ref out-ee 'execution-engine))))
 (defmethod make-instance
            ((class (eql 'execution-engine))
             &key
             (module (error 'required-parameter-error :name 'module)))
-  (with-foreign-objects ((out-ee '(:pointer execution-engine))
-                         (out-error '(:pointer :string)))
-    (if (create-execution-engine-for-module out-ee module out-error)
-      (error 'llvm-error :message out-error)
-      (mem-ref out-ee 'execution-engine))))
+  (make-execution-engine module))
 
 (defcfun* "LLVMCreateInterpreterForModule" :boolean
   (out-interp (:pointer execution-engine))
   (m module)
   (out-error (:pointer :string)))
+(defun make-interpreter (module)
+  (with-foreign-objects ((out-interp '(:pointer execution-engine))
+                         (out-error '(:pointer :string)))
+    (if (create-interpreter-for-module out-interp module out-error)
+        (error 'llvm-error :message out-error)
+        (mem-ref out-interp 'execution-engine))))
 (defmethod make-instance
            ((class (eql 'interpreter))
             &key
             (module (error 'required-parameter-error :name 'module)))
-  (with-foreign-objects ((out-interp '(:pointer execution-engine))
-                         (out-error '(:pointer :string)))
-    (if (create-interpreter-for-module out-interp module out-error)
-      (error 'llvm-error :message out-error)
-      (mem-ref out-interp 'execution-engine))))
+  (make-interpreter module))
 
 (defcfun* "LLVMCreateJITCompilerForModule" :boolean
   (out-jit (:pointer execution-engine))
   (m module)
   (opt-level optimization-level)
   (out-error (:pointer :string)))
-(defmethod make-instance
-           ((class (eql 'jit-compiler))
-            &key
-            (module (error 'required-parameter-error :name 'module))
-            (optimization-level :default))
+(defun make-jit-compiler (module &optional (optimization-level :default))
   (with-foreign-objects ((out-jit '(:pointer execution-engine))
                          (out-error '(:pointer :string)))
     (if (create-jit-compiler-for-module out-jit
                                         module
                                         optimization-level
                                         out-error)
-      (error 'llvm-error :message out-error)
-      (mem-ref out-jit 'execution-engine))))
+        (error 'llvm-error :message out-error)
+        (mem-ref out-jit 'execution-engine))))
+(defmethod make-instance
+           ((class (eql 'jit-compiler))
+            &key
+            (module (error 'required-parameter-error :name 'module))
+            (optimization-level :default))
+  (make-jit-compiler module optimization-level))
 
 (defcfun* "LLVMDisposeExecutionEngine" :void (ee execution-engine))
 
