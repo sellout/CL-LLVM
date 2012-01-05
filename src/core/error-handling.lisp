@@ -137,7 +137,7 @@
 (defmacro with-pointer-to-list ((pointer-var type length) &body body)
   `(with-foreign-object (,pointer-var ',type ,length)
      ,@body
-     (convert-from-foreign ,pointer-var `(carray ,',type))))
+     (convert-from-foreign ,pointer-var `(carray ,',type ,,length))))
 
 ;;; optimization-level should be a cenum, but only exists in C++.
 
