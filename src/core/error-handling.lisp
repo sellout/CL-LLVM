@@ -122,7 +122,7 @@
 
 (defmethod translate-from-foreign (pointer (type carray))
   (if (capacity type)
-      (loop for i from 0 to (capacity type)
+      (loop for i from 0 below (capacity type)
          for value = (mem-aref pointer (value-type type) i)
          collect value)
       (loop for i from 0
