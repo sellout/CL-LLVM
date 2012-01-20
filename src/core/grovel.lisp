@@ -90,7 +90,9 @@
        ((:external-weak "LLVMExternalWeakLinkage"))
        ((:ghost "LLVMGhostLinkage"))
        ((:common "LLVMCommonLinkage"))
-       ((:linker-private "LLVMLinkerPrivateLinkage")))
+       ((:linker-private "LLVMLinkerPrivateLinkage"))
+       ((:linker-private-weak "LLVMLinkerPrivateWeakLinkage"))
+       ((:linker-private-weak-auto "LLVMLinkerPrivateWeakDefAutoLinkage")))
 
 (cenum visibility
        ((:default "LLVMDefaultVisibility"))
