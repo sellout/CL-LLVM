@@ -71,9 +71,9 @@
        ((:struct "LLVMStructTypeKind"))
        ((:array "LLVMArrayTypeKind"))
        ((:pointer "LLVMPointerTypeKind"))
-       ((:opaque "LLVMOpaqueTypeKind"))
        ((:vector "LLVMVectorTypeKind"))
-       ((:metadata "LLVMMetadataTypeKind")))
+       ((:metadata "LLVMMetadataTypeKind"))
+       ((:x86-mmx "LLVMX86_MMXTypeKind")))
 
 (cenum linkage
        ((:external "LLVMExternalLinkage"))
