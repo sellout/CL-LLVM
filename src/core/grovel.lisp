@@ -139,3 +139,7 @@
        ((:unordered-<= "LLVMRealULE"))
        ((:unordered-/= "LLVMRealUNE"))
        ((:true "LLVMRealPredicateTrue")))
+
+(cenum landing-pad-clause-type
+       ((:catch "LLVMLandingPadCatch"))
+       ((:filter "LLVMLandingPadFilter")))
