@@ -10,7 +10,6 @@
        ((:switch "LLVMSwitch"))
        ((:indirect-br "LLVMIndirectBr"))
        ((:invoke "LLVMInvoke"))
-       ((:unwind "LLVMUnwind"))
        ((:unreachable "LLVMUnreachable"))
        ((:add "LLVMAdd"))
        ((:f-add "LLVMFAdd"))
@@ -56,7 +55,12 @@
        ((:insert-element "LLVMInsertElement"))
        ((:shuffle-vector "LLVMShuffleVector"))
        ((:extract-value "LLVMExtractValue"))
-       ((:insert-value "LLVMInsertValue")))
+       ((:insert-value "LLVMInsertValue"))
+       ((:fence "LLVMFence"))
+       ((:atomic-cas "LLVMAtomicCmpXchg"))
+       ((:resume "LLVMResume"))
+       ((:landing-pad "LLVMLandingPad"))
+       ((:unwind "LLVMUnwind")))
 
 (cenum type-kind
        ((:void "LLVMVoidTypeKind"))
