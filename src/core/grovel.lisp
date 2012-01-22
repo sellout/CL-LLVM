@@ -10,7 +10,6 @@
        ((:switch "LLVMSwitch"))
        ((:indirect-br "LLVMIndirectBr"))
        ((:invoke "LLVMInvoke"))
-       ((:unwind "LLVMUnwind"))
        ((:unreachable "LLVMUnreachable"))
        ((:add "LLVMAdd"))
        ((:f-add "LLVMFAdd"))
@@ -56,7 +55,12 @@
        ((:insert-element "LLVMInsertElement"))
        ((:shuffle-vector "LLVMShuffleVector"))
        ((:extract-value "LLVMExtractValue"))
-       ((:insert-value "LLVMInsertValue")))
+       ((:insert-value "LLVMInsertValue"))
+       ((:fence "LLVMFence"))
+       ((:atomic-cas "LLVMAtomicCmpXchg"))
+       ((:resume "LLVMResume"))
+       ((:landing-pad "LLVMLandingPad"))
+       ((:unwind "LLVMUnwind")))
 
 (cenum type-kind
        ((:void "LLVMVoidTypeKind"))
@@ -71,9 +75,9 @@
        ((:struct "LLVMStructTypeKind"))
        ((:array "LLVMArrayTypeKind"))
        ((:pointer "LLVMPointerTypeKind"))
-       ((:opaque "LLVMOpaqueTypeKind"))
        ((:vector "LLVMVectorTypeKind"))
-       ((:metadata "LLVMMetadataTypeKind")))
+       ((:metadata "LLVMMetadataTypeKind"))
+       ((:x86-mmx "LLVMX86_MMXTypeKind")))
 
 (cenum linkage
        ((:external "LLVMExternalLinkage"))
@@ -90,7 +94,9 @@
        ((:external-weak "LLVMExternalWeakLinkage"))
        ((:ghost "LLVMGhostLinkage"))
        ((:common "LLVMCommonLinkage"))
-       ((:linker-private "LLVMLinkerPrivateLinkage")))
+       ((:linker-private "LLVMLinkerPrivateLinkage"))
+       ((:linker-private-weak "LLVMLinkerPrivateWeakLinkage"))
+       ((:linker-private-weak-auto "LLVMLinkerPrivateWeakDefAutoLinkage")))
 
 (cenum visibility
        ((:default "LLVMDefaultVisibility"))
@@ -133,3 +139,7 @@
        ((:unordered-<= "LLVMRealULE"))
        ((:unordered-/= "LLVMRealUNE"))
        ((:true "LLVMRealPredicateTrue")))
+
+(cenum landing-pad-clause-type
+       ((:catch "LLVMLandingPadCatch"))
+       ((:filter "LLVMLandingPadFilter")))
