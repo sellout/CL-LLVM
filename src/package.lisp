@@ -1,6 +1,6 @@
 (defpackage llvm
-    (:documentation
-     "In general, names are from the C interface (see include/llvm-c), translated
+  (:documentation
+   "In general, names are from the C interface (see include/llvm-c), translated
     as follows:
 
   • “LLVM” prefix is dropped
@@ -39,6 +39,7 @@
            ;; modules
            #:context #:global-context #:context-dispose
            #:module
+           #:with-module
            #:make-module
            #:dispose-module
            #:data-layout
@@ -110,9 +111,9 @@
            #:tail-call-p
            #:add-incoming #:count-incoming #:incoming-value #:incoming-block
            ;; instruction builders
-           #:builder #:make-builder #:position-builder #:position-builder-before
-           #:position-builder-at-end #:insertion-block
-           #:clear-insertion-position #:insert-into-builder #:dispose-builder
+           #:builder #:with-builder #:make-builder #:dispose-builder
+           #:position-builder #:position-builder-before #:position-builder-at-end
+           #:insertion-block #:clear-insertion-position #:insert-into-builder
            #:build-ret #:build-br #:build-cond-br #:build-switch #:build-invoke
            #:build-unwind #:build-unreachable
            #:add-case

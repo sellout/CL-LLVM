@@ -1,5 +1,10 @@
 (in-package :llvm)
 
+(defmacro with-builder ((var &optional context) &body body)
+  `(let ((,var (make-builder ,@(when context (list context)))))
+     (unwind-protect (progn ,@body)
+       (dispose-builder ,var))))
+
 (defcfun* "LLVMCreateBuilderInContext" builder (c context))
 (defun make-builder (&optional (context (global-context)))
   (create-builder-in-context context))

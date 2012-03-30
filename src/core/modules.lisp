@@ -1,5 +1,10 @@
 (in-package :llvm)
 
+(defmacro with-module ((var name &optional context) &body body)
+  `(let ((,var (make-module ,name ,@(when context (list context)))))
+     (unwind-protect (progn ,@body)
+       (dispose-builder ,var))))
+
 (defcfun* "LLVMContextCreate" context)
 (defmethod make-instance ((class (eql 'context)) &key &allow-other-keys)
   (context-create))
