@@ -45,11 +45,6 @@
   #-(or mips alpha ppc ppc64 sparc sparc64 x86 x86-64) nil)
 
 (defcfun* "LLVMCreateTargetData" target-data (string-rep :string))
-(defmethod make-instance
-           ((class (eql 'target-data))
-            &key (string-representation
-                  (error 'required-parameter-error :name 'string-representation)))
-  (create-target-data string-representation))
 
 (defcfun* "LLVMAddTargetData" :void
   (target-data target-data) (pass-manager pass-manager))

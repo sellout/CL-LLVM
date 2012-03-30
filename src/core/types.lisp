@@ -101,10 +101,6 @@
   (opaque-type-in-context context))
 
 (defcfun* "LLVMCreateTypeHandle" type-handle (potentially-abstract-ty type))
-(defmethod make-instance
-           ((class (eql 'type-handle))
-            &key (type (error 'required-parameter-error :name 'type)))
-  (create-type-handle type))
 (defcfun* "LLVMRefineType" :void (abstract-ty type) (concrete-ty type))
 (defcfun* "LLVMResolveTypeHandle" :void (type-handle type-handle))
 (defcfun* "LLVMDisposeTypeHandle" :void (type-handle type-handle))

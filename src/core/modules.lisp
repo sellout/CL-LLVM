@@ -1,13 +1,6 @@
 (in-package :llvm)
 
-(defmacro with-module ((var name &optional context) &body body)
-  `(let ((,var (make-module ,name ,@(when context (list context)))))
-     (unwind-protect (progn ,@body)
-       (dispose-builder ,var))))
-
 (defcfun* "LLVMContextCreate" context)
-(defmethod make-instance ((class (eql 'context)) &key &allow-other-keys)
-  (context-create))
 (defcfun (global-context "LLVMGetGlobalContext") context)
 (defcfun (dispose-context "LLVMContextDispose") :void (c context))
 
@@ -15,11 +8,6 @@
   (module-id :string) (c context))
 (defun make-module (name &optional (context (global-context)))
   (module-create-with-name-in-context name context))
-(defmethod make-instance
-           ((class (eql 'module))
-            &key (name (error 'required-parameter-error :name 'name))
-                 (context (global-context)))
-  (make-module name context))
 
 (defcfun* "LLVMDisposeModule" :void (m module))
 
