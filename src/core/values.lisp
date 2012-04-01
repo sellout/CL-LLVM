@@ -223,10 +223,10 @@
 (defcfun (previous-function "LLVMGetPreviousFunction") value (fn value))
 (defcfun* "LLVMDeleteFunction" :void (fn value))
 (defcfun (intrinsic-id "LLVMGetIntrinsicID") :unsigned-int (fn value))
-(defcfun (calling-convention "LLVMGetFunctionCallConv") calling-convention
+(defcfun (function-calling-convention "LLVMGetFunctionCallConv") calling-convention
   (fn value))
 (defcfun* "LLVMSetFunctionCallConv" :void (fn value) (cc calling-convention))
-(defun (setf calling-convention) (cc fn)
+(defun (setf function-calling-convention) (cc fn)
   (set-function-call-conv fn cc)
   cc)
 (defcfun (gc "LLVMGetGC") :string (fn value))
