@@ -56,6 +56,7 @@
            #:function-type #:var-arg-p #:return-type #:count-param-types
            #:param-types
            #:struct-type #:count-struct-element-types #:struct-element-types
+           #:struct-create-named #:get-struct-name #:struct-set-body
            #:packedp
            #:array-type #:pointer-type #:vector-type
            #:element-type #:array-length #:pointer-address-space #:vector-size
