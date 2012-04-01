@@ -234,10 +234,14 @@
 (defun (setf gc) (name fn)
   (set-gc fn name)
   name)
-(defcfun* "LLVMAddFunctionAttribute" :void (fn value) (pa attribute))
+(defcfun* "LLVMAddFunctionAttr" :void (fn value) (pa attribute))
 (defun add-function-attributes (fn &rest attributes)
-  (add-function-attribute fn attributes))
-(defcfun* "LLVMRemoveFunctionAttribute" :void (fn value) (pa attribute))
+  (add-function-attr fn attributes))
+(defcfun* "LLVMGetFunctionAttr" attribute
+  (fn value))
+(defun get-function-attribute (function)
+  (get-function-attr function))
+(defcfun* "LLVMRemoveFunctionAttr" :void (fn value) (pa attribute))
 (defun remove-function-attributes (fn &rest attributes)
   (remove-function-attribute fn attributes))
 

@@ -96,6 +96,7 @@
            #:next-function #:previous-function #:delete-function #:intrinsic-id
            #:function-calling-convention #:gc
            #:add-function-attributes #:remove-function-attributes
+           #:get-function-attribute
            #:count-params #:params #:param #:param-parent #:first-param
            #:last-param #:next-param #:previous-param
            #:add-attributes #:remove-attributes #:param-alignment
