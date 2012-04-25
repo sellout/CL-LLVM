@@ -1,6 +1,6 @@
 (defpackage llvm
-    (:documentation
-     "In general, names are from the C interface (see include/llvm-c), translated
+  (:documentation
+   "In general, names are from the C interface (see include/llvm-c), translated
     as follows:
 
   • “LLVM” prefix is dropped
@@ -39,6 +39,7 @@
            ;; modules
            #:context #:global-context #:context-dispose
            #:module
+           #:with-module
            #:make-module
            #:dispose-module
            #:data-layout
@@ -55,6 +56,7 @@
            #:function-type #:var-arg-p #:return-type #:count-param-types
            #:param-types
            #:struct-type #:count-struct-element-types #:struct-element-types
+           #:struct-create-named #:get-struct-name #:struct-set-body
            #:packedp
            #:array-type #:pointer-type #:vector-type
            #:element-type #:array-length #:pointer-address-space #:vector-size
@@ -69,7 +71,7 @@
            #:const-int #:const-real #:z-ext-value #:s-ext-value
            #:const-string #:const-array #:const-struct #:const-vector
            #:const-opcode
-           #:align-of #:sign-of #:const-neg #:const-f-neg #:const-not
+           #:align-of #:size-of #:const-neg #:const-f-neg #:const-not
            #:const-add #:const-nsw-add #:const-f-add #:const-sub #:const-f-sub
            #:const-mul #:const-f-mul #:const-u-div #:const-s-div
            #:const-exact-s-div #:const-f-div #:const-u-rem #:const-s-rem
@@ -94,6 +96,7 @@
            #:next-function #:previous-function #:delete-function #:intrinsic-id
            #:function-calling-convention #:gc
            #:add-function-attributes #:remove-function-attributes
+           #:get-function-attribute
            #:count-params #:params #:param #:param-parent #:first-param
            #:last-param #:next-param #:previous-param
            #:add-attributes #:remove-attributes #:param-alignment
@@ -110,9 +113,9 @@
            #:tail-call-p
            #:add-incoming #:count-incoming #:incoming-value #:incoming-block
            ;; instruction builders
-           #:builder #:make-builder #:position-builder #:position-builder-before
-           #:position-builder-at-end #:insertion-block
-           #:clear-insertion-position #:insert-into-builder #:dispose-builder
+           #:builder #:with-builder #:make-builder #:dispose-builder
+           #:position-builder #:position-builder-before #:position-builder-at-end
+           #:insertion-block #:clear-insertion-position #:insert-into-builder
            #:build-ret #:build-br #:build-cond-br #:build-switch #:build-invoke
            #:build-unwind #:build-unreachable
            #:add-case

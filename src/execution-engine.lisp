@@ -7,25 +7,10 @@
 
 (defcfun* "LLVMCreateGenericValueOfInt" generic-value
   (ty type) (n :unsigned-long-long) (is-signed :boolean))
-(defmethod make-instance
-           ((class (eql 'generic-value-of-int))
-            &key (type (error 'required-parameter-error :name 'type))
-                 (value (error 'required-parameter-error :name 'value))
-                 (signedp (error 'required-parameter-error :name 'signedp)))
-  (create-generic-value-of-int type value signedp))
 
 (defcfun* "LLVMCreateGenericValueOfPointer" generic-value (p (:pointer :void)))
-(defmethod make-instance
-           ((class (eql 'generic-value-of-pointer))
-            &key (pointer (error 'required-parameter-error :name 'pointer)))
-  (create-generic-value-of-pointer pointer))
 
 (defcfun* "LLVMCreateGenericValueOfFloat" generic-value (ty type) (n :double))
-(defmethod make-instance
-           ((class (eql 'generic-value-of-float))
-            &key (type (error 'required-parameter-error :name 'type))
-                 (value (error 'required-parameter-error :name 'value)))
-  (create-generic-value-of-float type value))
 
 (defcfun* "LLVMGenericValueIntWidth" :unsigned-int (gen-val generic-value))
 
@@ -50,11 +35,6 @@
     (if (create-execution-engine-for-module out-ee module out-error)
         (error 'llvm-error :message out-error)
         (mem-ref out-ee 'execution-engine))))
-(defmethod make-instance
-           ((class (eql 'execution-engine))
-            &key
-            (module (error 'required-parameter-error :name 'module)))
-  (make-execution-engine module))
 
 (defcfun* "LLVMCreateInterpreterForModule" :boolean
   (out-interp (:pointer execution-engine))
@@ -66,11 +46,6 @@
     (if (create-interpreter-for-module out-interp module out-error)
         (error 'llvm-error :message out-error)
         (mem-ref out-interp 'execution-engine))))
-(defmethod make-instance
-           ((class (eql 'interpreter))
-            &key
-            (module (error 'required-parameter-error :name 'module)))
-  (make-interpreter module))
 
 (defcfun* "LLVMCreateJITCompilerForModule" :boolean
   (out-jit (:pointer execution-engine))
@@ -86,12 +61,6 @@
                                         out-error)
         (error 'llvm-error :message out-error)
         (mem-ref out-jit 'execution-engine))))
-(defmethod make-instance
-           ((class (eql 'jit-compiler))
-            &key
-            (module (error 'required-parameter-error :name 'module))
-            (optimization-level :default))
-  (make-jit-compiler module optimization-level))
 
 (defcfun* "LLVMDisposeExecutionEngine" :void (ee execution-engine))
 

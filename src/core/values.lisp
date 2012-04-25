@@ -223,10 +223,10 @@
 (defcfun (previous-function "LLVMGetPreviousFunction") value (fn value))
 (defcfun* "LLVMDeleteFunction" :void (fn value))
 (defcfun (intrinsic-id "LLVMGetIntrinsicID") :unsigned-int (fn value))
-(defcfun (calling-convention "LLVMGetFunctionCallConv") calling-convention
+(defcfun (function-calling-convention "LLVMGetFunctionCallConv") calling-convention
   (fn value))
 (defcfun* "LLVMSetFunctionCallConv" :void (fn value) (cc calling-convention))
-(defun (setf calling-convention) (cc fn)
+(defun (setf function-calling-convention) (cc fn)
   (set-function-call-conv fn cc)
   cc)
 (defcfun (gc "LLVMGetGC") :string (fn value))
@@ -234,10 +234,14 @@
 (defun (setf gc) (name fn)
   (set-gc fn name)
   name)
-(defcfun* "LLVMAddFunctionAttribute" :void (fn value) (pa attribute))
+(defcfun* "LLVMAddFunctionAttr" :void (fn value) (pa attribute))
 (defun add-function-attributes (fn &rest attributes)
-  (add-function-attribute fn attributes))
-(defcfun* "LLVMRemoveFunctionAttribute" :void (fn value) (pa attribute))
+  (add-function-attr fn attributes))
+(defcfun* "LLVMGetFunctionAttr" attribute
+  (fn value))
+(defun get-function-attribute (function)
+  (get-function-attr function))
+(defcfun* "LLVMRemoveFunctionAttr" :void (fn value) (pa attribute))
 (defun remove-function-attributes (fn &rest attributes)
   (remove-function-attribute fn attributes))
 

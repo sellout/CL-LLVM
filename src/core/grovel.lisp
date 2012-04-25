@@ -59,8 +59,7 @@
        ((:fence "LLVMFence"))
        ((:atomic-cas "LLVMAtomicCmpXchg"))
        ((:resume "LLVMResume"))
-       ((:landing-pad "LLVMLandingPad"))
-       ((:unwind "LLVMUnwind")))
+       ((:landing-pad "LLVMLandingPad")))
 
 (cenum type-kind
        ((:void "LLVMVoidTypeKind"))
