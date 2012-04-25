@@ -71,7 +71,7 @@
            #:const-int #:const-real #:z-ext-value #:s-ext-value
            #:const-string #:const-array #:const-struct #:const-vector
            #:const-opcode
-           #:align-of #:sign-of #:const-neg #:const-f-neg #:const-not
+           #:align-of #:size-of #:const-neg #:const-f-neg #:const-not
            #:const-add #:const-nsw-add #:const-f-add #:const-sub #:const-f-sub
            #:const-mul #:const-f-mul #:const-u-div #:const-s-div
            #:const-exact-s-div #:const-f-div #:const-u-rem #:const-s-rem
