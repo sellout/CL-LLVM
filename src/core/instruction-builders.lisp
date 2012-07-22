@@ -3,9 +3,6 @@
 (defcfun* "LLVMCreateBuilderInContext" builder (c context))
 (defun make-builder (&optional (context (global-context)))
   (create-builder-in-context context))
-(defmethod make-instance
-           ((class (eql 'builder)) &key (context (global-context)))
-  (make-builder context))
 (defcfun (%position-builder "LLVMPositionBuilder") builder
   (builder builder) (block basic-block) (instr value))
 (defun position-builder (builder block &optional (instr (null-pointer)))

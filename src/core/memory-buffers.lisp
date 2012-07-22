@@ -15,6 +15,4 @@
            0)
       (mem-ref out-mem-buf 'memory-buffer)
       (error 'llvm-error :message out-message))))
-(defmethod make-instance ((class (eql 'memory-buffer)) &key path)
-  (make-memory-buffer path))
 (defcfun* "LLVMDisposeMemoryBuffer" :void (mem-buf memory-buffer))

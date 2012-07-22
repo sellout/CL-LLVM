@@ -74,6 +74,17 @@
   (with-pointer-to-list (pointer type (count-struct-element-types struct-ty))
     (get-struct-element-types struct-ty pointer)))
 (defcfun (packed-struct-p "LLVMIsPackedStruct") :boolean (struct-ty type))
+(defcfun* "LLVMStructCreateNamed" type
+  (c context)
+  (name :string))
+(defcfun* "LLVMGetStructName" :string
+  (struct type))
+(defcfun (%struct-set-body "LLVMStructSetBody") :void
+  (struct type)
+  (element-types (carray type)) (element-count :unsigned-int)
+  (packed :boolean))
+(defun struct-set-body (struct-type element-types &optional (packed nil))
+  (%struct-set-body struct-type element-types (length element-types) packed))
 
 (defcfun* "LLVMArrayType" type
   (element-type type) (element-count :unsigned-int))
@@ -101,10 +112,6 @@
   (opaque-type-in-context context))
 
 (defcfun* "LLVMCreateTypeHandle" type-handle (potentially-abstract-ty type))
-(defmethod make-instance
-           ((class (eql 'type-handle))
-            &key (type (error 'required-parameter-error :name 'type)))
-  (create-type-handle type))
 (defcfun* "LLVMRefineType" :void (abstract-ty type) (concrete-ty type))
 (defcfun* "LLVMResolveTypeHandle" :void (type-handle type-handle))
 (defcfun* "LLVMDisposeTypeHandle" :void (type-handle type-handle))
