@@ -15,7 +15,7 @@
   :long-description "LLVM is a collection of modular and reusable compiler and
                      toolchain technologies. This library makes it easy (and
                      hopefully intuitive) to use them in Common Lisp."
-  :license "undecided"
+  :license "MIT"
   :author "Greg Pfeil <greg@technomadic.org>"
   :depends-on (cffi cffi-grovel trivial-features)
   :pathname "src/"
