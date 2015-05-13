@@ -2,8 +2,13 @@
 
 (cc-flags "-D__STDC_LIMIT_MACROS"
           "-D__STDC_CONSTANT_MACROS"
-          #+darwin "-I"
-          #+darwin "/usr/local/opt/llvm/include")
+          #+:llvm-config "-I"
+          #+:llvm-config
+          #.(multiple-value-bind (prefix err) (trivial-shell:shell-command "llvm-config --prefix")
+              (if (zerop (length err))
+                  (format nil "~a/include" (string-trim '(#\Newline) prefix))
+                  "")))
+
 (include "llvm-c/Core.h")
 
 (cenum opcode
