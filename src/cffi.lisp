@@ -83,6 +83,7 @@
 
 (define-foreign-library libllvm
   (:darwin (:or (:default "libLLVM")
+                (:default "libLLVM-3.5")
                 (:default "libLLVM-3.1")
                 (:default "libLLVM-3.1svn")
                 (:default "libLLVM-3.0")))
@@ -96,3 +97,12 @@
           (:default "libLLVM-3.0"))))
 
 (use-foreign-library libllvm)
+
+(cl-ppcre:register-groups-bind (version)
+    ("libLLVM-(([0-9]+\\.?)+)" (pathname-name (cffi::foreign-library-handle (cffi::get-foreign-library 'libllvm))))
+  (when version
+    (let ((splitted (split-sequence:split-sequence #\. version)))
+      (when (and (>= (length splitted) 2)
+                 (>= (parse-integer (car splitted)) 3)
+                 (>= (parse-integer (cadr splitted)) 4))
+        (push :libllvm-upper-3.4.0 *features*)))))

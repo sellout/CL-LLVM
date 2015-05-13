@@ -1,7 +1,9 @@
 (in-package :llvm)
 
 (cc-flags "-D__STDC_LIMIT_MACROS"
-          "-D__STDC_CONSTANT_MACROS")
+          "-D__STDC_CONSTANT_MACROS"
+          #+darwin "-I"
+          #+darwin "/usr/local/opt/llvm/include")
 (include "llvm-c/Core.h")
 
 (cenum opcode
@@ -95,6 +97,7 @@
        ((:common "LLVMCommonLinkage"))
        ((:linker-private "LLVMLinkerPrivateLinkage"))
        ((:linker-private-weak "LLVMLinkerPrivateWeakLinkage"))
+       #-:LIBLLVM-UPPER-3.4.0
        ((:linker-private-weak-auto "LLVMLinkerPrivateWeakDefAutoLinkage")))
 
 (cenum visibility
