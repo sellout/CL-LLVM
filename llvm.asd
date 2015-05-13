@@ -17,7 +17,7 @@
                      hopefully intuitive) to use them in Common Lisp."
   :license "MIT"
   :author "Greg Pfeil <greg@technomadic.org>"
-  :depends-on (cffi cffi-grovel trivial-features cl-ppcre split-sequence)
+  :depends-on (cffi cffi-grovel trivial-features cl-ppcre split-sequence trivial-shell)
   :pathname "src/"
   :components
   ((:file "package")
