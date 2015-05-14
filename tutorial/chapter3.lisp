@@ -348,7 +348,7 @@
         (gethash #\- *binop-precedence*) 30
         (gethash #\* *binop-precedence*) 40)
   (llvm:with-objects ((*builder* llvm:builder)
-                      (*module* llvm:module :name "my cool jit"))
+                      (*module* llvm:module "my cool jit"))
     (format *error-output* "~&ready> ")
     (get-next-token)
     (main-loop)
