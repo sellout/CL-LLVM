@@ -1,5 +1,7 @@
 (in-package :llvm)
 
+(defparameter *should-dispose-modules* nil)
+
 (defmacro with-object ((var type &rest args) &body body)
   (let ((managers
           ;; Each element is of the form (designator constructor destructor)
@@ -17,16 +19,26 @@
             (execution-engine make-execution-engine dispose-execution-engine)
             (interpreter make-interpreter dispose-execution-engine)
             (jit-compiler make-jit-compiler dispose-execution-engine))))
-    `(let ((,var (,(second (assoc type managers :test 'string-equal)) ,@args)))
+    `(let ((,var (,(second (assoc type managers)) ,@args)))
+       ,(when (eql type 'module)
+          `(push ,var *should-dispose-modules*))
+       ,(when (eql type 'execution-engine)
+          `(setq *should-dispose-modules*
+                 (remove ,(car args) *should-dispose-modules*)))
        (unwind-protect (progn ,@body)
-         (,(third (assoc type managers :test 'string-equal)) ,var)))))
+         ,(if (eql type 'module)
+              `(when (member ,var *should-dispose-modules*)
+                 (setq *should-dispose-modules*
+                       (remove ,var *should-dispose-modules*))
+                 (,(third (assoc type managers)) ,var))
+              `(,(third (assoc type managers)) ,var))))))
 
 (defmacro with-objects ((&rest bindings) &body body)
   (if (endp bindings)
-    `(progn ,@body)
-    `(with-object ,(car bindings)
-       (with-objects ,(cdr bindings)
-         ,@body))))
+      `(progn ,@body)
+      `(with-object ,(car bindings)
+         (with-objects ,(cdr bindings)
+           ,@body))))
 
 (defcfun* "LLVMDisposeMessage" :void (message (:pointer :char)))
 
@@ -122,12 +134,12 @@
 (defmethod translate-from-foreign (pointer (type carray))
   (if (capacity type)
       (loop for i from 0 below (capacity type)
-         for value = (mem-aref pointer (value-type type) i)
-         collect value)
+            for value = (mem-aref pointer (value-type type) i)
+            collect value)
       (loop for i from 0
-         for value = (mem-aref pointer (value-type type) i)
-         while (not (null-pointer-p value))
-         collect value)))
+            for value = (mem-aref pointer (value-type type) i)
+            while (not (null-pointer-p value))
+            collect value)))
 
 (defmethod free-translated-object (value (type carray) param)
   (declare (ignore param))
