@@ -379,7 +379,7 @@
 (defun create-entry-block-alloca (function var-name)
   "Create an alloca instruction in the entry block of the function. This is used
    for mutable variables etc."
-  (let ((tmp-b (make-instance 'llvm:builder)))
+  (let ((tmp-b (llvm:make-builder)))
     ;; FIXME: this doesn't set the proper insertion point
     (llvm:position-builder tmp-b (llvm:entry-basic-block function))
     (llvm:build-alloca tmp-b (llvm:double-type) var-name)))
