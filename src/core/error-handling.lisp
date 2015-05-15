@@ -22,7 +22,7 @@
     `(let ((,var (,(second (assoc type managers)) ,@args)))
        ,(when (eql type 'module)
           `(push ,var *should-dispose-modules*))
-       ,(when (eql type 'execution-engine)
+       ,(when (eql (third (assoc type managers)) 'dispose-execution-engine)
           `(setq *should-dispose-modules*
                  (remove ,(car args) *should-dispose-modules*)))
        (unwind-protect (progn ,@body)
@@ -40,25 +40,18 @@
          (with-objects ,(cdr bindings)
            ,@body))))
 
-(defcfun* "LLVMDisposeMessage" :void (message (:pointer :char)))
+(defcfun* "LLVMDisposeMessage" :void (message (:pointer :string)))
 
 (define-condition llvm-error (error)
-  ((message-string :reader message))
+  ((message-string :reader message :initarg :message))
   (:report (lambda (condition stream)
-             (write-string (message condition) stream))))
+             (when (slot-boundp condition 'message-string)
+               (write-string (mem-ref (message condition) :string) stream)))))
 
-(defmethod initialize-instance :after ((object llvm-error)
-                                       &key message &allow-other-keys)
-  "This cleans up the memory used by the C string passed as the MESSAGE
-   parameter."
-  (setf (slot-value object 'message-string) (mem-ref message :string))
-  (dispose-message (mem-ref message '(:pointer :char))))
-
-(define-condition required-parameter-error (error)
-  ((parameter-name :initarg :name :reader name))
-  (:report (lambda (condition stream)
-             (format stream "~a is a required parameter."
-                     (name condition)))))
+(defmacro throw-llvm-error (message-ptr)
+  `(unwind-protect
+        (error 'llvm-error :message ,message-ptr)
+     (dispose-message (mem-ref ,message-ptr '(:pointer :char)))))
 
 ;;; Core
 (defctype context :pointer) ; "LLVMContextRef")

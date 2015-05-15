@@ -33,7 +33,7 @@
   (with-foreign-objects ((out-ee '(:pointer execution-engine))
                          (out-error '(:pointer :string)))
     (if (create-execution-engine-for-module out-ee module out-error)
-        (error 'llvm-error :message out-error)
+        (throw-llvm-error out-error)
         (mem-ref out-ee 'execution-engine))))
 
 (defcfun* "LLVMCreateInterpreterForModule" :boolean
@@ -44,7 +44,7 @@
   (with-foreign-objects ((out-interp '(:pointer execution-engine))
                          (out-error '(:pointer :string)))
     (if (create-interpreter-for-module out-interp module out-error)
-        (error 'llvm-error :message out-error)
+        (throw-llvm-error out-error)
         (mem-ref out-interp 'execution-engine))))
 
 (defcfun* "LLVMCreateJITCompilerForModule" :boolean
@@ -59,7 +59,7 @@
                                         module
                                         optimization-level
                                         out-error)
-        (error 'llvm-error :message out-error)
+        (throw-llvm-error out-error)
         (mem-ref out-jit 'execution-engine))))
 
 (defcfun* "LLVMDisposeExecutionEngine" :void (ee execution-engine))
@@ -94,8 +94,8 @@
   (with-foreign-objects ((out-mod '(:pointer module))
                          (out-error '(:pointer :string)))
     (if (%remove-module ee m out-mod out-error)
-      (error 'llvm-error :message out-error)
-      (mem-ref out-mod 'module))))
+        (throw-llvm-error out-error)
+        (mem-ref out-mod 'module))))
 
 (defcfun (%find-function "LLVMFindFunction") :boolean
   (ee execution-engine) (name :string) (out-fn (:pointer value)))
