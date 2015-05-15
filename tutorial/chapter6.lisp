@@ -590,7 +590,6 @@
 ;;; driver
 
 (defun toplevel ()
-  (llvm:initialize-native-target)
   ;; install standard binary operators
   ;; 1 is lowest precedence
   (setf (gethash #\< *binop-precedence*) 10
