@@ -31,3 +31,5 @@
 (defun dump-module (m)
   (finish-output *error-output*)
   (%dump-module m))
+
+(defcfun* "LLVMPrintModuleToString" :string (m module))

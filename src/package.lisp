@@ -46,6 +46,7 @@
            #:target
            #:add-type-name #:delete-type-name #:get-type-by-name
            #:dump-module
+           #:print-module-to-string
            ;; types
            #:type-kind
            #:type-context
