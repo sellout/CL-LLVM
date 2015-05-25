@@ -178,8 +178,14 @@
   (builder builder)
   (fn value) (args (carray value)) (num-args :unsigned-int)
   (name :string))
-(defun build-call (builder fn args name)
-  (%build-call builder fn args (length args) name))
+(defcfun (build-call-void "LLVMBuildCall") value
+  (builder builder)
+  (fn value) (args (carray value)) (num-args :unsigned-int))
+(defun build-call (builder fn args &optional name)
+  (if name
+      (%build-call builder fn args (length args) name)
+      (build-call-void builder fn args (length args))))
+
 (defcfun* "LLVMBuildSelect" value
   (builder builder) (if value) (then value) (else value) (name :string))
 (defcfun* "LLVMBuildVAArg" value
