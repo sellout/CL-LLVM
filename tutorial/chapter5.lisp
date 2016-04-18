@@ -480,7 +480,7 @@
         (format *error-output* "Evaluated to ~f"
                 ;; NOTE: The C version of the tutorial only has the JIT side
                 ;;       of this, so if you have an interpreter, it breaks.
-                (if (eql ptr lf)        ; we have an interpreter
+                (if (cffi:pointer-eq ptr lf)        ; we have an interpreter
                     (llvm:generic-value-to-float
                      (llvm:double-type)
                      (llvm:run-function *execution-engine* ptr ()))
@@ -511,7 +511,6 @@
 ;;; driver
 
 (defun toplevel ()
-  (llvm:initialize-native-target)
   ;; install standard binary operators
   ;; 1 is lowest precedence
   (setf (gethash #\< *binop-precedence*) 10

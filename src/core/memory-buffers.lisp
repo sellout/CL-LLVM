@@ -14,5 +14,5 @@
              (create-memory-buffer-with-stdin out-mem-buf out-message))
            0)
       (mem-ref out-mem-buf 'memory-buffer)
-      (error 'llvm-error :message out-message))))
+      (throw-llvm-error out-message))))
 (defcfun* "LLVMDisposeMemoryBuffer" :void (mem-buf memory-buffer))

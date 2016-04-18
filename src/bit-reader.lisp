@@ -7,8 +7,8 @@
   (with-foreign-objects ((out-module '(:pointer module))
                          (out-message '(:pointer :string)))
     (if (parse-bitcode-in-context context mem-buf out-module out-message)
-      (mem-ref out-module 'module)
-      (error 'llvm-error :message out-message))))
+        (mem-ref out-module 'module)
+        (throw-llvm-error out-message))))
 
 (defcfun* "LLVMGetBitcodeModuleInContext" :boolean
   (context context) (mem-buf memory-buffer)
@@ -18,4 +18,4 @@
                          (out-m '(:pointer module)))
     (if (get-bitcode-module-in-context context mem-buf out-m out-message)
       (mem-ref out-m 'module)
-      (error 'llvm-error :message out-message))))
+      (throw-llvm-error out-message))))

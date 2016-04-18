@@ -5,8 +5,8 @@
 (defun verify-module (m)
   (with-foreign-object (out-message '(:pointer :string))
     (if (%verify-module m :return-status out-message)
-      (error 'llvm-error :message out-message)
-      t)))
+        (throw-llvm-error out-message)
+        t)))
 
 (defcfun (%verify-function "LLVMVerifyFunction") :boolean
   (fn value) (action verifier-failure-action))
