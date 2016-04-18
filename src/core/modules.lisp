@@ -31,3 +31,14 @@
 (defun dump-module (m)
   (finish-output *error-output*)
   (%dump-module m))
+
+(defcfun* "LLVMPrintModuleToString" :string (m module))
+
+(defcfun (%print-module-to-file "LLVMPrintModuleToFile") :boolean
+  (m module) (path :string) (out-message (:pointer :string)))
+
+(defun print-module-to-file (m path)
+  (with-foreign-objects ((out-message '(:pointer :string)))
+    (if (%print-module-to-file m path out-message)
+        (throw-llvm-error out-message)
+        t)))
