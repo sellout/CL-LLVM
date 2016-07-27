@@ -115,3 +115,10 @@
 (defcfun* "LLVMRefineType" :void (abstract-ty type) (concrete-ty type))
 (defcfun* "LLVMResolveTypeHandle" :void (type-handle type-handle))
 (defcfun* "LLVMDisposeTypeHandle" :void (type-handle type-handle))
+
+(defcfun (%dump-type "LLVMDumpType") :void (m type))
+(defun dump-type (m)
+  (finish-output *error-output*)
+  (%dump-module m))
+
+(defcfun* "LLVMPrintTypeToString" :string (m module))
