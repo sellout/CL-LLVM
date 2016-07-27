@@ -121,4 +121,4 @@
   (finish-output *error-output*)
   (%dump-module m))
 
-(defcfun* "LLVMPrintTypeToString" :string (m module))
+(defcfun* "LLVMPrintTypeToString" :string (m type))
