@@ -66,7 +66,7 @@
            #:type-handle #:refine-type #:resolve-type-handle
            #:dispose-type-handle
            ;; values
-           #:type-of #:value-name #:dump-value
+           #:type-of #:value-name #:dump-value #:print-value-to-string
            #:get-operand #:set-operand #:get-num-operands
            #:const-null #:const-all-ones #:undef #:constantp #:nullp #:undefp
            #:const-pointer-null
