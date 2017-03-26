@@ -10,6 +10,7 @@
 (defun dump-value (val)
   (finish-output *error-output*)
   (%dump-value val))
+(defcfun* "LLVMPrintValueToString" :string (m value))
 
 (defcfun* "LLVMPrintValueToString" :string (val value))
 
