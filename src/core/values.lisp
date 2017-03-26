@@ -11,6 +11,8 @@
   (finish-output *error-output*)
   (%dump-value val))
 
+(defcfun* "LLVMPrintValueToString" :string (val value))
+
 (defcfun* "LLVMGetOperand" value (val value) (index :unsigned-int))
 (defcfun* "LLVMSetOperand" value (user value) (index :unsigned-int) (val value))
 (defcfun* "LLVMGetNumOperands" value (val value))
