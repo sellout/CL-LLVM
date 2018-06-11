@@ -10,7 +10,7 @@
   (mapc #+quicklisp #'ql:quickload #-quicklisp #'asdf:load-system
         '(cffi-grovel)))
 
-(defsystem llvm
+(defsystem llvm256
   :description "CFFI bindings to the LLVM libraries."
   :long-description "LLVM is a collection of modular and reusable compiler and
                      toolchain technologies. This library makes it easy (and
@@ -52,9 +52,9 @@
 ;;; NOTE: In order to load and run the Kaleidoscope tutorial, you first need to
 ;;;       run `./build-library.sh` in the tutorial subdirectory.
 
-(defsystem kaleidoscope
+(defsystem kaleidoscope256
     :description "A translation of the language created in the LLVM tutorial."
-    :depends-on (llvm)
+    :depends-on (llvm256)
     :pathname "tutorial/"
     :components ((:file "cffi")
                  (:file "chapter2")
