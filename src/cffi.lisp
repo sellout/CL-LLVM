@@ -88,10 +88,20 @@
                 (:default "libLLVM-3.1")
                 (:default "libLLVM-3.1svn")
                 (:default "libLLVM-3.0")))
-  (:unix (:or "libLLVM.so" "libLLVM.so.1" "libLLVM-3.6.so"
-              "libLLVM-3.1.so" "libLLVM-3.1.so.1" "libLLVM-3.1svn.so"
-              "libLLVM-3.1svn.so.1" "libLLVM-3.0.so" "libLLVM-3.0.so.1"))
+  (:unix (:or "libLLVM.so"
+	      "libLLVM.so.1"
+	      ;;added
+	      "libLLVM-3.8.so"
+	      "libLLVM-3.6.so"
+              "libLLVM-3.1.so"
+	      "libLLVM-3.1.so.1"
+	      "libLLVM-3.1svn.so"
+              "libLLVM-3.1svn.so.1"
+	      "libLLVM-3.0.so"
+	      "libLLVM-3.0.so.1"))
   (t (:or (:default "libLLVM")
+	  ;;added
+	  (:default "libLLVM-3.8")
           (:default "libLLVM-3.6")
           (:default "libLLVM-3.1")
           (:default "libLLVM-3.1svn")
