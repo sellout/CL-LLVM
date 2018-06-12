@@ -27,29 +27,29 @@
    (:module "grovel"
 	    :components
 	    ((cffi-grovel:grovel-file "analysis-grovel")
-	     (cffi-grovel:grovel-file "target-grovel")))
+	     (cffi-grovel:grovel-file "target-grovel")
+	     (cffi-grovel:grovel-file "core-grovel")))
    (:module "header"
 	    :components
 	    ((:file "analysis-header")
-	     (:file "target-header")))
+	     (:file "target-header")
+	     (:file "core-header")))
    (:module "core"
             :depends-on ("package" "cffi" "header")
-            :components
-	    (;#+nil
-	     (cffi-grovel:grovel-file "grovel")
-	     (:file "error-handling" :depends-on ("grovel"))
+            :components ;;all depend on "core-grovel"
+	    ((:file "error-handling")
 	     (:file "modules"
-		    :depends-on ("grovel" "error-handling"))
+		    :depends-on ("error-handling"))
 	     (:file "types"
-		    :depends-on ("grovel" "modules" "error-handling"))
+		    :depends-on ("modules" "error-handling"))
 	     (:file "values"
-		    :depends-on ("grovel" "modules" "error-handling"))
+		    :depends-on ("modules" "error-handling"))
 	     (:file "instruction-builders"
-		    :depends-on ("grovel" "error-handling"))
+		    :depends-on ("error-handling"))
 	     (:file "memory-buffers"
-		    :depends-on ("grovel" "error-handling"))
+		    :depends-on ("error-handling"))
 	     (:file "pass-managers"
-		    :depends-on ("grovel" "error-handling"))))
+		    :depends-on ("error-handling"))))
    (:module "" :pathname ""
             :depends-on ("package" "cffi" "core" "header")
             :components
