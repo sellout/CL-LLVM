@@ -1,7 +1,7 @@
-;;wtf?
+;;wtf? -- terminal625 june 11 2018
 
 ;;; This just makes sure the library gets loaded for use by LLVM
-#+nil
+
 (progn
   (cffi:define-foreign-library libkaleidoscope
     (t (:default #.(namestring
