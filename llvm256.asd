@@ -28,8 +28,12 @@
 	    :components
 	    ((cffi-grovel:grovel-file "analysis-grovel")
 	     (cffi-grovel:grovel-file "target-grovel")))
+   (:module "header"
+	    :components
+	    ((:file "analysis-header")
+	     (:file "target-header")))
    (:module "core"
-            :depends-on ("package" "cffi")
+            :depends-on ("package" "cffi" "header")
             :components
 	    (;#+nil
 	     (cffi-grovel:grovel-file "grovel")
@@ -47,15 +51,13 @@
 	     (:file "pass-managers"
 		    :depends-on ("grovel" "error-handling"))))
    (:module "" :pathname ""
-            :depends-on ("package" "cffi" "core")
+            :depends-on ("package" "cffi" "core" "header")
             :components
-	    ((:file "analysis-header")
-	     (:file "analysis" :depends-on ("analysis-header"))
+	    ((:file "analysis") ;;depends-on ("analysis-header")
 	     (:file "bit-reader")
 	     (:file "bit-writer")
-	     (:file "execution-engine")
-	     (:file "target-header")	     
-	     (:file "target" :depends-on ("target-header"))
+	     (:file "execution-engine")	     
+	     (:file "target") ;;depends-on ("target-header")
 	     (:file "scalar-transforms")))))
 
 ;;; NOTE: In order to load and run the Kaleidoscope tutorial, you first need to
