@@ -137,7 +137,8 @@
 (defcenum visibility
   (:default) ;"LLVMDefaultVisibility" 
   (:hidden) ;"LLVMHiddenVisibility" 
-  (:protected) ;"LLVMProtectedVisibility")
+  (:protected) ;"LLVMProtectedVisibility"
+  )
 
 (defcenum calling-convention
   (:c 0) ;"LLVMCCallConv" 
