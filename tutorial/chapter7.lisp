@@ -5,6 +5,9 @@
 
 (in-package :kaleidoscope.chapter7)
 
+(defun get-next-token ()
+  (%get-next-token k-lexer::*tokens7*))
+
 ;;; abstract syntax tree
 
 (defclass expression ()
