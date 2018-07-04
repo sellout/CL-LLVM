@@ -15,12 +15,14 @@
 ;;;;2 3 4
 (defparameter *tokens2*
   '
-  (("def" . :tok-def)
+  (("quit" . :tok-quit)
+   ("def" . :tok-def)
    ("extern" . :tok-extern)))
 ;;;;5
 (defparameter *tokens5*
   '
-  (("def" . :tok-def)
+  (("quit" . :tok-quit)
+   ("def" . :tok-def)
    ("extern" . :tok-extern)
    
    ("if" . :tok-if)
@@ -31,7 +33,8 @@
 ;;;;6
 (defparameter *tokens6*
   '
-  (("def" . :tok-def)
+  (("quit" . :tok-quit)
+   ("def" . :tok-def)
    ("extern" . :tok-extern)
    
    ("if" . :tok-if)
@@ -45,7 +48,8 @@
 ;;;;7
 (defparameter *tokens7*
   '
-  (("def" . :tok-def)
+  (("quit" . :tok-quit)
+   ("def" . :tok-def)
    ("extern" . :tok-extern)
    
    ("if" . :tok-if)

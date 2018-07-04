@@ -1,6 +1,8 @@
+#+nil
 (defpackage llvm-system
   (:use #:cl #:asdf))
 
+#+nil
 (in-package :llvm-system)
 
 ;;; NOTE: before this will work, you need to have LLVM installed (and don't
@@ -11,7 +13,7 @@
   (mapc #+quicklisp #'ql:quickload #-quicklisp #'asdf:load-system
         '(cffi-grovel)))
 
-(defsystem #:llvm256
+(asdf:defsystem #:llvm256
   :description "CFFI bindings to the LLVM libraries."
   :long-description "LLVM is a collection of modular and reusable compiler and
                      toolchain technologies. This library makes it easy (and
@@ -70,25 +72,3 @@
 	       (:file "execution-engine")	     
 	       (:file "target") ;;depends-on ("target-header")
 	       (:file "scalar-transforms")))))))
-
-;;; NOTE: In order to load and run the Kaleidoscope tutorial, you first need to
-;;;       run `./build-library.sh` in the tutorial subdirectory.
-
-(defsystem #:kaleidoscope256
-  :description "A translation of the language created in the LLVM tutorial."
-  :depends-on
-  (#:llvm256
-   )
-  :components
-  ((:module "tutorial"
-	     :serial t
-	     :components
-	     (#+nil
-	      (:file "cffi")
-	      (:file "lexer")
-	      (:file "chapter2")
-	      (:file "chapter3")
-	      (:file "chapter4")
-	      (:file "chapter5")
-	      (:file "chapter6")
-	      (:file "chapter7")))))
