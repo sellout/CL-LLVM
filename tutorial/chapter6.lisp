@@ -1,5 +1,8 @@
 (defpackage kaleidoscope.chapter6
-  (:use #:cl #:k-lexer) ; would normally use #:llvm, but wanted to make usage clear
+  (:use
+   #:cl
+   #:k-lexer
+   #:k-shared) ; would normally use #:llvm, but wanted to make usage clear
   (:shadow #:condition)
   (:export #:toplevel))
 

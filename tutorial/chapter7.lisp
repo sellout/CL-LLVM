@@ -1,13 +1,13 @@
 (defpackage kaleidoscope.chapter7
-  (:use #:cl :k-lexer) ; would normally use #:llvm, but wanted to make usage clear
+  (:use
+   #:cl
+   #:k-lexer
+   #:k-shared) ; would normally use #:llvm, but wanted to make usage clear
   (:shadow #:condition)
   (:export #:toplevel))
 
 (in-package :kaleidoscope.chapter7)
 
-
-(defparameter *output?* nil)
-(defparameter *input?* nil)
 (defun get-next-token ()
   (%get-next-token k-lexer::*tokens7* *input?*))
 
@@ -662,8 +662,6 @@
 
       (format *output?* "~&ready> ")
       (get-next-token)
-      (block nil
-	(main-loop (lambda ()
-		     (return-from nil))))
+      (callcc (function main-loop))
       (write-string (llvm:print-module-to-string *module*) *output?*)
       (values))))

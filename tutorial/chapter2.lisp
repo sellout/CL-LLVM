@@ -1,5 +1,8 @@
 (defpackage kaleidoscope.chapter2
-  (:use #:cl #:k-lexer) ; would normally use #:llvm, but wanted to make usage clear
+  (:use
+   #:cl
+   #:k-lexer
+   #:k-shared) ; would normally use #:llvm, but wanted to make usage clear
   (:export #:toplevel))
 
 (in-package :kaleidoscope.chapter2)
@@ -164,37 +167,43 @@
 
 (defun handle-definition ()
   (if (parse-definition)
-      (format *error-output* "Parsed a function definition~%")
+      (format *output?* "Parsed a function definition~%")
       (get-next-token)))
 
 (defun handle-extern ()
   (if (parse-extern)
-      (format *error-output* "Parsed an extern~%")
+      (format *output?* "Parsed an extern~%")
       (get-next-token)))
 
 (defun handle-top-level-expression ()
   "Evaluate a top-level expression into an anonymous function."
   (handler-case 
       (progn (parse-top-level-expression)
-             (format *error-output* "Parsed a top-level expr~%"))
+             (format *output?* "Parsed a top-level expr~%"))
     (kaleidoscope-error (e)
       (get-next-token)
-      (format *error-output* "error: ~a~%" e))))
+      (format *output?* "error: ~a~%" e))))
 
 (define-condition kaleidoscope-error (error)
   ((message :initarg :message :reader message))
   (:report (lambda (condition stream)
              (write-string (message condition) stream))))
 
-(defun main-loop ()
-  (do () ((eql *current-token* ':tok-eof))
-    (format *error-output* "~&ready> ")
-    (handler-case (case *current-token*
-                    (#\; (get-next-token))
-                    (:tok-def (handle-definition))
-                    (:tok-extern (handle-extern))
-                    (otherwise (handle-top-level-expression)))
-      (kaleidoscope-error (e) (format *error-output* "error: ~a~%" e)))))
+(defun main-loop (exit)
+  (do ()
+      ((main-loop-end))
+    (per-loop exit)))
+(defun main-loop-end ()
+  (eql *current-token* ':tok-eof))
+(defun per-loop (exit)
+  (format *output?* "~&ready> ")
+  (handler-case (case *current-token*
+		  (#\; (get-next-token))
+		  (:tok-def (handle-definition))
+		  (:tok-extern (handle-extern))
+		  (:tok-quit (funcall exit))
+		  (otherwise (handle-top-level-expression)))
+    (kaleidoscope-error (e) (format *output?* "error: ~a~%" e))))
 
 ;;; driver
 
@@ -205,6 +214,7 @@
         (gethash #\+ *binop-precedence*) 20
         (gethash #\- *binop-precedence*) 30
         (gethash #\* *binop-precedence*) 40)
-  (format *error-output* "~&ready> ")
+  (format *output?* "~&ready> ")
   (get-next-token)
-  (main-loop))
+  (callcc (function main-loop))
+  (values))
