@@ -5,7 +5,8 @@
   :description "A translation of the language created in the LLVM tutorial."
   :depends-on
   (#:llvm256
-   )
+   #:filesystem-util
+   #:split-sequence)
   :components
   ((:module "tutorial"
 	     :serial t
@@ -18,4 +19,5 @@
 	      (:file "chapter4")
 	      (:file "chapter5")
 	      (:file "chapter6")
-	      (:file "chapter7")))))
+	      (:file "chapter7")
+	      (:file "test")))))
