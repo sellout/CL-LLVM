@@ -636,9 +636,9 @@
 (defvar *myjit*)
 
 (defun toplevel ()
-    ;; install standard binary operators
-    ;; 1 is lowest precedence
-  (llvm::initialize-native-target???)
+  ;; install standard binary operators
+  ;; 1 is lowest precedence
+  ;;(llvm::initialize-native-target)
   (setf (gethash #\= *binop-precedence*) 2
 	(gethash #\< *binop-precedence*) 10
 	(gethash #\+ *binop-precedence*) 20
@@ -648,7 +648,7 @@
   (llvm:with-objects ((*builder* llvm:builder)
 		      (*module* llvm:module "my cool jit")
 		      (*execution-engine* llvm:execution-engine *module*)
-		      (*myjit* llvm:jit-compiler *module*)
+		      ;(*myjit* llvm:jit-compiler *module*)
 		      (*fpm* llvm:function-pass-manager *module*))    
     (llvm:add-target-data (llvm:target-data *execution-engine*) *fpm*)
     ;;passes

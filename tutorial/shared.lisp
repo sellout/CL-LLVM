@@ -62,17 +62,28 @@
   #+(or sparc sparc64)
   (initialize-sparc-target)
   #+(or x86 x86-64)
-  (initialize-x86-target)
+  (progn (initialize-x86-target) (initialize-x86-target-info))
   #-(or mips alpha ppc ppc64 sparc sparc64 x86 x86-64) (return-from initialize-native-target nil)
   t)
 #+nil
-(cffi:defcfun (initialize-native-target "LLVMInitializeNativeTarget") :int)
+(cffi:defcfun (initialize-native-target? "LLVMInitializeNativeTarget") :int)
 
 #+nil
 (defcfun* "LLVMLinkInMCJIT" :void)
+#+nil
+(progn
+  (defcfun* "LLVMInitializeAllTargetInfos" :void)
+  (defcfun* "LLVMInitializeAllTargets" :void)
+  (defcfun* "LLVMInitializeAllTargetMCs" :void)
+  (defcfun* "LLVMInitializeAllAsmPrinters" :void)
+  (defcfun* "LLVMInitializeAllAsmParsers" :void)
+  (defcfun* "LLVMInitializeAllDisassemblers" :void))
 
 #+nil
-(
- (defcfun* "LLVMInitializeNativeAsmParser" :boolean)
- (defcfun* "LLVMInitializeNativeAsmPrinter" :boolean)
- (defcfun* "LLVMInitializeNativeDissassmbler" :boolean))
+(progn
+  (llvm::initialize-all-target-infos)
+  (llvm::initialize-all-targets)
+  (llvm::initialize-all-target-m-cs)
+  (llvm::initialize-all-asm-printers)
+  (llvm::initialize-all-asm-parsers)
+  (llvm::initialize-all-Disassemblers))
