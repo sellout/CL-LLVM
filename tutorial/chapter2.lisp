@@ -96,7 +96,7 @@
     (:tok-number (parse-number-expression))
     (#\( (parse-paren-expression))
     (otherwise (incf *unknowns*)
-               (if (> *unknowns* 1) (break))
+               ;(if (> *unknowns* 1) (break))
                (error 'kaleidoscope-error
                       :message "unknown token when expecting an expression"))))
 

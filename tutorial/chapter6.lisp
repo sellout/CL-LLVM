@@ -520,7 +520,7 @@
   (:report (lambda (condition stream)
              (write-string (message condition) stream))))
 
-(defun main-loop ()
+(defun main-loop (exit)
   (do () ((eql *current-token* ':tok-eof))
     (format *output?* "~&ready> ")
     (handler-case (case *current-token*

@@ -1,12 +1,8 @@
 (defpackage :k-test
   (:use
    #:cl
-   #:k-shared)
-  (:export
-   #:*this-directory*))
+   #:k-shared))
 (in-package :k-test)
-
-(defparameter *this-directory* (filesystem-util:this-directory))
 
 (defun trim-empty-lines (a)
   (delete-if (lambda (x)
@@ -55,8 +51,8 @@
 		  (let ((*output?*  all)
 			(*input?* file))
 		    (funcall toplevel)))))))))
-    ;(print-with-lines ref)
-    ;(print-with-lines output)
+    (print-with-lines ref)
+    (print-with-lines output)
     (let ((line-number 0))
       (when 
 	  (block out
