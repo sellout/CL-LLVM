@@ -1,5 +1,5 @@
 (defpackage kaleidoscope.chapter7
-  (:use #:cl) ; would normally use #:llvm, but wanted to make usage clear
+  (:use #:cl :k-lexer) ; would normally use #:llvm, but wanted to make usage clear
   (:shadow #:condition)
   (:export #:toplevel))
 
@@ -126,12 +126,12 @@
   (get-next-token) ; eat the if
   (let ((condition (parse-expression)))
     (when condition
-      (unless (eql *current-token* 'tok-then)
+      (unless (eql *current-token* ':tok-then)
         (error 'kaleidoscope-error :message "expected then"))
       (get-next-token) ; eat the then
       (let ((then (parse-expression)))
         (when then
-          (unless (eql *current-token* 'tok-else)
+          (unless (eql *current-token* ':tok-else)
             (error 'kaleidoscope-error :message "expected else"))
           (get-next-token) ; eat the else
           (let ((else (parse-expression)))
@@ -141,7 +141,7 @@
 
 (defun parse-for-expression ()
   (get-next-token) ; eat the for.
-  (unless (eql *current-token* 'tok-identifier)
+  (unless (eql *current-token* ':tok-identifier)
     (error 'kaleidoscope-error :message "expected identifier after for"))
   (let ((id-name *identifier-string*))
     (get-next-token) ; eat identifier.
@@ -163,7 +163,7 @@
                 (setf step (parse-expression))
                 (unless step
                   (return-from parse-for-expression)))
-              (unless (eql *current-token* 'tok-in)
+              (unless (eql *current-token* ':tok-in)
                 (error 'kaleidoscope-error :message "expected 'in' after for"))
               (get-next-token) ; eat 'in',
               (let ((body (parse-expression)))
@@ -174,7 +174,7 @@
 
 (defun parse-var-expression ()
   (get-next-token)
-  (unless (eql *current-token* 'tok-identifier)
+  (unless (eql *current-token* ':tok-identifier)
     (error 'kaleidoscope-error :message "expected identifier after var"))
   (let ((var-names (loop
                      for name = *identifier-string*
@@ -188,11 +188,11 @@
                      collecting (cons name init)
                      while (eql *current-token* #\,)
                      do (get-next-token)
-                        (unless (eql *current-token* 'tok-identifier)
+                        (unless (eql *current-token* ':tok-identifier)
                           (error 'kaleidoscope-error
                                  :message
                                  "expected identifier list after var")))))
-    (unless (eql *current-token* 'tok-in)
+    (unless (eql *current-token* ':tok-in)
       (error 'kaleidoscope-error :message "expected 'in' keyword after 'var'"))
     (get-next-token)
     (let ((body (parse-expression)))
@@ -201,12 +201,12 @@
 
 (defun parse-primary ()
   (case *current-token*
-    (tok-identifier (parse-identifier-expression))
-    (tok-number (parse-number-expression))
+    (:tok-identifier (parse-identifier-expression))
+    (:tok-number (parse-number-expression))
     (#\( (parse-paren-expression))
-    (tok-if (parse-if-expression))
-    (tok-for (parse-for-expression))
-    (tok-var (parse-var-expression))
+    (:tok-if (parse-if-expression))
+    (:tok-for (parse-for-expression))
+    (:tok-var (parse-var-expression))
     (otherwise (error 'kaleidoscope-error
                       :message "unknown token when expecting an expression"))))
 
@@ -255,21 +255,21 @@
         (operator-arity nil)
         (binary-precedence 30))
     (case *current-token*
-      (tok-identifier (setf function-name *identifier-string*))
-      (tok-unary
+      (:tok-identifier (setf function-name *identifier-string*))
+      (:tok-unary
        (get-next-token)
        (unless (characterp *current-token*)
          (error 'kaleidoscope-error :message "Expected unary operator"))
        (setf function-name (format nil "unary~a" *current-token*)
              operator-arity 1))
-      (tok-binary
+      (:tok-binary
        (get-next-token)
        (unless (characterp *current-token*)
          (error 'kaleidoscope-error :message "Expected binary operator"))
        (setf function-name (format nil "binary~a" *current-token*)
              operator-arity 2)
        (get-next-token)
-       (when (eql *current-token* 'tok-number)
+       (when (eql *current-token* ':tok-number)
          (unless (<= 1 *number-value* 100)
            (error 'kaleidoscope-error
                   :message "Invalid precedence: must be 1..100"))
@@ -278,7 +278,7 @@
                         :message "Expected function name in prototype")))
     (unless (eql (get-next-token) #\()
       (error 'kaleidoscope-error :message "Expected '(' in prototype"))
-    (let ((arg-names (coerce (loop while (eql (get-next-token) 'tok-identifier)
+    (let ((arg-names (coerce (loop while (eql (get-next-token) ':tok-identifier)
                                collecting *identifier-string*)
                              'vector)))
       (unless (eql *current-token* #\))
@@ -604,12 +604,12 @@
              (write-string (message condition) stream))))
 
 (defun main-loop ()
-  (do () ((eql *current-token* 'tok-eof))
+  (do () ((eql *current-token* ':tok-eof))
     (format *error-output* "~&ready> ")
     (handler-case (case *current-token*
                     (#\; (get-next-token))
-                    (tok-def (handle-definition))
-                    (tok-extern (handle-extern))
+                    (:tok-def (handle-definition))
+                    (:tok-extern (handle-extern))
                     (otherwise (handle-top-level-expression)))
       (kaleidoscope-error (e) (format *error-output* "error: ~a~%" e)))))
 

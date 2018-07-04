@@ -87,8 +87,8 @@
 
 (defun parse-primary ()
   (case *current-token*
-    (tok-identifier (parse-identifier-expression))
-    (tok-number (parse-number-expression))
+    (:tok-identifier (parse-identifier-expression))
+    (:tok-number (parse-number-expression))
     (#\( (parse-paren-expression))
     (otherwise (error 'kaleidoscope-error
                       :message "unknown token when expecting an expression"))))
@@ -120,12 +120,12 @@
 (defun parse-prototype ()
   "prototype
      ::= id '(' id* ')'"
-  (if (eql *current-token* 'tok-identifier)
+  (if (eql *current-token* ':tok-identifier)
       (let ((function-name *identifier-string*))
         (unless (eql (get-next-token) #\()
           (error 'kaleidoscope-error :message "Expected '(' in prototype"))
         (let ((arg-names (coerce (loop while (eql (get-next-token)
-                                                  'tok-identifier)
+                                                  ':tok-identifier)
                                     collecting *identifier-string*)
                                  'vector)))
           (unless (eql *current-token* #\))
@@ -287,12 +287,12 @@
              (write-string (message condition) stream))))
 
 (defun main-loop ()
-  (do () ((eql *current-token* 'tok-eof))
+  (do () ((eql *current-token* ':tok-eof))
     (format *error-output* "~&ready> ")
     (handler-case (case *current-token*
                     (#\; (get-next-token))
-                    (tok-def (handle-definition))
-                    (tok-extern (handle-extern))
+                    (:tok-def (handle-definition))
+                    (:tok-extern (handle-extern))
                     (otherwise (handle-top-level-expression)))
       (kaleidoscope-error (e) (format *error-output* "error: ~a~%" e)))))
 
