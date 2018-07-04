@@ -23,8 +23,7 @@
      (concatenate 'string "chapter" str ".k")
      (symbol-function
       (find-symbol "TOPLEVEL"
-		   (find-package
-		    (concatenate 'string "KALEIDOSCOPE.CHAPTER" str)))))))
+		   (chap-package n))))))
 
 (defun testfoo ()
   (loop for i from 2 to 7 do

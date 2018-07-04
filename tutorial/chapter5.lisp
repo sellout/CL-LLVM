@@ -1,65 +1,4 @@
-(defpackage kaleidoscope.chapter5
-  (:use
-   #:cl
-   #:k-lexer
-   #:k-shared) ; would normally use #:llvm, but wanted to make usage clear
-  (:shadow #:condition)
-  (:export #:toplevel))
-
 (in-package :kaleidoscope.chapter5)
-
-;;; abstract syntax tree
-
-(defclass expression ()
-  ()
-  (:documentation "Base class for all expression nodes."))
-
-(defclass number-expression (expression)
-  ((value :initarg :value :reader value))
-  (:documentation "Expression class for numeric literals like “1.0”."))
-
-(defclass variable-expression (expression)
-  ((name :initarg :name :reader name))
-  (:documentation "Expression class for referencing a variable, like “a”."))
-
-(defclass binary-expression (expression)
-  ((operator :initarg :operator :reader operator)
-   (lhs :initarg :lhs :reader lhs)
-   (rhs :initarg :rhs :reader rhs))
-  (:documentation "Expression class for a binary operator."))
-
-(defclass call-expression (expression)
-  ((callee :initarg :callee :reader callee)
-   (arguments :initarg :arguments :reader arguments))
-  (:documentation "Expression class for function calls."))
-
-(defclass if-expression (expression)
-  ((condition :initarg :condition :reader condition)
-   (then :initarg :then :reader then)
-   (else :initarg :else :reader else))
-  (:documentation "Expression class for if/then/else."))
-
-(defclass for-expression (expression)
-  ((var-name :initarg :var-name :reader var-name)
-   (start :initarg :start :reader start)
-   (end :initarg :end :reader end)
-   ;; FIXME: why is CCL's conflicting STEP visible here?
-   (step :initarg :step :reader step*)
-   (body :initarg :body :reader body))
-  (:documentation "Expression class for for/in."))
-
-(defclass prototype ()
-  ((name :initform "" :initarg :name :reader name)
-   (arguments :initform (make-array 0) :initarg :arguments :reader arguments))
-  (:documentation
-   "This class represents the “prototype” for a function, which captures its
-    name, and its argument names (thus implicitly the number of arguments the
-    function takes)."))
-
-(defclass function-definition ()
-  ((prototype :initarg :prototype :reader prototype)
-   (body :initarg :body :reader body))
-  (:documentation "This class represents a function definition itself."))
 
 ;;; parser
 
@@ -103,8 +42,8 @@
 
 (defun parse-if-expression ()
   (get-next-token) ; eat the if
-  (let ((condition (parse-expression)))
-    (when condition
+  (let ((_condition (parse-expression)))
+    (when _condition
       (unless (eql *current-token* ':tok-then)
         (error 'kaleidoscope-error :message "expected then"))
       (get-next-token) ; eat the then
@@ -116,7 +55,7 @@
           (let ((else (parse-expression)))
             (when else
               (make-instance 'if-expression
-                :condition condition :then then :else else))))))))
+                :_condition _condition :then then :else else))))))))
 
 (defun parse-for-expression ()
   (get-next-token) ; eat the for.
@@ -268,7 +207,7 @@
       (error 'kaleidoscope-error :message "unknown function referenced"))))
 
 (defmethod codegen ((expression if-expression))
-  (let ((cond-v (codegen (condition expression))))
+  (let ((cond-v (codegen (_condition expression))))
     (when cond-v
       (setf cond-v
             (llvm:build-f-cmp *builder* 
@@ -437,8 +376,8 @@
 
 (define-condition kaleidoscope-error (error)
   ((message :initarg :message :reader message))
-  (:report (lambda (condition stream)
-             (write-string (message condition) stream))))
+  (:report (lambda (_condition stream)
+             (write-string (message _condition) stream))))
 
 (defun main-loop (exit)
   (do () ((eql *current-token* ':tok-eof))
@@ -487,7 +426,7 @@
     (llvm:initialize-function-pass-manager *fpm*)
 
     (format *output?* "~&ready> ")
-    (let ((*token-types* k-lexer::*tokens5*))
+    (with-tokens 5
       (get-next-token)
       (callcc (function main-loop)))
     (dump-module *module*)

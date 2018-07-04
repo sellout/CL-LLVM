@@ -14,7 +14,9 @@
 	     (#+nil
 	      (:file "cffi")
 	      (:file "shared")
+	      (:file "package")
 	      (:file "lexer")
+	      (:file "ast")
 	      (:file "chapter2")
 	      (:file "chapter3")
 	      (:file "chapter4")

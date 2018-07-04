@@ -1,6 +1,7 @@
 (defpackage #:k-shared
   (:use
-   #:cl)
+   #:cl
+   #:utility)
   (:export
    #:*output?*
    #:*input?*)
@@ -10,7 +11,19 @@
    #:dump-value
    #:dump-module)
   (:export
-   #:*this-directory*))
+   #:*this-directory*)
+  (:export
+   #:chap-package)
+
+  (:export
+   :*identifier-string*
+   :*number-value*
+   :*current-token*
+   :*token-types*
+   :get-next-token
+   :reset-token-reader
+   :chap-tokens
+   :with-tokens))
 (in-package #:k-shared)
 
 (defparameter *this-directory* (filesystem-util:this-directory))
@@ -25,6 +38,30 @@
      (lambda (&rest values)
        (return-from nil (apply (function values)
 			       values))))))
+
+(defun eh? (n)
+  (mapcar (lambda (x)
+	    (tree-equal x (car n) :test #'equalp))
+	  n))
+(defparameter *this-package* *package*)
+(defun repackage (sexp &optional (new-package *package*))
+  (setf new-package (find-package new-package))
+  (labels ((walk (sexp)
+	     (cond ((consp sexp)
+		    (cons
+		     (walk (car sexp))
+		     (walk (cdr sexp))))
+		   ((symbolp sexp)
+		    (if (eq (symbol-package sexp)
+			    *this-package*)
+			(intern (string sexp) new-package)
+			sexp))
+		   (t sexp))))
+    (walk sexp)))
+
+(defun chap-package (n)
+  (find-package
+   (format nil "KALEIDOSCOPE.CHAPTER~s" n)))
 
 (defun dump-value (value)
   (write-string (llvm:print-value-to-string value) *output?*))

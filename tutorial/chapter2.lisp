@@ -1,49 +1,4 @@
-(defpackage kaleidoscope.chapter2
-  (:use
-   #:cl
-   #:k-lexer
-   #:k-shared) ; would normally use #:llvm, but wanted to make usage clear
-  (:export #:toplevel))
-
 (in-package :kaleidoscope.chapter2)
-
-;;; abstract syntax tree
-
-(defclass expression ()
-  ()
-  (:documentation "Base class for all expression nodes."))
-
-(defclass number-expression (expression)
-  ((value :initarg :value :reader value))
-  (:documentation "Expression class for numeric literals like “1.0”."))
-
-(defclass variable-expression (expression)
-  ((name :initarg :name :reader name))
-  (:documentation "Expression class for referencing a variable, like “a”."))
-
-(defclass binary-expression (expression)
-  ((operator :initarg :operator :reader operator)
-   (lhs :initarg :lhs :reader lhs)
-   (rhs :initarg :rhs :reader rhs))
-  (:documentation "Expression class for a binary operator."))
-
-(defclass call-expression (expression)
-  ((callee :initarg :callee :reader callee)
-   (arguments :initarg :arguments :reader arguments))
-  (:documentation "Expression class for function calls."))
-
-(defclass prototype ()
-  ((name :initform "" :initarg :name :reader name)
-   (arguments :initform (make-array 0) :initarg :arguments :reader arguments))
-  (:documentation
-   "This class represents the “prototype” for a function, which captures its
-    name, and its argument names (thus implicitly the number of arguments the
-    function takes)."))
-
-(defclass function-definition ()
-  ((prototype :initarg :prototype :reader prototype)
-   (body :initarg :body :reader body))
-  (:documentation "This class represents a function definition itself."))
 
 ;;; parser
 
@@ -213,7 +168,7 @@
         (gethash #\* *binop-precedence*) 40)
   (reset-token-reader)
   (format *output?* "~&ready> ")
-  (let ((*token-types* k-lexer::*tokens2*))
+  (with-tokens 2
     (get-next-token)
     (callcc (function main-loop)))
   (values))

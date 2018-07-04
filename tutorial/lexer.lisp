@@ -1,73 +1,36 @@
-(defpackage k-lexer
-  (:use
-   #:cl
-   #:k-shared)
-  (:export
-   :*identifier-string*
-   :*number-value*
-   :*current-token*
-   :*token-types*
-   :get-next-token
-   :reset-token-reader))
-
-(in-package :k-lexer)
+(in-package :k-shared)
 
 (defvar +whitespace+ '(#\space #\tab nil #\linefeed #\return))
 (defvar *identifier-string*)
 (defvar *number-value*)
 
-;;;;2 3 4
-(defparameter *tokens2*
-  '
-  (("quit" . :tok-quit)
-   ("def" . :tok-def)
-   ("extern" . :tok-extern)))
-;;;;5
-(defparameter *tokens5*
-  '
-  (("quit" . :tok-quit)
-   ("def" . :tok-def)
-   ("extern" . :tok-extern)
-   
-   ("if" . :tok-if)
-   ("then" . :tok-then)
-   ("else" . :tok-else)
-   ("for" . :tok-for)
-   ("in" . :tok-in)))
-;;;;6
-(defparameter *tokens6*
-  '
-  (("quit" . :tok-quit)
-   ("def" . :tok-def)
-   ("extern" . :tok-extern)
-   
-   ("if" . :tok-if)
-   ("then" . :tok-then)
-   ("else" . :tok-else)
-   ("for" . :tok-for)
-   ("in" . :tok-in)
-   
-   ("binary" . :tok-binary)
-   ("unary" . :tok-unary)))
-;;;;7
-(defparameter *tokens7*
-  '
-  (("quit" . :tok-quit)
-   ("def" . :tok-def)
-   ("extern" . :tok-extern)
-   
-   ("if" . :tok-if)
-   ("then" . :tok-then)
-   ("else" . :tok-else)
-   ("for" . :tok-for)
-   ("in" . :tok-in)
-   
-   ("binary" . :tok-binary)
-   ("unary" . :tok-unary)
-   
-   ("var" . :tok-var)))
+(defun chap-tokens (chap)
+  (append
+   (case chap
+     ((2 3 4 5 6 7)
+      '(("quit" . :tok-quit)
+	("def" . :tok-def)
+	("extern" . :tok-extern))))
+   (case chap
+     ((5 6 7)
+      '(("if" . :tok-if)
+	("then" . :tok-then)
+	("else" . :tok-else)
+	("for" . :tok-for)
+	("in" . :tok-in))))
+   (case chap
+     ((6 7)
+      '(("binary" . :tok-binary)
+	("unary" . :tok-unary))))
+   (case chap
+     ((7)
+      '(("var" . :tok-var))))))
 
-(defparameter *token-types* *tokens7*)
+(defvar *token-types*)
+
+(defmacro with-tokens (chap &body body)
+  `(let ((*token-types* (chap-tokens ,chap)))
+     ,@body))
 
 (defun identifier-string-to-enum (&optional (identifier-string *identifier-string*)
 				    (token-types *token-types*))
