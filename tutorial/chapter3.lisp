@@ -250,8 +250,8 @@
     (if function
         (let ((lf (codegen function)))
           (when lf
-            (format *error-output* "Read function definition:")
-            (llvm:dump-value lf)))
+            (format *output?* "Read function definition:")
+            (dump-value lf)))
         (get-next-token))))
 
 (defun handle-extern ()
@@ -259,34 +259,35 @@
     (if prototype
         (let ((function (codegen prototype)))
           (when function
-            (format *error-output* "Read extern: ")
-            (llvm:dump-value function)))
+            (format *output?* "Read extern: ")
+            (dump-value function)))
         (get-next-token))))
 
 (defun handle-top-level-expression ()
   "Evaluate a top-level expression into an anonymous function."
   (handler-case 
       (let ((lf (codegen (parse-top-level-expression))))
-        (format *error-output* "Read top-level expression:")
-        (llvm:dump-value lf))
+        (format *output?* "Read top-level expression:")
+        (dump-value lf))
     (kaleidoscope-error (e)
       (get-next-token)
-      (format *error-output* "error: ~a~%" e))))
+      (format *output?* "error: ~a~%" e))))
 
 (define-condition kaleidoscope-error (error)
   ((message :initarg :message :reader message))
   (:report (lambda (condition stream)
              (write-string (message condition) stream))))
 
-(defun main-loop ()
+(defun main-loop (exit)
   (do () ((eql *current-token* ':tok-eof))
-    (format *error-output* "~&ready> ")
+    (format *output?* "~&ready> ")
     (handler-case (case *current-token*
                     (#\; (get-next-token))
                     (:tok-def (handle-definition))
                     (:tok-extern (handle-extern))
+		    (:tok-quit (funcall exit))
                     (otherwise (handle-top-level-expression)))
-      (kaleidoscope-error (e) (format *error-output* "error: ~a~%" e)))))
+      (kaleidoscope-error (e) (format *output?* "error: ~a~%" e)))))
 
 ;;; "Library" functions that can be "extern'd" from user code.
 
@@ -301,9 +302,11 @@
         (gethash #\+ *binop-precedence*) 20
         (gethash #\- *binop-precedence*) 30
         (gethash #\* *binop-precedence*) 40)
+  (reset-token-reader)
   (llvm:with-objects ((*builder* llvm:builder)
                       (*module* llvm:module "my cool jit"))
-    (format *error-output* "~&ready> ")
+    (format *output?* "~&ready> ")
     (get-next-token)
-    (main-loop)
-    (llvm:dump-module *module*)))
+    (callcc (function main-loop))
+    (dump-module *module*)
+    (values)))

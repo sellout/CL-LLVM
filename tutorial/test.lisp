@@ -1,5 +1,7 @@
 (defpackage :k-test
-  (:use #:cl)
+  (:use
+   #:cl
+   #:k-shared)
   (:export
    #:*this-directory*))
 (in-package :k-test)
@@ -30,10 +32,13 @@
 
 (defun testfoo ()
   (loop for i from 2 to 7 do
-       (multiple-value-bind (out in toplevel) (wow i)
-	 (test out in toplevel))))
+       (test i)))
 
-(defun test (ref in toplevel)
+(defun test (n)
+  (multiple-value-bind (out in toplevel) (wow n)
+    (%test out in toplevel)))
+
+(defun %test (ref in toplevel)
   (let ((ref
 	 (trim-empty-lines
 	  (alexandria:read-file-into-string
@@ -47,7 +52,9 @@
 	      (let ((input-file-name (merge-pathnames *this-directory* in)))
 		(print input-file-name)
 		(with-open-file (file input-file-name)
-		  (funcall toplevel all file))))))))
+		  (let ((*output?*  all)
+			(*input?* file))
+		    (funcall toplevel)))))))))
     ;(print-with-lines ref)
     ;(print-with-lines output)
     (let ((line-number 0))

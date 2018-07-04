@@ -1,5 +1,7 @@
 (defpackage k-lexer
-  (:use #:cl)
+  (:use
+   #:cl
+   #:k-shared)
   (:export
    :*identifier-string*
    :*number-value*
@@ -115,5 +117,5 @@
 	     this-char)))))
 ;;;;
 (defvar *current-token*)
-(defun %get-next-token (&optional (token-types *token-types*) (stream *standard-input*))
+(defun %get-next-token (&optional (token-types *token-types*) (stream *input?*))
   (setf *current-token* (read-token token-types stream)))

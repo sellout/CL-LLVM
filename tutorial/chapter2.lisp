@@ -214,6 +214,7 @@
         (gethash #\+ *binop-precedence*) 20
         (gethash #\- *binop-precedence*) 30
         (gethash #\* *binop-precedence*) 40)
+  (reset-token-reader)
   (format *output?* "~&ready> ")
   (get-next-token)
   (callcc (function main-loop))

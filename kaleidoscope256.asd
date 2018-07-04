@@ -13,8 +13,8 @@
 	     :components
 	     (#+nil
 	      (:file "cffi")
-	      (:file "lexer")
 	      (:file "shared")
+	      (:file "lexer")
 	      (:file "chapter2")
 	      (:file "chapter3")
 	      (:file "chapter4")

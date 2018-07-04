@@ -485,8 +485,8 @@
     (if function
       (let ((lf (codegen function)))
         (when lf
-          (format *error-output* "Read function definition:")
-          (llvm:dump-value lf)))
+          (format *output?* "Read function definition:")
+          (dump-value lf)))
       (get-next-token))))
 
 (defun handle-extern ()
@@ -494,8 +494,8 @@
     (if prototype
       (let ((function (codegen prototype)))
         (when function
-          (format *error-output* "Read extern: ")
-          (llvm:dump-value function)))
+          (format *output?* "Read extern: ")
+          (dump-value function)))
       (get-next-token))))
 
 (defun handle-top-level-expression ()
@@ -503,7 +503,7 @@
   (handler-case 
       (let* ((lf (codegen (parse-top-level-expression)))
              (ptr (llvm:pointer-to-global *execution-engine* lf)))
-        (format *error-output* "Evaluated to ~f"
+        (format *output?* "Evaluated to ~f"
                 ;; NOTE: The C version of the tutorial only has the JIT side
                 ;;       of this, so if you have an interpreter, it breaks.
                 (if (cffi:pointer-eq ptr lf)        ; we have an interpreter
@@ -513,7 +513,7 @@
                     (cffi:foreign-funcall-pointer ptr () :double))))
     (kaleidoscope-error (e)
       (get-next-token)
-      (format *error-output* "error: ~a~%" e))))
+      (format *output?* "error: ~a~%" e))))
 
 (define-condition kaleidoscope-error (error)
   ((message :initarg :message :reader message))
@@ -522,13 +522,14 @@
 
 (defun main-loop ()
   (do () ((eql *current-token* ':tok-eof))
-    (format *error-output* "~&ready> ")
+    (format *output?* "~&ready> ")
     (handler-case (case *current-token*
                     (#\; (get-next-token))
                     (:tok-def (handle-definition))
                     (:tok-extern (handle-extern))
+		    (:tok-quit (funcall exit))
                     (otherwise (handle-top-level-expression)))
-      (kaleidoscope-error (e) (format *error-output* "error: ~a~%" e)))))
+      (kaleidoscope-error (e) (format *output?* "error: ~a~%" e)))))
 
 ;;; "Library" functions that can be "extern'd" from user code.
 
@@ -543,6 +544,7 @@
         (gethash #\+ *binop-precedence*) 20
         (gethash #\- *binop-precedence*) 30
         (gethash #\* *binop-precedence*) 40)
+  (reset-token-reader)
   (llvm:with-objects ((*builder* llvm:builder)
                       (*module* llvm:module "my cool jit")
                       (*execution-engine* llvm:execution-engine *module*)
@@ -554,7 +556,8 @@
     (llvm:add-cfg-simplification-pass *fpm*)
     (llvm:initialize-function-pass-manager *fpm*)
 
-    (format *error-output* "~&ready> ")
+    (format *output?* "~&ready> ")
     (get-next-token)
-    (main-loop)
-    (llvm:dump-module *module*)))
+    (callcc (function main-loop))
+    (dump-module *module*)
+    (values)))
