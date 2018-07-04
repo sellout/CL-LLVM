@@ -32,6 +32,8 @@
 (defun dump-module (module)
   (write-string (llvm:print-module-to-string module) *output?*))
 
+
+;;;;for chap 6 and 5
 (cffi:load-foreign-library (merge-pathnames *this-directory* "libkaleidoscope-extern.so.0.1"))
 
 (cffi:defcfun ("putchard" putchard) :double
@@ -49,3 +51,28 @@
 (cffi:defcallback cbfun2 :void ((x :double))
   (format *output?* "~f~&" x))
 (setf fun2 (cffi:callback cbfun2))
+
+;;;;other llvm funs
+(in-package :llvm)
+(defun initialize-native-target??? ()
+  #+mips (initialize-mips-target)
+  #+alpha (initialize-alpha-target)
+  #+(or ppc ppc64)
+  (initialize-powerpc-target)
+  #+(or sparc sparc64)
+  (initialize-sparc-target)
+  #+(or x86 x86-64)
+  (initialize-x86-target)
+  #-(or mips alpha ppc ppc64 sparc sparc64 x86 x86-64) (return-from initialize-native-target nil)
+  t)
+#+nil
+(cffi:defcfun (initialize-native-target "LLVMInitializeNativeTarget") :int)
+
+#+nil
+(defcfun* "LLVMLinkInMCJIT" :void)
+
+#+nil
+(
+ (defcfun* "LLVMInitializeNativeAsmParser" :boolean)
+ (defcfun* "LLVMInitializeNativeAsmPrinter" :boolean)
+ (defcfun* "LLVMInitializeNativeDissassmbler" :boolean))

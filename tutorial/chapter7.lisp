@@ -592,11 +592,14 @@
         (format *output?* "Evaluated to ~fD0"
                 ;; NOTE: The C version of the tutorial only has the JIT side
                 ;;       of this, so if you have an interpreter, it breaks.
-                (if (cffi:pointer-eq ptr lf)	; we have an interpreter
-                    (llvm:generic-value-to-float
-                     (llvm:double-type)
-                     (llvm:run-function *execution-engine* ptr ()))
-                    (cffi:foreign-funcall-pointer ptr () :double))))
+                (cond ((cffi:pointer-eq ptr lf) ; we have an interpreter
+		       (print "no!" *output?*)
+		       (llvm:generic-value-to-float
+			(llvm:double-type)
+			(llvm:run-function *execution-engine* ptr ())))
+		      (t
+		       (print "yes!" *output?*)
+		       (cffi:foreign-funcall-pointer ptr () :double)))))
     (kaleidoscope-error (e)
       (get-next-token)
       (format *output?* "error: ~a~%" e))))
@@ -630,36 +633,44 @@
 
 ;;; driver
 
+(defvar *myjit*)
+
 (defun toplevel ()
-  ;; install standard binary operators
-  ;; 1 is lowest precedence
+    ;; install standard binary operators
+    ;; 1 is lowest precedence
+  (llvm::initialize-native-target???)
   (setf (gethash #\= *binop-precedence*) 2
-        (gethash #\< *binop-precedence*) 10
-        (gethash #\+ *binop-precedence*) 20
-        (gethash #\- *binop-precedence*) 30
-        (gethash #\* *binop-precedence*) 40)
+	(gethash #\< *binop-precedence*) 10
+	(gethash #\+ *binop-precedence*) 20
+	(gethash #\- *binop-precedence*) 30
+	(gethash #\* *binop-precedence*) 40)
   (reset-token-reader)
   (llvm:with-objects ((*builder* llvm:builder)
 		      (*module* llvm:module "my cool jit")
 		      (*execution-engine* llvm:execution-engine *module*)
-		      (*fpm* llvm:function-pass-manager *module*))
+		      (*myjit* llvm:jit-compiler *module*)
+		      (*fpm* llvm:function-pass-manager *module*))    
     (llvm:add-target-data (llvm:target-data *execution-engine*) *fpm*)
-
     ;;passes
-    (llvm:add-promote-memory-to-register-pass *fpm*)
-    (llvm:add-instruction-combining-pass *fpm*)
-    (llvm:add-reassociate-pass *fpm*)
-    (llvm:add-gvn-pass *fpm*)
-    (llvm:add-cfg-simplification-pass *fpm*)
-    ;;new
-    (llvm:add-constant-propagation-pass *fpm*)
-    (llvm:add-dead-store-elimination-pass *fpm*)
-    (llvm:add-independent-variable-simplification-pass *fpm*)
-    ;;
-    (llvm:initialize-function-pass-manager *fpm*)
+    
+    (progn
+      (llvm:add-promote-memory-to-register-pass *fpm*)
+      (llvm:add-instruction-combining-pass *fpm*)
+      (llvm:add-reassociate-pass *fpm*)
+      (llvm:add-gvn-pass *fpm*)
+      (llvm:add-cfg-simplification-pass *fpm*)
+      ;;new
 
+      (llvm:add-constant-propagation-pass *fpm*)
+      (llvm:add-dead-store-elimination-pass *fpm*)
+      (llvm:add-independent-variable-simplification-pass *fpm*))
+      ;;
+
+    (llvm:initialize-function-pass-manager *fpm*)
+     
     (format *output?* "~&ready> ")
     (get-next-token)
+      
     (callcc (function main-loop))
     (dump-module *module*)
     (values)))
