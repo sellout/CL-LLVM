@@ -473,10 +473,20 @@
                       (*execution-engine* llvm:execution-engine *module*)
                       (*fpm* llvm:function-pass-manager *module*))
     (llvm:add-target-data (llvm:target-data *execution-engine*) *fpm*)
+    (llvm:add-promote-memory-to-register-pass *fpm*)
     (llvm:add-instruction-combining-pass *fpm*)
     (llvm:add-reassociate-pass *fpm*)
     (llvm:add-gvn-pass *fpm*)
     (llvm:add-cfg-simplification-pass *fpm*)
+
+    ;;new
+    (llvm:add-constant-propagation-pass *fpm*)
+    (llvm:add-dead-store-elimination-pass *fpm*)
+    (llvm:add-independent-variable-simplification-pass *fpm*)
+    (llvm:add-jump-threading-pass *fpm*)
+    (llvm:add-aggressive-dce-pass *fpm*)
+    ;;
+    
     (llvm:initialize-function-pass-manager *fpm*)
 
     (format *output?* "~&ready> ")

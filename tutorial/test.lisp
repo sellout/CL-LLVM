@@ -32,9 +32,9 @@
 
 (defun test (n)
   (multiple-value-bind (out in toplevel) (wow n)
-    (%test out in toplevel)))
+    (%test out in toplevel n)))
 
-(defun %test (ref in toplevel)
+(defun %test (ref in toplevel n)
   (let ((ref
 	 (trim-empty-lines
 	  (alexandria:read-file-into-string
@@ -51,16 +51,22 @@
 		  (let ((*output?*  all)
 			(*input?* file))
 		    (funcall toplevel)))))))))
-    (print-with-lines ref)
-    (print-with-lines output)
     (let ((line-number 0))
-      (when 
-	  (block out
-	    (mapc 
-	     (lambda (x y)
-	       (incf line-number)
-	       (unless (string= x y)
-		 (return-from out t)))
-	     ref
-	     output))
-	(format t "~&line # ~s different" line-number)))))
+      (cond ((block out
+	       (mapc 
+		(lambda (x y)
+		  (unless (string= x y)
+		    (return-from out t))
+		  (incf line-number))
+		ref
+		output)
+	       nil)
+	     (print-with-lines ref)
+	     (print-with-lines output)
+	     (format t "~&line # ~s different" line-number))
+	    (t
+	     (terpri)
+	     (terpri)
+	     (format *output?* "test ~a OK" n)
+	     (terpri)
+	     (terpri))))))
