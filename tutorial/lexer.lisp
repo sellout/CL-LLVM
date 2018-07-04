@@ -6,7 +6,8 @@
    :*identifier-string*
    :*number-value*
    :*current-token*
-   :%get-next-token
+   :*token-types*
+   :get-next-token
    :reset-token-reader))
 
 (in-package :k-lexer)
@@ -117,5 +118,5 @@
 	     this-char)))))
 ;;;;
 (defvar *current-token*)
-(defun %get-next-token (&optional (token-types *token-types*) (stream *input?*))
+(defun get-next-token (&optional (token-types *token-types*) (stream *input?*))
   (setf *current-token* (read-token token-types stream)))

@@ -7,9 +7,6 @@
 
 (in-package :kaleidoscope.chapter3)
 
-(defun get-next-token ()
-  (%get-next-token k-lexer::*tokens2*))
-
 ;;; abstract syntax tree
 
 (defclass expression ()
@@ -306,7 +303,8 @@
   (llvm:with-objects ((*builder* llvm:builder)
                       (*module* llvm:module "my cool jit"))
     (format *output?* "~&ready> ")
-    (get-next-token)
-    (callcc (function main-loop))
+    (let ((*token-types* k-lexer::*tokens2*))
+      (get-next-token)
+      (callcc (function main-loop)))
     (dump-module *module*)
     (values)))

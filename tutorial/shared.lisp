@@ -65,8 +65,12 @@
   (progn (initialize-x86-target) (initialize-x86-target-info))
   #-(or mips alpha ppc ppc64 sparc sparc64 x86 x86-64) (return-from initialize-native-target nil)
   t)
-#+nil
-(cffi:defcfun (initialize-native-target? "LLVMInitializeNativeTarget") :int)
+;#+nil
+(progn
+  (cffi:defcfun (initialize-native-target? "LLVMInitializeNativeTarget__") :int)
+  (cffi:defcfun (initialize-native-asm-parser "LLVMInitializeNativeAsmParser__") :int)
+  (cffi:defcfun (initialize-native-asm-printer "LLVMInitializeNativeAsmPrinter__") :int)
+  (cffi:defcfun (initialize-native-disassembler "LLVMInitializeNativeDisassembler__") :int))
 
 #+nil
 (defcfun* "LLVMLinkInMCJIT" :void)

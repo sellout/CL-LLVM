@@ -7,9 +7,6 @@
 
 (in-package :kaleidoscope.chapter4)
 
-(defun get-next-token ()
-  (%get-next-token k-lexer::*tokens2*))
-
 ;;; abstract syntax tree
 
 (defclass expression ()
@@ -326,7 +323,8 @@
     (llvm:initialize-function-pass-manager *fpm*)
 
     (format *output?* "~&ready> ")
-    (get-next-token)
-    (callcc (function main-loop))
+    (let ((*token-types* k-lexer::*tokens2*))
+      (get-next-token)
+      (callcc (function main-loop)))
     (dump-module *module*)
     (values)))

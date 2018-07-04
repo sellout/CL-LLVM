@@ -8,9 +8,6 @@
 
 (in-package :kaleidoscope.chapter7)
 
-(defun get-next-token ()
-  (%get-next-token k-lexer::*tokens7*))
-
 ;;; abstract syntax tree
 
 (defclass expression ()
@@ -638,7 +635,9 @@
 (defun toplevel ()
   ;; install standard binary operators
   ;; 1 is lowest precedence
-  ;;(llvm::initialize-native-target)
+  (llvm::initialize-native-target?)
+  (llvm::initialize-native-Asm-parser)
+  (llvm::initialize-native-asm-printer)
   (setf (gethash #\= *binop-precedence*) 2
 	(gethash #\< *binop-precedence*) 10
 	(gethash #\+ *binop-precedence*) 20
@@ -669,8 +668,8 @@
     (llvm:initialize-function-pass-manager *fpm*)
      
     (format *output?* "~&ready> ")
-    (get-next-token)
-      
-    (callcc (function main-loop))
+    (let ((*token-types* k-lexer::*tokens7*))
+      (get-next-token)     
+      (callcc (function main-loop)))
     (dump-module *module*)
     (values)))

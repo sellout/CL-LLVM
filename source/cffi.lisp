@@ -81,8 +81,11 @@
                ,foreign-name)
          ,return-type ,@arguments)))
 
-(define-foreign-library libllvm
-  (t (:or (:default "libLLVM")
-	  (:default "libLLVM-3.8"))))
 
-(use-foreign-library libllvm)
+(cffi:load-foreign-library "/home/imac/install/llvm/llvm-build/build/lib/libLLVM-3.8.so")
+#+nil
+(progn
+  (define-foreign-library libllvm
+    (t (:or (:default "libLLVM")
+	    (:default "libLLVM-3.8"))))
+  (use-foreign-library libllvm))

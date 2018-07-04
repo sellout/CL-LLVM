@@ -7,9 +7,6 @@
 
 (in-package :kaleidoscope.chapter2)
 
-(defun get-next-token ()
-  (%get-next-token k-lexer::*tokens2*))
-
 ;;; abstract syntax tree
 
 (defclass expression ()
@@ -216,6 +213,7 @@
         (gethash #\* *binop-precedence*) 40)
   (reset-token-reader)
   (format *output?* "~&ready> ")
-  (get-next-token)
-  (callcc (function main-loop))
+  (let ((*token-types* k-lexer::*tokens2*))
+    (get-next-token)
+    (callcc (function main-loop)))
   (values))
