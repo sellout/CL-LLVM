@@ -589,10 +589,10 @@
   (handler-case 
       (let* ((lf (codegen (parse-top-level-expression)))
              (ptr (llvm:pointer-to-global *execution-engine* lf)))
-        (format *output?* "Evaluated to ~f"
+        (format *output?* "Evaluated to ~fD0"
                 ;; NOTE: The C version of the tutorial only has the JIT side
                 ;;       of this, so if you have an interpreter, it breaks.
-                (if (cffi:pointer-eq ptr lf)        ; we have an interpreter
+                (if (cffi:pointer-eq ptr lf)	; we have an interpreter
                     (llvm:generic-value-to-float
                      (llvm:double-type)
                      (llvm:run-function *execution-engine* ptr ()))
@@ -646,11 +646,18 @@
 			(*execution-engine* llvm:execution-engine *module*)
 			(*fpm* llvm:function-pass-manager *module*))
       (llvm:add-target-data (llvm:target-data *execution-engine*) *fpm*)
+
+      ;;passes
       (llvm:add-promote-memory-to-register-pass *fpm*)
       (llvm:add-instruction-combining-pass *fpm*)
       (llvm:add-reassociate-pass *fpm*)
       (llvm:add-gvn-pass *fpm*)
       (llvm:add-cfg-simplification-pass *fpm*)
+      ;;new
+      (llvm:add-constant-propagation-pass *fpm*)
+      (llvm:add-dead-store-elimination-pass *fpm*)
+      (llvm:add-independent-variable-simplification-pass *fpm*)
+      ;;
       (llvm:initialize-function-pass-manager *fpm*)
 
       (format *output?* "~&ready> ")
