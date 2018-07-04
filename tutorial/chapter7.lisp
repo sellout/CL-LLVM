@@ -553,9 +553,9 @@
 (defun toplevel ()
   ;; install standard binary operators
   ;; 1 is lowest precedence
-  (llvm::initialize-native-target?)
-  (llvm::initialize-native-Asm-parser)
-  (llvm::initialize-native-asm-printer)
+ ; (llvm::initialize-native-target?)
+ ; (llvm::initialize-native-Asm-parser)
+ ; (llvm::initialize-native-asm-printer)
   (setf (gethash #\= *binop-precedence*) 2
 	(gethash #\< *binop-precedence*) 10
 	(gethash #\+ *binop-precedence*) 20
