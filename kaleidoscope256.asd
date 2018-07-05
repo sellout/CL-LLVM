@@ -17,6 +17,8 @@
 	      (:file "package")
 	      (:file "lexer")
 	      (:file "ast")
+	      (:file "parser")
+	      (:file "dump")
 	      (:file "chapter2")
 	      (:file "chapter3")
 	      (:file "chapter4")

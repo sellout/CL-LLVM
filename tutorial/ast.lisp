@@ -1,27 +1,5 @@
 (in-package :k-shared)
 
-(eval-always
-  (defparameter *chapcodes* (make-hash-table :test 'equalp)))
-(defmacro define-codes (name (&rest chapters) &body codes)
-  (setf (gethash name *chapcodes*)
-	(cons chapters codes))
-  nil)
-
-(eval-always
-  (defun %writecodes (chap &optional (package (chap-package chap)))
-    (let ((acc nil))
-      (dohash (name value) *chapcodes*
-	      (declare (ignore name))
-	      (when (find chap (car value))
-		(mapc (lambda (x) (push x acc))
-		      (cdr value))))
-      (repackage
-       (nreverse acc)
-       package))))
-
-(defmacro writecodes (chap)
-  (cons 'progn (%writecodes chap)))
-
 (define-codes "base?" (2 3 4 5 6 7)
   (defclass expression ()
     ()
@@ -101,7 +79,3 @@
    ((var-names :initarg :var-names :reader var-names)
     (body :initarg :body :reader body))
    (:documentation "Expression class for var/in")))
-
-(etouq
-  (cons 'progn
-	(loop for i from 2 to 7 collecting (list 'writecodes i))))

@@ -69,6 +69,27 @@
 (defun dump-module (module)
   (write-string (llvm:print-module-to-string module) *output?*))
 
+(eval-always
+  (defparameter *chapcodes* (make-hash-table :test 'equalp)))
+(defmacro define-codes (name (&rest chapters) &body codes)
+  (setf (gethash name *chapcodes*)
+	(cons chapters codes))
+  nil)
+
+(eval-always
+  (defun %writecodes (chap &optional (package (chap-package chap)))
+    (let ((acc nil))
+      (dohash (name value) *chapcodes*
+	      (declare (ignore name))
+	      (when (find chap (car value))
+		(mapc (lambda (x) (push x acc))
+		      (cdr value))))
+      (repackage
+       (nreverse acc)
+       package))))
+
+(defmacro writecodes (chap)
+  (cons 'progn (%writecodes chap)))
 
 ;;;;for chap 6 and 5
 (cffi:load-foreign-library (merge-pathnames *this-directory* "libkaleidoscope-extern.so.0.1"))
@@ -91,40 +112,36 @@
 
 ;;;;other llvm funs
 (in-package :llvm)
-(defun initialize-native-target??? ()
-  #+mips (initialize-mips-target)
-  #+alpha (initialize-alpha-target)
-  #+(or ppc ppc64)
-  (initialize-powerpc-target)
-  #+(or sparc sparc64)
-  (initialize-sparc-target)
-  #+(or x86 x86-64)
-  (progn (initialize-x86-target) (initialize-x86-target-info))
-  #-(or mips alpha ppc ppc64 sparc sparc64 x86 x86-64) (return-from initialize-native-target nil)
-  t)
-;#+nil
+;;;;WARNING:: got the functions below to run by adding
+#|
+extern "C" {
+
+LLVMBool LLVMInitializeNativeTarget__(void) {
+  return LLVMInitializeNativeTarget();
+}
+
+LLVMBool LLVMInitializeNativeAsmParser__(void) {
+  return LLVMInitializeNativeAsmParser();
+}
+
+LLVMBool LLVMInitializeNativeAsmPrinter__(void) {
+  return LLVMInitializeNativeAsmPrinter();
+}
+
+LLVMBool LLVMInitializeNativeDisassembler__(void) {
+  return LLVMInitializeNativeDisassembler();
+}
+
+
+}
+|#
+;;;;to llvm/lib/Target/TargetMachineC.cpp
+;;;;why? because it includes llvm-c/Target.h and gets linked into the shared library.
+;;;;the functions are wrappers around static inline c functions, which means they are
+;;;;not exposed in the shared library
+;;;;FIXME: put functions into a diffent file
 (progn
   (cffi:defcfun (initialize-native-target? "LLVMInitializeNativeTarget__") :int)
   (cffi:defcfun (initialize-native-asm-parser "LLVMInitializeNativeAsmParser__") :int)
   (cffi:defcfun (initialize-native-asm-printer "LLVMInitializeNativeAsmPrinter__") :int)
   (cffi:defcfun (initialize-native-disassembler "LLVMInitializeNativeDisassembler__") :int))
-
-#+nil
-(defcfun* "LLVMLinkInMCJIT" :void)
-#+nil
-(progn
-  (defcfun* "LLVMInitializeAllTargetInfos" :void)
-  (defcfun* "LLVMInitializeAllTargets" :void)
-  (defcfun* "LLVMInitializeAllTargetMCs" :void)
-  (defcfun* "LLVMInitializeAllAsmPrinters" :void)
-  (defcfun* "LLVMInitializeAllAsmParsers" :void)
-  (defcfun* "LLVMInitializeAllDisassemblers" :void))
-
-#+nil
-(progn
-  (llvm::initialize-all-target-infos)
-  (llvm::initialize-all-targets)
-  (llvm::initialize-all-target-m-cs)
-  (llvm::initialize-all-asm-printers)
-  (llvm::initialize-all-asm-parsers)
-  (llvm::initialize-all-Disassemblers))
