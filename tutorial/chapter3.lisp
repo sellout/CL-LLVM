@@ -114,11 +114,6 @@
       (get-next-token)
       (format *output?* "error: ~a~%" e))))
 
-(define-condition kaleidoscope-error (error)
-  ((message :initarg :message :reader message))
-  (:report (lambda (condition stream)
-             (write-string (message condition) stream))))
-
 (defun main-loop (exit)
   (do () ((eql *current-token* ':tok-eof))
     (format *output?* "~&ready> ")
@@ -147,7 +142,7 @@
   (llvm:with-objects ((*builder* llvm:builder)
                       (*module* llvm:module "my cool jit"))
     (format *output?* "~&ready> ")
-    (with-tokens 3
+    (with-chapter 3
       (get-next-token)
       (callcc (function main-loop)))
     (dump-module *module*)

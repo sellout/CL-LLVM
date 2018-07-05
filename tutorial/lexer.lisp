@@ -28,7 +28,7 @@
 
 (defvar *token-types*)
 
-(defmacro with-tokens (chap &body body)
+(defmacro %with-tokens (chap &body body)
   `(let ((*token-types* (chap-tokens ,chap)))
      ,@body))
 

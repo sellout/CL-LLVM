@@ -13,8 +13,50 @@
   (:export
    #:*this-directory*)
   (:export
-   #:chap-package)
+   #:chap-package
+   #:with-chapter)
 
+  ;;;;ast
+  (:export
+   :expression
+   :number-expression
+   :value
+   :variable-expression
+   :name
+   :binary-expression
+   :operator
+   :lhs
+   :rhs
+   :call-expression
+   :callee
+   :arguments
+   :function-definition
+   :prototype
+   :body
+   :arguments
+   :precedence
+   :if-expression
+   :_condition
+   :then
+   :else
+   :for-expression
+   :var-name
+   :start
+   :end
+   :step
+   :body
+   :step*
+   :unary-expression
+   :opcode
+   :operand
+   :unary-operator-p
+   :binary-operator-p
+   :operator-name
+   :var-expression
+   :var-names
+   )
+
+  ;;;;lexer
   (:export
    :*identifier-string*
    :*number-value*
@@ -23,7 +65,30 @@
    :get-next-token
    :reset-token-reader
    :chap-tokens
-   :with-tokens))
+   :with-tokens)
+
+  ;;;;parser
+  (:export
+   :*binop-precedence*
+   :get-precedence
+   :parse-identifier-expression
+   :parse-number-expression
+   :parse-paren-expression
+   :parse-primary
+   :parse-prototype
+   :parse-bin-op-rhs
+   :parse-expression
+   :parse-definition
+   :parse-top-level-expression
+   :parse-extern
+   :parse-if-expression
+   :parse-for-expression
+   :parse-unary
+   :parse-var-expression)
+
+  (:export
+   :kaleidoscope-error)
+  )
 (in-package #:k-shared)
 
 (defparameter *this-directory* (filesystem-util:this-directory))
@@ -43,6 +108,9 @@
   (mapcar (lambda (x)
 	    (tree-equal x (car n) :test #'equalp))
 	  n))
+(defmacro eh (&rest body)
+  `(quote ,(eh? body)))
+
 (defparameter *this-package* *package*)
 (defun repackage (sexp &optional (new-package *package*))
   (setf new-package (find-package new-package))
@@ -58,38 +126,21 @@
 			sexp))
 		   (t sexp))))
     (walk sexp)))
+(defparameter *chapter* 7)
 
-(defun chap-package (n)
+(defun chap-package (&optional (n *chapter*))
   (find-package
    (format nil "KALEIDOSCOPE.CHAPTER~s" n)))
+(define-condition kaleidoscope-error (error)
+  ((message :initarg :message :reader message))
+  (:report (lambda (condition stream)
+	     (write-string (message condition) stream))))
 
 (defun dump-value (value)
   (write-string (llvm:print-value-to-string value) *output?*))
 
 (defun dump-module (module)
   (write-string (llvm:print-module-to-string module) *output?*))
-
-(eval-always
-  (defparameter *chapcodes* (make-hash-table :test 'equalp)))
-(defmacro define-codes (name (&rest chapters) &body codes)
-  (setf (gethash name *chapcodes*)
-	(cons chapters codes))
-  nil)
-
-(eval-always
-  (defun %writecodes (chap &optional (package (chap-package chap)))
-    (let ((acc nil))
-      (dohash (name value) *chapcodes*
-	      (declare (ignore name))
-	      (when (find chap (car value))
-		(mapc (lambda (x) (push x acc))
-		      (cdr value))))
-      (repackage
-       (nreverse acc)
-       package))))
-
-(defmacro writecodes (chap)
-  (cons 'progn (%writecodes chap)))
 
 ;;;;for chap 6 and 5
 (cffi:load-foreign-library (merge-pathnames *this-directory* "libkaleidoscope-extern.so.0.1"))

@@ -21,11 +21,6 @@
       (get-next-token)
       (format *output?* "error: ~a~%" e))))
 
-(define-condition kaleidoscope-error (error)
-  ((message :initarg :message :reader message))
-  (:report (lambda (condition stream)
-             (write-string (message condition) stream))))
-
 (defun main-loop (exit)
   (do ()
       ((main-loop-end))
@@ -53,7 +48,7 @@
         (gethash #\* *binop-precedence*) 40)
   (reset-token-reader)
   (format *output?* "~&ready> ")
-  (with-tokens 2
+  (with-chapter 2
     (get-next-token)
     (callcc (function main-loop)))
   (values))

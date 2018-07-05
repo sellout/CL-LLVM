@@ -1,5 +1,5 @@
 (in-package :k-shared)
 
-(etouq
-  (cons 'progn
-	(loop for i from 2 to 7 collecting (list 'writecodes i))))
+(defmacro with-chapter (n &body body)
+  `(let ((*chapter* ,n))
+     (%with-tokens ,n ,@body)))

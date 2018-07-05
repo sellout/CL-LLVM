@@ -233,11 +233,6 @@
       (get-next-token)
       (format *output?* "error: ~a~%" e))))
 
-(define-condition kaleidoscope-error (error)
-  ((message :initarg :message :reader message))
-  (:report (lambda (_condition stream)
-             (write-string (message _condition) stream))))
-
 (defun main-loop (exit)
   (do () ((eql *current-token* ':tok-eof))
     (format *output?* "~&ready> ")
@@ -276,7 +271,7 @@
     (llvm:initialize-function-pass-manager *fpm*)
 
     (format *output?* "~&ready> ")
-    (with-tokens 6
+    (with-chapter 6
       (get-next-token)
       (callcc (function main-loop)))
     (dump-module *module*)
