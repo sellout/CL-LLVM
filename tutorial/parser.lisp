@@ -37,7 +37,7 @@
       v)))
 
 (defun parse-primary ()
-  (case *chapter*
+  (ecase *chapter*
     ((2 3 4) (parse-primary234))
     ((5 6) (parse-primary56))
     ((7) (parse-primary7))))
@@ -72,11 +72,11 @@
                       :message "unknown token when expecting an expression"))))
 
 (defun parse-dispatch ()
-  (case *chapter*
+  (ecase *chapter*
     ((2 3 4 5) (parse-primary))
     ((6 7) (parse-unary))))
 (defun parse-prototype ()
-  (case *chapter*
+  (ecase *chapter*
     ((2 3 4 5) (parse-prototype2345))
     ((6 7) (parse-prototype67))))
 

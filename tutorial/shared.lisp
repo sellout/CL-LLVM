@@ -86,6 +86,13 @@
    :parse-unary
    :parse-var-expression)
 
+  ;;;;code-generation
+  (:export
+   :codegen
+   :*module*
+   :*builder*
+   :*fpm*
+   :*execution-engine*)
   (:export
    :kaleidoscope-error
    :set-binop-precedence)
