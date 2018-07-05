@@ -145,8 +145,9 @@
 (defun dump-module (module)
   (write-string (llvm:print-module-to-string module) *output?*))
 
+(defparameter *c-directory* (merge-pathnames "C/" *this-directory*))
 ;;;;for chap 6 and 5
-(cffi:load-foreign-library (merge-pathnames *this-directory* "libkaleidoscope-extern.so.0.1"))
+(cffi:load-foreign-library (merge-pathnames "libkaleidoscope-extern.so.0.1" *c-directory*))
 
 (cffi:defcfun ("putchard" putchard) :double
   (x :double))
