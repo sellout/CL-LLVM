@@ -96,7 +96,9 @@
   (:export
    :kaleidoscope-error
    :set-binop-precedence
-   :main-loop)
+   :main-loop
+   :*chapter*
+   :toplevel)
   )
 (in-package #:k-shared)
 
@@ -120,26 +122,8 @@
 (defmacro eh (&rest body)
   `(quote ,(eh? body)))
 
-(defparameter *this-package* *package*)
-(defun repackage (sexp &optional (new-package *package*))
-  (setf new-package (find-package new-package))
-  (labels ((walk (sexp)
-	     (cond ((consp sexp)
-		    (cons
-		     (walk (car sexp))
-		     (walk (cdr sexp))))
-		   ((symbolp sexp)
-		    (if (eq (symbol-package sexp)
-			    *this-package*)
-			(intern (string sexp) new-package)
-			sexp))
-		   (t sexp))))
-    (walk sexp)))
 (defparameter *chapter* 7)
 
-(defun chap-package (&optional (n *chapter*))
-  (find-package
-   (format nil "KALEIDOSCOPE.CHAPTER~s" n)))
 (define-condition kaleidoscope-error (error)
   ((message :initarg :message :reader message))
   (:report (lambda (condition stream)

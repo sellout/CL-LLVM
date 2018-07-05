@@ -21,15 +21,13 @@
     (values
      (concatenate 'string "chapter" str ".out")
      (concatenate 'string "chapter" str ".k")
-     (symbol-function
-      (find-symbol "TOPLEVEL"
-		   (chap-package n))))))
+     (lambda () (toplevel n)))))
 
 (defun testfoo ()
   (loop for i from 2 to 7 do
        (test i)))
 
-(defun test (n)
+(defun test (&optional (n *chapter*))
   (multiple-value-bind (out in toplevel) (wow n)
     (%test out in toplevel n)))
 
