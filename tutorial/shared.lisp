@@ -87,7 +87,8 @@
    :parse-var-expression)
 
   (:export
-   :kaleidoscope-error)
+   :kaleidoscope-error
+   :set-binop-precedence)
   )
 (in-package #:k-shared)
 
@@ -135,6 +136,16 @@
   ((message :initarg :message :reader message))
   (:report (lambda (condition stream)
 	     (write-string (message condition) stream))))
+
+;;; install standard binary operators
+;;; 1 is lowest precedence
+(defun set-binop-precedence (&optional (n *chapter*))
+  (case n
+    ((7) (setf (gethash #\= *binop-precedence*) 2)))
+  (setf (gethash #\< *binop-precedence*) 10
+	(gethash #\+ *binop-precedence*) 20
+	(gethash #\- *binop-precedence*) 30
+	(gethash #\* *binop-precedence*) 40))
 
 (defun dump-value (value)
   (write-string (llvm:print-value-to-string value) *output?*))

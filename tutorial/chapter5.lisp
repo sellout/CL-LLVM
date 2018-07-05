@@ -229,13 +229,6 @@
 ;;; driver
 
 (defun toplevel ()
-  ;; install standard binary operators
-  ;; 1 is lowest precedence
-  (setf (gethash #\< *binop-precedence*) 10
-        (gethash #\+ *binop-precedence*) 20
-        (gethash #\- *binop-precedence*) 30
-        (gethash #\* *binop-precedence*) 40)
-  (reset-token-reader)
   (llvm:with-objects ((*builder* llvm:builder)
                       (*module* llvm:module "my cool jit")
                       (*execution-engine* llvm:execution-engine *module*)
@@ -257,9 +250,11 @@
     
     (llvm:initialize-function-pass-manager *fpm*)
 
-    (format *output?* "~&ready> ")
     (with-chapter 5
+      (reset-token-reader)
       (get-next-token)
+      (set-binop-precedence)
+      (format *output?* "~&ready> ")
       (callcc (function main-loop)))
     (dump-module *module*)
     (values)))
