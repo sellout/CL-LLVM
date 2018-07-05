@@ -140,5 +140,5 @@
       (set-binop-precedence)
       (format *output?* "~&ready> ")
       (callcc (function main-loop)))
-    (dump-module *module*)
-    (values)))
+    (dump-module *module*))
+  (values))

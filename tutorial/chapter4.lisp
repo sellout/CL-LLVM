@@ -148,10 +148,11 @@
                       (*execution-engine* llvm:execution-engine *module*)
                       (*fpm* llvm:function-pass-manager *module*))
     (llvm:add-target-data (llvm:target-data *execution-engine*) *fpm*)
-    (llvm:add-instruction-combining-pass *fpm*)
-    (llvm:add-reassociate-pass *fpm*)
-    (llvm:add-gvn-pass *fpm*)
-    (llvm:add-cfg-simplification-pass *fpm*)
+    (progn
+      (llvm:add-instruction-combining-pass *fpm*)
+      (llvm:add-reassociate-pass *fpm*)
+      (llvm:add-gvn-pass *fpm*)
+      (llvm:add-cfg-simplification-pass *fpm*))
     (llvm:initialize-function-pass-manager *fpm*)
 
     (with-chapter 4
@@ -160,5 +161,5 @@
       (set-binop-precedence)
       (format *output?* "~&ready> ")
       (callcc (function main-loop)))
-    (dump-module *module*)
-    (values)))
+    (dump-module *module*))
+  (values))
