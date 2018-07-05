@@ -3,7 +3,6 @@
   (once-only (n)
     `(let ((*chapter* ,n))
        (%with-tokens ,n ,@body))))
-;(defvar *myjit*)
 
 (defun toplevel (n)
   (with-chapter n
@@ -24,9 +23,11 @@
 	      (start)
 	      (dump-module *module*))
 	     ((4 5 6 7)
-	      ;;(llvm::initialize-native-target?)
-	      ;;(llvm::initialize-native-Asm-parser)
-	      ;;(llvm::initialize-native-asm-printer)
+	      #+nil
+	      (when *jit?*
+		(llvm::initialize-native-target?)
+		(llvm::initialize-native-Asm-parser)
+		(llvm::initialize-native-asm-printer))
 	      (llvm:with-objects ((*execution-engine* llvm:execution-engine *module*)
 				  ;;(*myjit* llvm:jit-compiler *module*)
 				  (*fpm* llvm:function-pass-manager *module*))    

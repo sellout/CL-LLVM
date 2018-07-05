@@ -129,6 +129,9 @@
   (:report (lambda (condition stream)
 	     (write-string (message condition) stream))))
 
+(defvar *myjit*)
+(defparameter *jit?* nil)
+
 ;;; install standard binary operators
 ;;; 1 is lowest precedence
 (defun set-binop-precedence (&optional (n *chapter*))
