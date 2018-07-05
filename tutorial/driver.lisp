@@ -8,10 +8,10 @@
 (defun toplevel (n)
   (with-chapter n
     (flet ((start ()
+	     (format *output?* "~&ready> ")
 	     (reset-token-reader)
 	     (get-next-token)
 	     (set-binop-precedence)
-	     (format *output?* "~&ready> ")
 	     (callcc (function main-loop))))
       (case *chapter*
 	((2) (start))
@@ -21,7 +21,8 @@
 	      (*module* llvm:module "my cool jit"))
 	   (case *chapter*
 	     ((3)
-	      (start))
+	      (start)
+	      (dump-module *module*))
 	     ((4 5 6 7)
 	      ;;(llvm::initialize-native-target?)
 	      ;;(llvm::initialize-native-Asm-parser)
@@ -41,6 +42,5 @@
 
 		(llvm:initialize-function-pass-manager *fpm*)
 		(start)
-		)))
-	   (dump-module *module*))))))
+		(dump-module *module*)))))))))
   (values))
