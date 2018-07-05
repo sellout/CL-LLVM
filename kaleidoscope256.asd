@@ -19,6 +19,7 @@
 	      (:file "ast")
 	      (:file "parser")
 	      (:file "code-generation")
+	      (:file "top-level")
 	      (:file "dump")
 	      (:file "chapter2")
 	      (:file "chapter3")

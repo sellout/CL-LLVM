@@ -95,7 +95,8 @@
    :*execution-engine*)
   (:export
    :kaleidoscope-error
-   :set-binop-precedence)
+   :set-binop-precedence
+   :main-loop)
   )
 (in-package #:k-shared)
 
