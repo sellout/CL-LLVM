@@ -14,10 +14,5 @@
 	     (#+nil
 	      (:file "cffi")
 	      (:file "shared")
-	      (:file "lexer")
-	      (:file "ast")
-	      (:file "parser")
-	      (:file "code-generation")
-	      (:file "top-level")
-	      (:file "driver")
+	      (:file "chapter")
 	      (:file "test")))))
