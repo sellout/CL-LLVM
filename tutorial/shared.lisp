@@ -129,7 +129,7 @@
   (:report (lambda (condition stream)
 	     (write-string (message condition) stream))))
 
-(defparameter *jit?* nil)
+(defparameter *jit?* t)
 (defparameter *fpm?* nil)
 
 ;;; install standard binary operators
@@ -169,7 +169,7 @@
 (setf fun2 (cffi:callback cbfun2))
 
 (progn
-  (cffi:defcfun (kaleidoscope-get-target-machine "KaleidoscopeGetTargetMachine") :void)
+  (cffi:defcfun (kaleidoscope-get-target-machine "KaleidoscopeGetTargetMachine") :pointer)
   (cffi:defcfun (kaleidoscope-create "KaleidoscopeCreate") :void)
   (cffi:defcfun (kaleidoscope-destroy "KaleidoscopeDestroy") :void)
   (cffi:defcfun (kaleidoscope-add-module "KaleidoscopeAddModule") :pointer

@@ -565,7 +565,7 @@
     (setf (gethash (name prototype) *function-protos*)
 	  prototype)
     (let* ((*named-values* (make-hash-table :test #'equal))
-	   (function (get-function prototype)))
+	   (function (get-function (name prototype))))
       (when function
 	(ecase *chapter*
 	  ((3)
@@ -853,16 +853,15 @@
 (defparameter *fucking-modules* nil)
 ;;;;Toplevel
 (defun initialize-module-and-pass-manager ()
-  (print 323423424)
   (let ((module (llvm::module-create-with-name "fuck you")))
-    (print "wat")
-    (llvm::set-data-layout
-     *module*
-     (get-target-machine-data
-      (print (kaleidoscope-get-target-machine))))
-    (print "fuck me ")
-    (push module *fucking-modules*)
-    (setf *module* module)))
+    (setf *module* module)
+    (let ((target (kaleidoscope-get-target-machine)))
+      (print (cffi:foreign-string-to-lisp target))
+      (llvm::set-data-layout
+       module
+       (get-target-machine-data
+	target)))
+    (push module *fucking-modules*)))
 
 
 (defun handle-definition ()
@@ -976,6 +975,8 @@
 		      (reset-token-reader)
 		      (get-next-token)
 		      (set-binop-precedence)
+		      (when *jit?*
+			(initialize-module-and-pass-manager))
 		      (callcc (function main-loop)))
 		 (dolist (module *fucking-modules*)
 		   (llvm:dispose-module module))
@@ -986,8 +987,9 @@
 		     (llvm::initialize-native-target?)
 		     (llvm::initialize-native-Asm-parser)
 		     (llvm::initialize-native-asm-printer)
-		     (unwind-protect (kaleidoscope-create)
-		       (%start)
+		     (unwind-protect
+			  (progn (kaleidoscope-create)
+				 (%start))
 		       (kaleidoscope-destroy)))
 		   (%start))))
       (case *chapter*
@@ -995,15 +997,16 @@
 	((3 4 5 6 7)
 	 (llvm:with-objects
 	     ((*builder* llvm:builder))
-	   (initialize-module-and-pass-manager)
+	   (start)
+	   (dump-module *module*)
+	   #+nil
 	   (case *chapter*
 	     ((3)
-	      (start)
-	      (dump-module *module*))
+	      )
 	     ((4 5 6 7)
 	      (flet ((start2 ()
-			 (start)
-			 (dump-module *module*)))
+		       (start)
+		       (dump-module *module*)))
 		(start2)
 		#+nil
 		(llvm:with-objects ((*execution-engine* llvm:execution-engine *module*)
