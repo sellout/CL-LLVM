@@ -42,3 +42,6 @@
     (if (%print-module-to-file m path out-message)
         (throw-llvm-error out-message)
         t)))
+
+(defcfun (module-create-with-name "LLVMModuleCreateWithName") module
+  (module-id :string))

@@ -455,19 +455,19 @@
 ;;;;code-generation
 
 ;;; code generation 3
-(defvar *module*)
+(defparameter *module* nil)
 (defvar *builder*)
 (defvar *named-values*)
 
 (defparameter *function-protos* (make-hash-table :test 'equal))
 (defun get-function (name)
   (block nil
-    (let ((f llvm:named-function *module* name))
+    (let ((f (llvm:named-function *module* name)))
       (unless (cffi:null-pointer-p f)
 	(return f)))
     (let ((previously-defined-fun (gethash name *function-protos*)))
       (when previously-defined-fun
-	(return previously-defined-fun)))
+	(return (codegen previously-defined-fun))))
     (return (cffi:null-pointer))))
 
 (defmethod codegen ((expression number-expression))
@@ -522,7 +522,7 @@
 		  (llvm:build-call *builder* f (list l r) "binop"))))))))))
 
 (defmethod codegen ((expression call-expression))
-  (let ((callee (llvm:named-function *module* (callee expression))))
+  (let ((callee (get-function (callee expression))))
      (if callee
 	 (if (= (llvm:count-params callee) (length (arguments expression)))
 	     (llvm:build-call *builder*
@@ -561,104 +561,89 @@
      function))
 
 (defmethod codegen ((expression function-definition))
-  (ecase *chapter*
-    ((3) (codegenfundef3 expression))
-    ((4 5) (codegenfundef45 expression))
-    ((6) (codegenfundef6 expression))
-    ((7) (codegenfundef7 expression))))
-
-;;;;3
-(defun codegenfundef3 (expression)
-  (let* ((*named-values* (make-hash-table :test #'equal))
-         (function (codegen (prototype expression))))
-    (when function
-      (llvm:position-builder-at-end *builder*
-                                    (llvm:append-basic-block function "entry"))
-      (let ((retval (codegen (body expression))))
-        (if retval
-            (progn
-              (llvm:build-ret *builder* retval)
-              (unless (llvm:verify-function function)
-                (error 'kaleidoscope-error
-                       :message "Function verification failure."))
-              function)
-            (llvm:delete-function function))))))
-;;;;4 5
-(defun codegenfundef45 (expression)
-  (let* ((*named-values* (make-hash-table :test #'equal))
-	 (function (codegen (prototype expression))))
-    (when function
-      (llvm:position-builder-at-end *builder*
-				    (llvm:append-basic-block function "entry"))
-      (let ((retval (codegen (body expression))))
-	(if retval
-	    (progn
-	      (llvm:build-ret *builder* retval)
-	      (unless (llvm:verify-function function)
-		(error 'kaleidoscope-error
-		       :message "Function verification failure."))
-	      #+nil
-	      (when *fpm?*
-		(llvm:run-function-pass-manager *fpm* function))
-	      function)
-	    (llvm:delete-function function))))))
-;;;;6
-(defun codegenfundef6 (expression)
-  (let* ((*named-values* (make-hash-table :test #'equal))
-	 (function (codegen (prototype expression))))
-    (when function
-      ;; If this is an operator, install it.
-      (when (binary-operator-p (prototype expression))
-	(setf (gethash (operator-name (prototype expression))
-		       *binop-precedence*)
-	      (precedence (prototype expression))))
-      (llvm:position-builder-at-end *builder*
-				    (llvm:append-basic-block function "entry"))
-      (let ((retval (codegen (body expression))))
-	(if retval
-	    (progn
-	      (llvm:build-ret *builder* retval)
-	      (unless (llvm:verify-function function)
-		(error 'kaleidoscope-error
-		       :message "Function verification failure."))
-	      #+nil
-	      (when *fpm?*
-		(llvm:run-function-pass-manager *fpm* function))
-	      function)
-	    (progn
-	      (llvm:delete-function function)
-	      (when (binary-operator-p (prototype expression))
-		(remhash (operator-name (prototype expression))
-			 *binop-precedence*))))))))
-;;;;7
-(defun codegenfundef7 (expression)
-  (let* ((*named-values* (make-hash-table :test #'equal))
-	 (function (codegen (prototype expression))))
-    (when function
-      ;; If this is an operator, install it.
-      (when (binary-operator-p (prototype expression))
-	(setf (gethash (operator-name (prototype expression))
-		       *binop-precedence*)
-	      (precedence (prototype expression))))
-      (llvm:position-builder-at-end *builder*
-				    (llvm:append-basic-block function "entry"))
-      (create-argument-allocas (prototype expression) function)
-      (let ((retval (codegen (body expression))))
-	(if retval
-	    (progn
-	      (llvm:build-ret *builder* retval)
-	      (unless (llvm:verify-function function)
-		(error 'kaleidoscope-error
-		       :message "Function verification failure."))
-	      #+nil
-	      (when *fpm?*
-		(llvm:run-function-pass-manager *fpm* function))
-	      function)
-	    (progn
-	      (llvm:delete-function function)
-	      (when (binary-operator-p (prototype expression))
-		(remhash (operator-name (prototype expression))
-			 *binop-precedence*))))))))
+  (let ((prototype (prototype expression)))
+    (setf (gethash (name prototype) *function-protos*)
+	  prototype)
+    (let* ((*named-values* (make-hash-table :test #'equal))
+	   (function (get-function prototype)))
+      (when function
+	(ecase *chapter*
+	  ((3)
+	   (llvm:position-builder-at-end *builder*
+					 (llvm:append-basic-block function "entry"))
+	   (let ((retval (codegen (body expression))))
+	     (if retval
+		 (progn
+		   (llvm:build-ret *builder* retval)
+		   (unless (llvm:verify-function function)
+		     (error 'kaleidoscope-error
+			    :message "Function verification failure."))
+		   function)
+		 (llvm:delete-function function))))
+	  ((4 5)
+	   (llvm:position-builder-at-end *builder*
+					 (llvm:append-basic-block function "entry"))
+	   (let ((retval (codegen (body expression))))
+	     (if retval
+		 (progn
+		   (llvm:build-ret *builder* retval)
+		   (unless (llvm:verify-function function)
+		     (error 'kaleidoscope-error
+			    :message "Function verification failure."))
+		   #+nil
+		   (when *fpm?*
+		     (llvm:run-function-pass-manager *fpm* function))
+		   function)
+		 (llvm:delete-function function))))
+	  ((6)
+	   ;; If this is an operator, install it.
+	   (when (binary-operator-p (prototype expression))
+	     (setf (gethash (operator-name (prototype expression))
+			    *binop-precedence*)
+		   (precedence (prototype expression))))
+	   (llvm:position-builder-at-end *builder*
+					 (llvm:append-basic-block function "entry"))
+	   (let ((retval (codegen (body expression))))
+	     (if retval
+		 (progn
+		   (llvm:build-ret *builder* retval)
+		   (unless (llvm:verify-function function)
+		     (error 'kaleidoscope-error
+			    :message "Function verification failure."))
+		   #+nil
+		   (when *fpm?*
+		     (llvm:run-function-pass-manager *fpm* function))
+		   function)
+		 (progn
+		   (llvm:delete-function function)
+		   (when (binary-operator-p (prototype expression))
+		     (remhash (operator-name (prototype expression))
+			      *binop-precedence*))))))
+	  ((7)
+	   ;; If this is an operator, install it.
+	   (when (binary-operator-p (prototype expression))
+	     (setf (gethash (operator-name (prototype expression))
+			    *binop-precedence*)
+		   (precedence (prototype expression))))
+	   (llvm:position-builder-at-end *builder*
+					 (llvm:append-basic-block function "entry"))
+	   (create-argument-allocas (prototype expression) function)
+	   (let ((retval (codegen (body expression))))
+	     (if retval
+		 (progn
+		   (llvm:build-ret *builder* retval)
+		   (unless (llvm:verify-function function)
+		     (error 'kaleidoscope-error
+			    :message "Function verification failure."))
+		   #+nil
+		   (when *fpm?*
+		     (llvm:run-function-pass-manager *fpm* function))
+		   function)
+		 (progn
+		   (llvm:delete-function function)
+		   (when (binary-operator-p (prototype expression))
+		     (remhash (operator-name (prototype expression))
+			      *binop-precedence*)))))))))))
 
 ;;; code generation 4
 
@@ -868,9 +853,14 @@
 (defparameter *fucking-modules* nil)
 ;;;;Toplevel
 (defun initialize-module-and-pass-manager ()
-  (let ((module (llvm:make-module "fuck you")))
-    (setf (llvm::data-layout *module*)
-	  (get-target-machine-data (kaleidoscope-get-target-machine)))
+  (print 323423424)
+  (let ((module (llvm::module-create-with-name "fuck you")))
+    (print "wat")
+    (llvm::set-data-layout
+     *module*
+     (get-target-machine-data
+      (print (kaleidoscope-get-target-machine))))
+    (print "fuck me ")
     (push module *fucking-modules*)
     (setf *module* module)))
 
@@ -885,7 +875,10 @@
 	   (let ((lf (codegen function)))
 	     (when lf
 	       (format *output?* "Read function definition:")
-	       (dump-value lf)))))
+	       (dump-value lf)
+
+	       (kaleidoscope-add-module *module*)
+	       (initialize-module-and-pass-manager)))))
 	(get-next-token))))
 
 (defun handle-extern ()
@@ -898,7 +891,9 @@
 	   (let ((function (codegen prototype)))
 	     (when function
 	       (format *output?* "Read extern: ")
-	       (dump-value function)))))
+	       (dump-value function)
+	       (setf (gethash (name prototype) *function-protos*)
+		     prototype)))))
 	(get-next-token))))
 
 (defun handle-top-level-expression ()
@@ -997,9 +992,10 @@
 		   (%start))))
       (case *chapter*
 	((2) (start))
-	((3 4 5 6 7)x
+	((3 4 5 6 7)
 	 (llvm:with-objects
 	     ((*builder* llvm:builder))
+	   (initialize-module-and-pass-manager)
 	   (case *chapter*
 	     ((3)
 	      (start)
