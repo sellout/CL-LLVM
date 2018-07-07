@@ -585,7 +585,8 @@
 	      (unless (llvm:verify-function function)
 		(error 'kaleidoscope-error
 		       :message "Function verification failure."))
-	      (llvm:run-function-pass-manager *fpm* function)
+	      (when *fpm?*
+		(llvm:run-function-pass-manager *fpm* function))
 	      function)
 	    (llvm:delete-function function))))))
 ;;;;6
@@ -607,7 +608,8 @@
 	      (unless (llvm:verify-function function)
 		(error 'kaleidoscope-error
 		       :message "Function verification failure."))
-	      (llvm:run-function-pass-manager *fpm* function)
+	      (when *fpm?*
+		(llvm:run-function-pass-manager *fpm* function))
 	      function)
 	    (progn
 	      (llvm:delete-function function)
@@ -634,7 +636,8 @@
 	      (unless (llvm:verify-function function)
 		(error 'kaleidoscope-error
 		       :message "Function verification failure."))
-	      (llvm:run-function-pass-manager *fpm* function)
+	      (when *fpm?*
+		(llvm:run-function-pass-manager *fpm* function))
 	      function)
 	    (progn
 	      (llvm:delete-function function)
@@ -955,18 +958,22 @@
 		(llvm::initialize-native-asm-printer))
 	      (llvm:with-objects ((*execution-engine* llvm:execution-engine *module*)
 				  ;;(*myjit* llvm:jit-compiler *module*)
-				  (*fpm* llvm:function-pass-manager *module*))    
-		(llvm:add-target-data (llvm:target-data *execution-engine*) *fpm*)
-		;;passes    
-		(progn
-		  (unless (= *chapter* 4)
-		    (llvm:add-promote-memory-to-register-pass *fpm*))
-		  (llvm:add-instruction-combining-pass *fpm*)
-		  (llvm:add-reassociate-pass *fpm*)
-		  (llvm:add-gvn-pass *fpm*)
-		  (llvm:add-cfg-simplification-pass *fpm*))
-
-		(llvm:initialize-function-pass-manager *fpm*)
-		(start)
-		(dump-module *module*)))))))))
+				  )
+		(flet ((start2 ()
+			 (start)
+			 (dump-module *module*)))
+		  (if *fpm?*
+		      (llvm:with-objects ((*fpm* llvm:function-pass-manager *module*))
+			(llvm:add-target-data (llvm:target-data *execution-engine*) *fpm*)
+			;;passes    
+			(progn
+			  (unless (= *chapter* 4)
+			    (llvm:add-promote-memory-to-register-pass *fpm*))
+			  (llvm:add-instruction-combining-pass *fpm*)
+			  (llvm:add-reassociate-pass *fpm*)
+			  (llvm:add-gvn-pass *fpm*)
+			  (llvm:add-cfg-simplification-pass *fpm*))
+			(llvm:initialize-function-pass-manager *fpm*)
+			(start2))
+		      (start2)))))))))))
   (values))

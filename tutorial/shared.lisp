@@ -131,6 +131,7 @@
 
 (defvar *myjit*)
 (defparameter *jit?* nil)
+(defparameter *fpm?* nil)
 
 ;;; install standard binary operators
 ;;; 1 is lowest precedence
