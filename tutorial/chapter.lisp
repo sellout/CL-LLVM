@@ -352,7 +352,8 @@
   (let ((expression (parse-expression)))
     (if expression
 	(make-instance 'function-definition
-		       :prototype (make-instance 'prototype)
+		       :prototype (make-instance 'prototype
+						 :name "__anon_expr")
 		       :body expression))))
 
 (defun parse-extern ()
@@ -457,6 +458,17 @@
 (defvar *module*)
 (defvar *builder*)
 (defvar *named-values*)
+
+(defparameter *function-protos* (make-hash-table :test 'equal))
+(defun get-function (name)
+  (block nil
+    (let ((f llvm:named-function *module* name))
+      (unless (cffi:null-pointer-p f)
+	(return f)))
+    (let ((previously-defined-fun (gethash name *function-protos*)))
+      (when previously-defined-fun
+	(return previously-defined-fun)))
+    (return (cffi:null-pointer))))
 
 (defmethod codegen ((expression number-expression))
    (llvm:const-real (llvm:double-type) (value expression)))
@@ -585,6 +597,7 @@
 	      (unless (llvm:verify-function function)
 		(error 'kaleidoscope-error
 		       :message "Function verification failure."))
+	      #+nil
 	      (when *fpm?*
 		(llvm:run-function-pass-manager *fpm* function))
 	      function)
@@ -608,6 +621,7 @@
 	      (unless (llvm:verify-function function)
 		(error 'kaleidoscope-error
 		       :message "Function verification failure."))
+	      #+nil
 	      (when *fpm?*
 		(llvm:run-function-pass-manager *fpm* function))
 	      function)
@@ -636,6 +650,7 @@
 	      (unless (llvm:verify-function function)
 		(error 'kaleidoscope-error
 		       :message "Function verification failure."))
+	      #+nil
 	      (when *fpm?*
 		(llvm:run-function-pass-manager *fpm* function))
 	      function)
@@ -850,7 +865,16 @@
            (setf (gethash argument *named-values*) alloca)))
        (llvm:params f) (arguments expression)))
 
+(defparameter *fucking-modules* nil)
 ;;;;Toplevel
+(defun initialize-module-and-pass-manager ()
+  (let ((module (llvm:make-module "fuck you")))
+    (setf (llvm::data-layout *module*)
+	  (get-target-machine-data (kaleidoscope-get-target-machine)))
+    (push module *fucking-modules*)
+    (setf *module* module)))
+
+
 (defun handle-definition ()
   (let ((function (parse-definition)))
     (if function
@@ -894,16 +918,26 @@
 		(case *chapter*
 		  ((4 5)
 		   (dump-value lf)))
-		(let ((ptr (llvm:pointer-to-global *execution-engine* lf)))
-		  (let ((value (if (cffi:pointer-eq ptr lf) ; we have an interpreter
-				   (llvm:generic-value-to-float
-				    (llvm:double-type)
-				    (llvm:run-function *execution-engine* ptr ()))
-				   (cffi:foreign-funcall-pointer ptr () :double))))
+
+		(let ((handle (kaleidoscope-add-module *module*)))
+		  (initialize-module-and-pass-manager)
+		  (let ((expr-symbol (kaleidoscope-find-symbol "__anon_expr")))
+		    (when (cffi:null-pointer-p expr-symbol)
+		      (error 'kaleidoscop-error :message "function not found"))
+		    
 		    (format *output?* "Evaluated to ~fD0"
-			    ;; NOTE: The C version of the tutorial only has the JIT side
-			    ;;       of this, so if you have an interpreter, it breaks.
-			    value))))
+			    (cffi:foreign-funcall-pointer
+			     (get-symbol-address expr-symbol)
+			     () :double)))
+		  (kaleidoscope-remove-module handle))
+		#+nil
+		(let ((ptr (llvm:pointer-to-global *execution-engine* lf)))
+		  (format *output?* "Evaluated to ~fD0"
+			  (if (cffi:pointer-eq ptr lf) ; we have an interpreter
+			      (llvm:generic-value-to-float
+			       (llvm:double-type)
+			       (llvm:run-function *execution-engine* ptr ()))
+			      (cffi:foreign-funcall-pointer ptr () :double)))))
 	       )))))
     (kaleidoscope-error (e)
       (get-next-token)
@@ -933,42 +967,52 @@
     `(let ((*chapter* ,n))
        (%with-tokens ,n ,@body))))
 
+(defun resetstuff ()
+  (setf *fucking-modules* nil)
+  (clrhash *function-protos*))
+
 (defun toplevel (n)
+  (resetstuff)
   (with-chapter n
     (labels ((%start ()
-	       (format *output?* "~&ready> ")
-	       (reset-token-reader)
-	       (get-next-token)
-	       (set-binop-precedence)
-	       (callcc (function main-loop)))
+	       (unwind-protect
+		    (progn
+		      (format *output?* "~&ready> ")
+		      (reset-token-reader)
+		      (get-next-token)
+		      (set-binop-precedence)
+		      (callcc (function main-loop)))
+		 (dolist (module *fucking-modules*)
+		   (llvm:dispose-module module))
+		 (resetstuff)))
 	     (start ()
 	       (if *jit?*
-		   (unwind-protect (kaleidoscope-create)
-		     (%start)
-		     (kaleidoscope-destroy))
+		   (progn
+		     (llvm::initialize-native-target?)
+		     (llvm::initialize-native-Asm-parser)
+		     (llvm::initialize-native-asm-printer)
+		     (unwind-protect (kaleidoscope-create)
+		       (%start)
+		       (kaleidoscope-destroy)))
 		   (%start))))
       (case *chapter*
 	((2) (start))
-	((3 4 5 6 7)
+	((3 4 5 6 7)x
 	 (llvm:with-objects
-	     ((*builder* llvm:builder)
-	      (*module* llvm:module "my cool jit"))
+	     ((*builder* llvm:builder))
 	   (case *chapter*
 	     ((3)
 	      (start)
 	      (dump-module *module*))
 	     ((4 5 6 7)
-	      ;#+nil
-	      (when *jit?*
-		(llvm::initialize-native-target?)
-		(llvm::initialize-native-Asm-parser)
-		(llvm::initialize-native-asm-printer))
-	      (llvm:with-objects ((*execution-engine* llvm:execution-engine *module*)
-				  ;;(*myjit* llvm:jit-compiler *module*)
-				  )
-		(flet ((start2 ()
+	      (flet ((start2 ()
 			 (start)
 			 (dump-module *module*)))
+		(start2)
+		#+nil
+		(llvm:with-objects ((*execution-engine* llvm:execution-engine *module*)
+				    ;;(*myjit* llvm:jit-compiler *module*)
+				    )
 		  (if *fpm?*
 		      (llvm:with-objects ((*fpm* llvm:function-pass-manager *module*))
 			(llvm:add-target-data (llvm:target-data *execution-engine*) *fpm*)

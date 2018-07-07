@@ -169,6 +169,7 @@
 (setf fun2 (cffi:callback cbfun2))
 
 (progn
+  (cffi:defcfun (kaleidoscope-get-target-machine "KaleidoscopeGetTargetMachine") :void)
   (cffi:defcfun (kaleidoscope-create "KaleidoscopeCreate") :void)
   (cffi:defcfun (kaleidoscope-destroy "KaleidoscopeDestroy") :void)
   (cffi:defcfun (kaleidoscope-add-module "KaleidoscopeAddModule") :pointer
@@ -176,7 +177,11 @@
   (cffi:defcfun (kaleidoscope-remove-module "KaleidoscopeRemoveModule") :void
     (module-handle :pointer))
   (cffi:defcfun (kaleidoscope-find-symbol "KaleidoscopeFindSymbol") :pointer
-    (sym :string)))
+    (sym :string))
+  (cffi:defcfun (get-target-machine-data "LLVMGetTargetMachineData") :pointer
+    (target-machine-ref :pointer))
+  (cffi:defcfun (get-symbol-address "LLVMGetSymbolAddress") :uint64
+    (symbol-iterator-ref :pointer)))
 
 ;;;;other llvm funs
 (in-package :llvm)
