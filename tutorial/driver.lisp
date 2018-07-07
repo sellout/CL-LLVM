@@ -23,7 +23,7 @@
 	      (start)
 	      (dump-module *module*))
 	     ((4 5 6 7)
-	      #+nil
+	      ;#+nil
 	      (when *jit?*
 		(llvm::initialize-native-target?)
 		(llvm::initialize-native-Asm-parser)
