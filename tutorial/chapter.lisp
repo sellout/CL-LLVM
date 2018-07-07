@@ -880,30 +880,31 @@
 (defun handle-top-level-expression ()
   "Evaluate a top-level expression into an anonymous function."
   (handler-case
-      (ecase *chapter*
-	((2)
-	 (progn (parse-top-level-expression)
-		(format *output?* "Parsed a top-level expr~%")))
-	((3 4 5 6 7)
-	 (let ((lf (codegen (parse-top-level-expression))))
-	   (case *chapter*
-	     ((3)
-	      (format *output?* "Read top-level expression:")
-	      (dump-value lf))
-	     ((4 5 6 7)
-	      (let ((ptr (llvm:pointer-to-global *execution-engine* lf)))
+      (let ((func-ast (parse-top-level-expression)))
+	(ecase *chapter*
+	  ((2)
+	   (format *output?* "Parsed a top-level expr~%"))
+	  ((3 4 5 6 7)
+	   (let ((lf (codegen func-ast)))
+	     (case *chapter*
+	       ((3)
+		(format *output?* "Read top-level expression:")
+		(dump-value lf))
+	       ((4 5 6 7)
 		(case *chapter*
 		  ((4 5)
 		   (dump-value lf)))
-		(format *output?* "Evaluated to ~fD0"
-			;; NOTE: The C version of the tutorial only has the JIT side
-			;;       of this, so if you have an interpreter, it breaks.
-			(if (cffi:pointer-eq ptr lf)        ; we have an interpreter
-			    (llvm:generic-value-to-float
-			     (llvm:double-type)
-			     (llvm:run-function *execution-engine* ptr ()))
-			    (cffi:foreign-funcall-pointer ptr () :double)))))
-	     ))))
+		(let ((ptr (llvm:pointer-to-global *execution-engine* lf)))
+		  (let ((value (if (cffi:pointer-eq ptr lf) ; we have an interpreter
+				   (llvm:generic-value-to-float
+				    (llvm:double-type)
+				    (llvm:run-function *execution-engine* ptr ()))
+				   (cffi:foreign-funcall-pointer ptr () :double))))
+		    (format *output?* "Evaluated to ~fD0"
+			    ;; NOTE: The C version of the tutorial only has the JIT side
+			    ;;       of this, so if you have an interpreter, it breaks.
+			    value))))
+	       )))))
     (kaleidoscope-error (e)
       (get-next-token)
       (format *output?* "error: ~a~%" e))))
@@ -934,12 +935,18 @@
 
 (defun toplevel (n)
   (with-chapter n
-    (flet ((start ()
-	     (format *output?* "~&ready> ")
-	     (reset-token-reader)
-	     (get-next-token)
-	     (set-binop-precedence)
-	     (callcc (function main-loop))))
+    (labels ((%start ()
+	       (format *output?* "~&ready> ")
+	       (reset-token-reader)
+	       (get-next-token)
+	       (set-binop-precedence)
+	       (callcc (function main-loop)))
+	     (start ()
+	       (if *jit?*
+		   (unwind-protect (kaleidoscope-create)
+		     (%start)
+		     (kaleidoscope-destroy))
+		   (%start))))
       (case *chapter*
 	((2) (start))
 	((3 4 5 6 7)

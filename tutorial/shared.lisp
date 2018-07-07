@@ -129,7 +129,6 @@
   (:report (lambda (condition stream)
 	     (write-string (message condition) stream))))
 
-(defvar *myjit*)
 (defparameter *jit?* nil)
 (defparameter *fpm?* nil)
 
@@ -168,6 +167,16 @@
 (cffi:defcallback cbfun2 :void ((x :double))
   (format *output?* "~f~&" x))
 (setf fun2 (cffi:callback cbfun2))
+
+(progn
+  (cffi:defcfun (kaleidoscope-create "KaleidoscopeCreate") :void)
+  (cffi:defcfun (kaleidoscope-destroy "KaleidoscopeDestroy") :void)
+  (cffi:defcfun (kaleidoscope-add-module "KaleidoscopeAddModule") :pointer
+    (module :pointer))
+  (cffi:defcfun (kaleidoscope-remove-module "KaleidoscopeRemoveModule") :void
+    (module-handle :pointer))
+  (cffi:defcfun (kaleidoscope-find-symbol "KaleidoscopeFindSymbol") :pointer
+    (sym :string)))
 
 ;;;;other llvm funs
 (in-package :llvm)
