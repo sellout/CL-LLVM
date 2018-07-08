@@ -918,14 +918,29 @@
 
 		(let ((handle (kaleidoscope-add-module *module*)))
 		  (initialize-module-and-pass-manager)
-		  (let ((expr-symbol (kaleidoscope-find-symbol "__anon_expr")))
+		  ;(print 123)
+		  (let ((expr-symbol
+			 (let ((str (cffi:foreign-string-alloc "__anon_expr")))
+			   (prog2 nil ;(print "wtf")
+			       (kaleidoscope-find-symbol str)
+			     #+nil
+			     (print "are you fucking kidding me")
+			     #+nil
+			     (cffi:foreign-string-free str)))))
+		    ;(print 2342)
 		    (when (cffi:null-pointer-p expr-symbol)
 		      (error 'kaleidoscop-error :message "function not found"))
-		    
-		    (format *output?* "Evaluated to ~fD0"
-			    (cffi:foreign-funcall-pointer
-			     (get-symbol-address expr-symbol)
-			     () :double)))
+
+		    (print 34234)
+		    (let ((ptr (get-symbol-address expr-symbol)))
+		      (print 234234)
+		      (let ((result
+			     (cffi:foreign-funcall-pointer
+			      ptr 
+			      () :double)))
+			(format *output?* "Evaluated to ~fD0"
+				result))))
+		  ;(print 2323234242342434)
 		  (kaleidoscope-remove-module handle))
 		#+nil
 		(let ((ptr (llvm:pointer-to-global *execution-engine* lf)))

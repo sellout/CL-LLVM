@@ -177,10 +177,10 @@
   (cffi:defcfun (kaleidoscope-remove-module "KaleidoscopeRemoveModule") :void
     (module-handle :pointer))
   (cffi:defcfun (kaleidoscope-find-symbol "KaleidoscopeFindSymbol") :pointer
-    (sym :string))
+    (sym :pointer))
   (cffi:defcfun (get-target-machine-data "LLVMGetTargetMachineData") :pointer
     (target-machine-ref :pointer))
-  (cffi:defcfun (get-symbol-address "LLVMGetSymbolAddress") :uint64
+  (cffi:defcfun (get-symbol-address "LLVMGetSymbolAddress") :pointer
     (symbol-iterator-ref :pointer)))
 
 (cffi:defcfun (get-target-machine-triple "LLVMGetTargetMachineTriple") :pointer
