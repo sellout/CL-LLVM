@@ -577,7 +577,7 @@
 			  ((7)))))
 		    (llvm:params function)
 		    (let ((a (arguments expression)))
-		      (format t "~&~a~&" a)
+		      ;(format t "~&~a~&" a)
 		      a)))
 	     (error 'kaleidoscope-error
 		    :message "redefinition of function with different # args"))
