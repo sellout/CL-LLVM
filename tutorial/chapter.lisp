@@ -348,12 +348,17 @@
 			     :prototype prototype
 			     :body expression))))))
 
+(defparameter *name-counter* -1)
+(defparameter *name* nil)
+(defun update-name-counter ()
+  (setf *name* (write-to-string (incf *name-counter*))))
 (defun parse-top-level-expression ()
+  (update-name-counter)
   (let ((expression (parse-expression)))
     (if expression
 	(make-instance 'function-definition
 		       :prototype (make-instance 'prototype
-						 :name "__anon_expr")
+						 :name *name*)
 		       :body expression))))
 
 (defun parse-extern ()
@@ -467,7 +472,8 @@
 	(return f)))
     (let ((previously-defined-fun (gethash name *function-protos*)))
       (when previously-defined-fun
-	(return (codegen previously-defined-fun))))
+	(let ((ir (codegen previously-defined-fun)))
+	  (return ir))))
     (return nil)))
 
 (defmethod codegen ((expression number-expression))
@@ -532,16 +538,41 @@
 	     (error 'kaleidoscope-error :message "incorrect # arguments passed"))
 	 (error 'kaleidoscope-error :message "unknown function referenced"))))
 
+(defparameter *symcount* 0)
 (defmethod codegen ((expression prototype))
    (let* ((doubles (make-array (length (arguments expression))
 			       :initial-element (llvm:double-type)))
 	  (f-type (llvm:function-type (llvm:double-type) doubles))
 	  (function (llvm:add-function *module* (name expression) f-type)))
-     ;; If F conflicted, there was already something named 'Name'.  If it has a
-     ;; body, don't allow redefinition or reextern.
+     ;;??? If F conflicted, there was already something named 'Name'.  If it has a
+     ;;??? body, don't allow redefinition or reextern.
+     #+nil
      (when (not (string= (llvm:value-name function) (name expression)))
        (llvm:delete-function function)
-       (setf function (llvm:named-function *module* (name expression))))
+       (setf function
+	     (llvm:named-function *module* (name expression))))
+    ;; (inspect expression)
+    ;; (print (name expression))
+     ;; (terpri)
+     (break)
+     (if (= (llvm:count-params function) (length (arguments expression)))
+	 (when (or (= *chapter* 7)
+		   (boundp '*named-values*))
+	   ;; Set names for all arguments.
+	   (map nil
+		(lambda (argument name)
+		  (setf (llvm:value-name argument)
+			(concatenate 'string (write-to-string (incf *symcount*)) name))
+		  (ecase *chapter*
+		    ((3 4 5 6) (setf (gethash name *named-values*)
+				     argument))
+		    ((7))))
+		(llvm:params function)
+		(arguments expression)))
+	 (error 'kaleidoscope-error
+		:message "redefinition of function with different # args"))
+
+     #+nil
      (if (= (llvm:count-basic-blocks function) 0)
 	 (if (= (llvm:count-params function) (length (arguments expression)))
 	     (when (or (= *chapter* 7)
@@ -568,33 +599,31 @@
 	   (function (get-function (name prototype))))
       (when function
 	(ecase *chapter*
-	  ((3)
+	  ((3 4 5)
 	   (llvm:position-builder-at-end *builder*
 					 (llvm:append-basic-block function "entry"))
-	   (let ((retval (codegen (body expression))))
-	     (if retval
-		 (progn
+	   (flet ((remove-function ()
+		    (llvm:delete-function function)
+		    (format t "fuck me harder ~a" (name prototype))
+		    (terpri)
+		    (remhash (name prototype) *function-protos*)))
+	     (block nil
+	       (let ((retval (codegen (body expression))))
+		 (when retval
 		   (llvm:build-ret *builder* retval)
-		   (unless (llvm:verify-function function)
+
+		   (when (llvm::%verify-function function :print-message)
+		     (dump-value function)
+		     (remove-function)
 		     (error 'kaleidoscope-error
 			    :message "Function verification failure."))
-		   function)
-		 (llvm:delete-function function))))
-	  ((4 5)
-	   (llvm:position-builder-at-end *builder*
-					 (llvm:append-basic-block function "entry"))
-	   (let ((retval (codegen (body expression))))
-	     (if retval
-		 (progn
-		   (llvm:build-ret *builder* retval)
-		   (unless (llvm:verify-function function)
-		     (error 'kaleidoscope-error
-			    :message "Function verification failure."))
-		   #+nil
-		   (when *fpm?*
-		     (llvm:run-function-pass-manager *fpm* function))
-		   function)
-		 (llvm:delete-function function))))
+		   (unless (= *chapter* 3)
+		     #+nil
+		     (when *fpm?*
+		       (llvm:run-function-pass-manager *fpm* function)))
+		   (return function))
+		 (remove-function)
+		 nil))))
 	  ((6)
 	   ;; If this is an operator, install it.
 	   (when (binary-operator-p (prototype expression))
@@ -914,32 +943,35 @@
 		(case *chapter*
 		  ((4 5)
 		   (dump-value lf)))
+		(let ((old *module*))
+		  (pop *fucking-modules*)
+		  (let ((handle (kaleidoscope-add-module old)))
+					;		  (print 123)
+		    (let ((expr-symbol
+			   (cffi:with-foreign-string (str *name*)
+			     (kaleidoscope-find-symbol str))))
+					;		    (print expr-symbol)
+		      (when (cffi:null-pointer-p expr-symbol)
+			(error 'kaleidoscope-error :message "function not found"))
 
-		(let ((handle (kaleidoscope-add-module *module*)))
-		  (initialize-module-and-pass-manager)
-;		  (print 123)
-		  (let ((expr-symbol
-			 (cffi:with-foreign-string (str "__anon_expr")
-				 (kaleidoscope-find-symbol str))))
-;		    (print expr-symbol)
-		    (when (cffi:null-pointer-p expr-symbol)
-		      (error 'kaleidoscope-error :message "function not found"))
-
-;		    (print 34234)
-		    (let ((ptr (kaleidoscope-get-symbol-address expr-symbol)))
-;		      (print ptr)
-;		      (print 234234)
-		      (if (cffi:null-pointer-p ptr)
-			  (error 'kaleidoscope-error :message "function no body???")
-			  (let ((result
-				 (cffi:foreign-funcall-pointer
-				  ptr 
-				  () :double)))
-			    (format *output?* "Evaluated to ~fD0"
-				    result)))))
-		  ;(print 2323234242342434)
-		  (kaleidoscope-remove-module handle)
-		  )
+					;		    (print 34234)
+		      (let ((ptr (kaleidoscope-get-symbol-address expr-symbol)))
+					;		      (print ptr)
+					;		      (print 234234)
+			(if (= 0 ptr)
+			    (error 'kaleidoscope-error :message "function no body???")
+			    (let ((result
+				   (cffi:foreign-funcall-pointer
+				    (cffi:make-pointer ptr) 
+				    () :double)))
+			      (format *output?* "Evaluated to ~fD0"
+				      result)))))
+					;(print 2323234242342434)
+		    (llvm:dispose-module old)
+		    (kaleidoscope-remove-module handle)
+		    (remhash *name* *function-protos*)
+		    (initialize-module-and-pass-manager)
+		    ))
 		#+nil
 		(let ((ptr (llvm:pointer-to-global *execution-engine* lf)))
 		  (format *output?* "Evaluated to ~fD0"
@@ -979,30 +1011,30 @@
 
 (defun resetstuff ()
   (setf *fucking-modules* nil)
-  (clrhash *function-protos*))
+  (clrhash *function-protos*)
+  (setf *name-counter* -1))
 
 (defun toplevel (n)
   (resetstuff)
   (with-chapter n
     (labels ((%start ()
 	       (unwind-protect
-		    (llvm:with-objects
-			((*builder* llvm:builder))
-		      (progn
-			(format *output?* "~&ready> ")
-			(reset-token-reader)
-			(get-next-token)
-			(set-binop-precedence)
-			(when *jit?*
-			  (initialize-module-and-pass-manager))
-			(callcc (function main-loop))))
+		 (progn
+		   (setf *builder* (llvm:make-builder))
+		   (format *output?* "~&ready> ")
+		   (reset-token-reader)
+		   (get-next-token)
+		   (set-binop-precedence)
+		   (when *jit?*
+		     (initialize-module-and-pass-manager))
+		   (callcc (function main-loop)))
 		 ;;destroyed on jit destruction?
 		 #+nil
 		 (dolist (module *fucking-modules*)
-		   ;;(llvm:dispose-module module)
-		   
-		   )
-		 (resetstuff)))
+		   (llvm:dispose-module module))
+		 (llvm:dispose-builder *builder*)
+		 ;(resetstuff)
+		 ))
 	     (start ()
 	       (if *jit?*
 		   (progn
