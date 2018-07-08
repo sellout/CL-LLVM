@@ -856,7 +856,10 @@
   (let ((module (llvm::module-create-with-name "fuck you")))
     (setf *module* module)
     (let ((target (kaleidoscope-get-target-machine)))
-      (print (cffi:foreign-string-to-lisp target))
+      #+nil
+      (let ((msg (get-target-machine-triple target)))
+	(print (cffi:foreign-string-to-lisp msg))
+	(dispose-message msg))
       (llvm::set-data-layout
        module
        (get-target-machine-data
@@ -970,16 +973,22 @@
   (with-chapter n
     (labels ((%start ()
 	       (unwind-protect
-		    (progn
-		      (format *output?* "~&ready> ")
-		      (reset-token-reader)
-		      (get-next-token)
-		      (set-binop-precedence)
-		      (when *jit?*
-			(initialize-module-and-pass-manager))
-		      (callcc (function main-loop)))
+		    (llvm:with-objects
+			((*builder* llvm:builder))
+		      (progn
+			(format *output?* "~&ready> ")
+			(reset-token-reader)
+			(get-next-token)
+			(set-binop-precedence)
+			(when *jit?*
+			  (initialize-module-and-pass-manager))
+			(callcc (function main-loop))))
+		 ;;destroyed on jit destruction?
+		 #+nil
 		 (dolist (module *fucking-modules*)
-		   (llvm:dispose-module module))
+		   ;;(llvm:dispose-module module)
+		   
+		   )
 		 (resetstuff)))
 	     (start ()
 	       (if *jit?*
@@ -995,35 +1004,33 @@
       (case *chapter*
 	((2) (start))
 	((3 4 5 6 7)
-	 (llvm:with-objects
-	     ((*builder* llvm:builder))
-	   (start)
-	   (dump-module *module*)
-	   #+nil
-	   (case *chapter*
-	     ((3)
-	      )
-	     ((4 5 6 7)
-	      (flet ((start2 ()
-		       (start)
-		       (dump-module *module*)))
-		(start2)
-		#+nil
-		(llvm:with-objects ((*execution-engine* llvm:execution-engine *module*)
-				    ;;(*myjit* llvm:jit-compiler *module*)
-				    )
-		  (if *fpm?*
-		      (llvm:with-objects ((*fpm* llvm:function-pass-manager *module*))
-			(llvm:add-target-data (llvm:target-data *execution-engine*) *fpm*)
-			;;passes    
-			(progn
-			  (unless (= *chapter* 4)
-			    (llvm:add-promote-memory-to-register-pass *fpm*))
-			  (llvm:add-instruction-combining-pass *fpm*)
-			  (llvm:add-reassociate-pass *fpm*)
-			  (llvm:add-gvn-pass *fpm*)
-			  (llvm:add-cfg-simplification-pass *fpm*))
-			(llvm:initialize-function-pass-manager *fpm*)
-			(start2))
-		      (start2)))))))))))
+	 (start)
+	 (dump-module *module*)
+	 #+nil
+	 (case *chapter*
+	   ((3)
+	    )
+	   ((4 5 6 7)
+	    (flet ((start2 ()
+		     (start)
+		     (dump-module *module*)))
+	      (start2)
+	      #+nil
+	      (llvm:with-objects ((*execution-engine* llvm:execution-engine *module*)
+				  ;;(*myjit* llvm:jit-compiler *module*)
+				  )
+		(if *fpm?*
+		    (llvm:with-objects ((*fpm* llvm:function-pass-manager *module*))
+		      (llvm:add-target-data (llvm:target-data *execution-engine*) *fpm*)
+		      ;;passes    
+		      (progn
+			(unless (= *chapter* 4)
+			  (llvm:add-promote-memory-to-register-pass *fpm*))
+			(llvm:add-instruction-combining-pass *fpm*)
+			(llvm:add-reassociate-pass *fpm*)
+			(llvm:add-gvn-pass *fpm*)
+			(llvm:add-cfg-simplification-pass *fpm*))
+		      (llvm:initialize-function-pass-manager *fpm*)
+		      (start2))
+		    (start2))))))))))
   (values))

@@ -183,6 +183,12 @@
   (cffi:defcfun (get-symbol-address "LLVMGetSymbolAddress") :uint64
     (symbol-iterator-ref :pointer)))
 
+(cffi:defcfun (get-target-machine-triple "LLVMGetTargetMachineTriple") :pointer
+  (target-machine-ref :pointer))
+
+(cffi:defcfun (dispose-message "LLVMDisposeMessage") :void
+  (target-machine--ref :pointer))
+
 ;;;;other llvm funs
 (in-package :llvm)
 ;;;;WARNING:: got the functions below to run by adding
