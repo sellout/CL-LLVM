@@ -921,25 +921,30 @@
 		  ;(print 123)
 		  (let ((expr-symbol
 			 (let ((str (cffi:foreign-string-alloc "__anon_expr")))
+			   (kaleidoscope-find-symbol str)
+			   #+nil
 			   (prog2 nil ;(print "wtf")
-			       (kaleidoscope-find-symbol str)
 			     #+nil
 			     (print "are you fucking kidding me")
 			     #+nil
 			     (cffi:foreign-string-free str)))))
-		    ;(print 2342)
+					;(print 2342)
+;		    (print expr-symbol)
 		    (when (cffi:null-pointer-p expr-symbol)
-		      (error 'kaleidoscop-error :message "function not found"))
+		      (error 'kaleidoscope-error :message "function not found"))
 
-		    (print 34234)
-		    (let ((ptr (get-symbol-address expr-symbol)))
-		      (print 234234)
-		      (let ((result
-			     (cffi:foreign-funcall-pointer
-			      ptr 
-			      () :double)))
-			(format *output?* "Evaluated to ~fD0"
-				result))))
+;		    (print 34234)
+		    (let ((ptr (kaleidoscope-get-symbol-address expr-symbol)))
+		      (print ptr)
+;		      (print 234234)
+		      (if (cffi:null-pointer-p ptr)
+			  (error 'kaleidoscope-error :message "function no body???")
+			  (let ((result
+				 (cffi:foreign-funcall-pointer
+				  ptr 
+				  () :double)))
+			    (format *output?* "Evaluated to ~fD0"
+				    result)))))
 		  ;(print 2323234242342434)
 		  (kaleidoscope-remove-module handle))
 		#+nil

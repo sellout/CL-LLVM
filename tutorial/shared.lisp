@@ -178,10 +178,12 @@
     (module-handle :pointer))
   (cffi:defcfun (kaleidoscope-find-symbol "KaleidoscopeFindSymbol") :pointer
     (sym :pointer))
-  (cffi:defcfun (get-target-machine-data "LLVMGetTargetMachineData") :pointer
-    (target-machine-ref :pointer))
-  (cffi:defcfun (get-symbol-address "LLVMGetSymbolAddress") :pointer
-    (symbol-iterator-ref :pointer)))
+  (cffi:defcfun (kaleidoscope-get-symbol-address "KaleidoscopeGetSymbolAddress") :pointer
+    (sym :pointer)))
+(cffi:defcfun (get-target-machine-data "LLVMGetTargetMachineData") :pointer
+  (target-machine-ref :pointer))
+(cffi:defcfun (get-symbol-address "LLVMGetSymbolAddress") :uint64
+  (symbol-iterator-ref :pointer))
 
 (cffi:defcfun (get-target-machine-triple "LLVMGetTargetMachineTriple") :pointer
   (target-machine-ref :pointer))
