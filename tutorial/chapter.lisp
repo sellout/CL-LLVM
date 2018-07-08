@@ -555,47 +555,33 @@
        (setf function
 	     (llvm:named-function *module* (name expression))))
     ;; (inspect expression)
-    ;; (print (name expression))
+     ;; (print (name expression))
      ;; (terpri)
-     (if (= (llvm:count-params function) (length (arguments expression)))
-	 (when (or (= *chapter* 7)
-		   (boundp '*named-values*))
-	   ;; Set names for all arguments.
-	   (map nil
-		(lambda (argument name)
-		  (setf (llvm:value-name argument)
-			(if t
-			    name			    
-			    (concatenate 'string (write-to-string (incf *symcount*)) name)))
-		  (when (eq *depth* :top)
-		    (ecase *chapter*
-		      ((3 4 5 6)
-		       (setf (gethash name *named-values*)
-			     argument))
-		      ((7)))))
-		(llvm:params function)
-		(let ((a (arguments expression)))
-		  (format t "~&~a~&" a)
-		  a)))
-	 (error 'kaleidoscope-error
-		:message "redefinition of function with different # args"))
-
-     #+nil
-     (if (= (llvm:count-basic-blocks function) 0)
+     (progn
+      ;if (= (llvm:count-basic-blocks function) 0)
 	 (if (= (llvm:count-params function) (length (arguments expression)))
 	     (when (or (= *chapter* 7)
 		       (boundp '*named-values*))
 	       ;; Set names for all arguments.
 	       (map nil
 		    (lambda (argument name)
-		      (setf (llvm:value-name argument) name)
-		      (ecase *chapter*
-			((3 4 5 6) (setf (gethash name *named-values*) argument))
-			((7))))
+		      (setf (llvm:value-name argument)
+			    name
+			    #+nil
+			    (concatenate 'string (write-to-string (incf *symcount*)) name))
+		      (when (eq *depth* :top)
+			(ecase *chapter*
+			  ((3 4 5 6)
+			   (setf (gethash name *named-values*)
+				 argument))
+			  ((7)))))
 		    (llvm:params function)
-		    (arguments expression)))
+		    (let ((a (arguments expression)))
+		      (format t "~&~a~&" a)
+		      a)))
 	     (error 'kaleidoscope-error
 		    :message "redefinition of function with different # args"))
+	 #+nil
 	 (error 'kaleidoscope-error :message "redefinition of function"))
      function))
 
