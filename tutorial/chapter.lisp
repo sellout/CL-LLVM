@@ -463,6 +463,7 @@
 (defparameter *module* nil)
 (defvar *builder*)
 (defvar *named-values*)
+(defvar *depth* :top)
 
 (defparameter *function-protos* (make-hash-table :test 'equal))
 (defun get-function (name)
@@ -528,15 +529,17 @@
 		  (llvm:build-call *builder* f (list l r) "binop"))))))))))
 
 (defmethod codegen ((expression call-expression))
-  (let ((callee (get-function (callee expression))))
-     (if callee
-	 (if (= (llvm:count-params callee) (length (arguments expression)))
-	     (llvm:build-call *builder*
-			      callee
-			      (map 'vector #'codegen (arguments expression))
-			      "calltmp")
-	     (error 'kaleidoscope-error :message "incorrect # arguments passed"))
-	 (error 'kaleidoscope-error :message "unknown function referenced"))))
+  (let ((callee (let ((*depth* :not-top))
+		  (get-function					  
+		   (callee expression)))))
+    (if callee
+	(if (= (llvm:count-params callee) (length (arguments expression)))
+	    (llvm:build-call *builder*
+			     callee
+			     (map 'vector #'codegen (arguments expression))
+			     "calltmp")
+	    (error 'kaleidoscope-error :message "incorrect # arguments passed"))
+	(error 'kaleidoscope-error :message "unknown function referenced"))))
 
 (defparameter *symcount* 0)
 (defmethod codegen ((expression prototype))
@@ -554,7 +557,6 @@
     ;; (inspect expression)
     ;; (print (name expression))
      ;; (terpri)
-     (break)
      (if (= (llvm:count-params function) (length (arguments expression)))
 	 (when (or (= *chapter* 7)
 		   (boundp '*named-values*))
@@ -562,13 +564,19 @@
 	   (map nil
 		(lambda (argument name)
 		  (setf (llvm:value-name argument)
-			(concatenate 'string (write-to-string (incf *symcount*)) name))
-		  (ecase *chapter*
-		    ((3 4 5 6) (setf (gethash name *named-values*)
-				     argument))
-		    ((7))))
+			(if t
+			    name			    
+			    (concatenate 'string (write-to-string (incf *symcount*)) name)))
+		  (when (eq *depth* :top)
+		    (ecase *chapter*
+		      ((3 4 5 6)
+		       (setf (gethash name *named-values*)
+			     argument))
+		      ((7)))))
 		(llvm:params function)
-		(arguments expression)))
+		(let ((a (arguments expression)))
+		  (format t "~&~a~&" a)
+		  a)))
 	 (error 'kaleidoscope-error
 		:message "redefinition of function with different # args"))
 
@@ -618,7 +626,7 @@
 		     (error 'kaleidoscope-error
 			    :message "Function verification failure."))
 		   (unless (= *chapter* 3)
-		     #+nil
+;		     #+nil
 		     (when *fpm?*
 		       (llvm:run-function-pass-manager *fpm* function)))
 		   (return function))
@@ -639,7 +647,7 @@
 		   (unless (llvm:verify-function function)
 		     (error 'kaleidoscope-error
 			    :message "Function verification failure."))
-		   #+nil
+;		   #+nil
 		   (when *fpm?*
 		     (llvm:run-function-pass-manager *fpm* function))
 		   function)
@@ -664,7 +672,7 @@
 		   (unless (llvm:verify-function function)
 		     (error 'kaleidoscope-error
 			    :message "Function verification failure."))
-		   #+nil
+;		   #+nil
 		   (when *fpm?*
 		     (llvm:run-function-pass-manager *fpm* function))
 		   function)
@@ -893,7 +901,18 @@
        module
        (get-target-machine-data
 	target)))
-    (push module *fucking-modules*)))
+    (push module *fucking-modules*)
+
+    (let ((fpm (llvm:create-function-pass-manager-for-module module)))
+      (progn
+	(unless (= *chapter* 4)
+	  (llvm:add-promote-memory-to-register-pass fpm))
+	(llvm:add-instruction-combining-pass fpm)
+	(llvm:add-reassociate-pass fpm)
+	(llvm:add-gvn-pass fpm)
+	(llvm:add-cfg-simplification-pass fpm))
+     (llvm:initialize-function-pass-manager fpm)
+     (setf *fpm* fpm))))
 
 
 (defun handle-definition ()
@@ -1019,63 +1038,31 @@
   (with-chapter n
     (labels ((%start ()
 	       (unwind-protect
-		 (progn
-		   (setf *builder* (llvm:make-builder))
-		   (format *output?* "~&ready> ")
-		   (reset-token-reader)
-		   (get-next-token)
-		   (set-binop-precedence)
-		   (when *jit?*
-		     (initialize-module-and-pass-manager))
-		   (callcc (function main-loop)))
+		    (progn
+		      (setf *builder* (llvm:make-builder))
+		      (format *output?* "~&ready> ")
+		      (reset-token-reader)
+		      (get-next-token)
+		      (set-binop-precedence)
+		      (when *jit?*
+			(initialize-module-and-pass-manager))
+		      (callcc (function main-loop)))
 		 ;;destroyed on jit destruction?
 		 #+nil
 		 (dolist (module *fucking-modules*)
 		   (llvm:dispose-module module))
 		 (llvm:dispose-builder *builder*)
-		 ;(resetstuff)
-		 ))
-	     (start ()
-	       (if *jit?*
-		   (progn
-		     (llvm::initialize-native-target?)
-		     (llvm::initialize-native-Asm-parser)
-		     (llvm::initialize-native-asm-printer)
-		     (unwind-protect
-			  (progn (kaleidoscope-create)
-				 (%start))
-		       (kaleidoscope-destroy)))
-		   (%start))))
-      (case *chapter*
-	((2) (start))
-	((3 4 5 6 7)
-	 (start)
-	 (dump-module *module*)
-	 #+nil
-	 (case *chapter*
-	   ((3)
-	    )
-	   ((4 5 6 7)
-	    (flet ((start2 ()
-		     (start)
-		     (dump-module *module*)))
-	      (start2)
-	      #+nil
-	      (llvm:with-objects ((*execution-engine* llvm:execution-engine *module*)
-				  ;;(*myjit* llvm:jit-compiler *module*)
-				  )
-		(if *fpm?*
-		    (llvm:with-objects ((*fpm* llvm:function-pass-manager *module*))
-		      (llvm:add-target-data (llvm:target-data *execution-engine*) *fpm*)
-		      ;;passes    
-		      (progn
-			(unless (= *chapter* 4)
-			  (llvm:add-promote-memory-to-register-pass *fpm*))
-			(llvm:add-instruction-combining-pass *fpm*)
-			(llvm:add-reassociate-pass *fpm*)
-			(llvm:add-gvn-pass *fpm*)
-			(llvm:add-cfg-simplification-pass *fpm*))
-		      (llvm:initialize-function-pass-manager *fpm*)
-		      (start2))
-		    (start2))))))))))
-  (values))
+					;(resetstuff)
+		 )))
+      (if *jit?*
+	  (progn
+	    (llvm::initialize-native-target?)
+	    (llvm::initialize-native-Asm-parser)
+	    (llvm::initialize-native-asm-printer)
+	    (unwind-protect
+		 (progn (kaleidoscope-create)
+			(%start)
+			(dump-module *module*))
+	      (kaleidoscope-destroy)))
+	  (%start))
+      (values))))

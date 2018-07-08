@@ -130,7 +130,7 @@
 	     (write-string (message condition) stream))))
 
 (defparameter *jit?* t)
-(defparameter *fpm?* nil)
+(defparameter *fpm?* t)
 
 ;;; install standard binary operators
 ;;; 1 is lowest precedence
