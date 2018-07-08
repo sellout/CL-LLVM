@@ -468,7 +468,7 @@
     (let ((previously-defined-fun (gethash name *function-protos*)))
       (when previously-defined-fun
 	(return (codegen previously-defined-fun))))
-    (return (cffi:null-pointer))))
+    (return nil)))
 
 (defmethod codegen ((expression number-expression))
    (llvm:const-real (llvm:double-type) (value expression)))
@@ -878,7 +878,6 @@
 	     (when lf
 	       (format *output?* "Read function definition:")
 	       (dump-value lf)
-
 	       (kaleidoscope-add-module *module*)
 	       (initialize-module-and-pass-manager)))))
 	(get-next-token))))
@@ -918,24 +917,17 @@
 
 		(let ((handle (kaleidoscope-add-module *module*)))
 		  (initialize-module-and-pass-manager)
-		  ;(print 123)
+;		  (print 123)
 		  (let ((expr-symbol
-			 (let ((str (cffi:foreign-string-alloc "__anon_expr")))
-			   (kaleidoscope-find-symbol str)
-			   #+nil
-			   (prog2 nil ;(print "wtf")
-			     #+nil
-			     (print "are you fucking kidding me")
-			     #+nil
-			     (cffi:foreign-string-free str)))))
-					;(print 2342)
+			 (cffi:with-foreign-string (str "__anon_expr")
+				 (kaleidoscope-find-symbol str))))
 ;		    (print expr-symbol)
 		    (when (cffi:null-pointer-p expr-symbol)
 		      (error 'kaleidoscope-error :message "function not found"))
 
 ;		    (print 34234)
 		    (let ((ptr (kaleidoscope-get-symbol-address expr-symbol)))
-		      (print ptr)
+;		      (print ptr)
 ;		      (print 234234)
 		      (if (cffi:null-pointer-p ptr)
 			  (error 'kaleidoscope-error :message "function no body???")
@@ -946,7 +938,8 @@
 			    (format *output?* "Evaluated to ~fD0"
 				    result)))))
 		  ;(print 2323234242342434)
-		  (kaleidoscope-remove-module handle))
+		  (kaleidoscope-remove-module handle)
+		  )
 		#+nil
 		(let ((ptr (llvm:pointer-to-global *execution-engine* lf)))
 		  (format *output?* "Evaluated to ~fD0"
