@@ -13,6 +13,7 @@
 	     :components
 	     (#+nil
 	      (:file "cffi")
+	      (:file "geez")
 	      (:file "shared")
 	      (:file "chapter")
 	      (:file "test")))))
