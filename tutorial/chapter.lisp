@@ -468,7 +468,9 @@
 (defparameter *function-protos* (make-hash-table :test 'equal))
 (defun get-function (name)
   (block nil
-    (let ((f (llvm:named-function *module* name)))
+    (let ((f
+	   (cffi:with-foreign-string (str name)
+	     (llvm::-get-named-function *module* str))))
       (unless (cffi:null-pointer-p f)
 	(return f)))
     (let ((previously-defined-fun (gethash name *function-protos*)))
@@ -478,14 +480,18 @@
     (return nil)))
 
 (defmethod codegen ((expression number-expression))
-   (llvm:const-real (llvm:double-type) (value expression)))
+  (llvm::-const-real (llvm::-double-type)
+		     (coerce (value expression)
+			     'double-float)))
 
 (defmethod codegen ((expression variable-expression))
   (let ((v (gethash (name expression) *named-values*)))
     (if v
 	(ecase *chapter*
 	  ((3 4 5 6) v)
-	  ((7) (llvm:build-load *builder* v (name expression))))
+	  ((7)
+	   (cffi:with-foreign-string (str (name expression))
+	       (llvm::-build-load *builder* v str))))
 	(error 'kaleidoscope-error :message "unknown variable name"))))
 
 (defun codegen-binary=expression (expression)
@@ -495,7 +501,7 @@
       (let ((variable (gethash (name lhse) *named-values*)))
 	(unless variable
 	  (error 'kaleidoscope-error :message "Unknown variable name"))
-	(llvm:build-store *builder* val variable)
+	(llvm::-build-store *builder* val variable)
 	val))))
 
 (defmethod codegen ((expression binary-expression))
@@ -507,26 +513,34 @@
 	    (r (codegen (rhs expression))))
 	(when (and l r)
 	  (case (operator expression)
-	    (#\+ (llvm:build-f-add *builder* l r "addtmp"))
-	    (#\- (llvm:build-f-sub *builder* l r "subtmp"))
-	    (#\* (llvm:build-f-mul *builder* l r "multmp"))
-	    (#\< (llvm:build-ui-to-fp *builder*
-				      (llvm:build-f-cmp *builder*
-							:unordered-< l r
-							"cmptmp")
-				      (llvm:double-type)
-				      "booltmp"))
+	    (#\+ (cffi:with-foreign-string (str "addtmp")
+		   (llvm::-build-f-add *builder* l r str)))
+	    (#\- (cffi:with-foreign-string (str "subtmp")
+		     (llvm::-build-f-sub *builder* l r str)))
+	    (#\* (cffi:with-foreign-string (str "multmp")
+		   (llvm::-build-f-mul *builder* l r str)))
+	    (#\<
+	     (cffi:with-foreign-strings ((cmptmp "cmptmp")
+					 (booltmp "booltmp"))
+	       (llvm::-build-u-i-to-f-p
+		*builder*
+		(llvm::-build-f-cmp
+		 *builder*
+		 :unordered-< l r
+		 cmptmp)
+		(llvm::-double-type)
+		booltmp)))
 	    (otherwise
 	     (ecase *chapter*
 	       ((3 4 5)
 		(error 'kaleidoscope-error
 		       :message "invalid binary operators"))
 	       ((6 7)
-		(let ((f (llvm:named-function *module*
-					      (format nil "binary~a"
-						      (operator expression)))))
+		(let ((f (cffi:with-foreign-string (str (format nil "binary~a"
+								(operator expression)))
+			   (llvm::-get-named-function *module* str))))
 		  (assert f () "binary operator not found!")
-		  (llvm:build-call *builder* f (list l r) "binop"))))))))))
+		  (build-call *builder* f (list l r) "binop"))))))))))
 
 (defmethod codegen ((expression call-expression))
   (let ((callee (let ((*depth* :not-top))
@@ -885,7 +899,7 @@
 	(dispose-message msg))
       (llvm::set-data-layout
        module
-       (get-target-machine-data
+       (llvm::-get-target-machine-data
 	target)))
     (push module *fucking-modules*)
 

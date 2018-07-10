@@ -142,11 +142,28 @@
 	(gethash #\- *binop-precedence*) 30
 	(gethash #\* *binop-precedence*) 40))
 
+(defmacro with-llvm-message ((ptr-var) ptr-form  &body body)
+  `(let ((,ptr-var ,ptr-form))      
+     (prog1 (progn ,@body)
+       (llvm::-dispose-message ,ptr-var))))
+
 (defun dump-value (value)
-  (write-string (llvm:print-value-to-string value) *output?*))
+  (with-llvm-message (ptr) (llvm::-print-value-to-string value)
+    (write-string (cffi:foreign-string-to-lisp ptr) *output?*)))
 
 (defun dump-module (module)
-  (write-string (llvm:print-module-to-string module) *output?*))
+  (with-llvm-message (ptr) (llvm::-print-module-to-string module)
+    (write-string (cffi:foreign-string-to-lisp ptr) *output?*)))
+
+(defun const-real (real-ty value)
+  (if (stringp value)
+      (cffi:with-foreign-string (str value)
+	(llvm::-const-real-of-string real-ty str))
+      (llvm::-const-real real-ty value)))
+
+(defun build-call (builder fn args &optional name)
+  (cffi:with-foreign-string (str name)
+    (llvm::-build-call builder fn args (length args) str)))
 
 (defparameter *c-directory* (merge-pathnames "C/" *this-directory*))
 ;;;;for chap 6 and 5
@@ -180,12 +197,14 @@
     (sym :pointer))
   (cffi:defcfun (kaleidoscope-get-symbol-address "KaleidoscopeGetSymbolAddress") :uint64
     (sym :pointer)))
+
+#+nil
 (cffi:defcfun (get-target-machine-data "LLVMGetTargetMachineData") :pointer
   (target-machine-ref :pointer))
-
+#+nil
 (cffi:defcfun (get-target-machine-triple "LLVMGetTargetMachineTriple") :pointer
   (target-machine-ref :pointer))
-
+#+nil
 (cffi:defcfun (dispose-message "LLVMDisposeMessage") :void
   (target-machine--ref :pointer))
 
