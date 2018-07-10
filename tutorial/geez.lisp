@@ -19,7 +19,7 @@
 ;;;;Types
 
 ;;;include llvm/Support/DataTypes.h
-(defctype |LLVMBool| :int)
+(defctype |LLVMBool| :boolean)
 (defctype |LLVMMemoryBufferRef| :pointer)
 (defctype |LLVMContextRef| :pointer)
 (defctype |LLVMModuleRef| :pointer)

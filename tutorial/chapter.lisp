@@ -547,20 +547,25 @@
 		  (get-function					  
 		   (callee expression)))))
     (if callee
-	(if (= (llvm:count-params callee) (length (arguments expression)))
-	    (llvm:build-call *builder*
-			     callee
-			     (map 'vector #'codegen (arguments expression))
-			     "calltmp")
+	(if (= (llvm::-count-params callee)
+	       (length (arguments expression)))
+	    ;(cffi:with-foreign-string (calltmp ))
+	    (build-call
+	     *builder*
+	     callee
+	     (map 'vector #'codegen (arguments expression))
+	     "calltmp")
 	    (error 'kaleidoscope-error :message "incorrect # arguments passed"))
 	(error 'kaleidoscope-error :message "unknown function referenced"))))
 
 (defparameter *symcount* 0)
 (defmethod codegen ((expression prototype))
    (let* ((doubles (make-array (length (arguments expression))
-			       :initial-element (llvm:double-type)))
-	  (f-type (llvm:function-type (llvm:double-type) doubles))
-	  (function (llvm:add-function *module* (name expression) f-type)))
+			       :initial-element (llvm::-double-type)))
+	  (f-type (function-type (llvm::-double-type) doubles))
+	  (function
+	   (cffi:with-foreign-string (str (name expression))
+	     (llvm::-add-function *module* str f-type))))
      ;;??? If F conflicted, there was already something named 'Name'.  If it has a
      ;;??? body, don't allow redefinition or reextern.
      #+nil
@@ -568,35 +573,39 @@
        (llvm:delete-function function)
        (setf function
 	     (llvm:named-function *module* (name expression))))
-    ;; (inspect expression)
+     ;; (inspect expression)
      ;; (print (name expression))
      ;; (terpri)
      (progn
-      ;if (= (llvm:count-basic-blocks function) 0)
-	 (if (= (llvm:count-params function) (length (arguments expression)))
-	     (when (or (= *chapter* 7)
-		       (boundp '*named-values*))
-	       ;; Set names for all arguments.
-	       (map nil
-		    (lambda (argument name)
-		      (setf (llvm:value-name argument)
-			    name
-			    #+nil
-			    (concatenate 'string (write-to-string (incf *symcount*)) name))
-		      (when (eq *depth* :top)
-			(ecase *chapter*
-			  ((3 4 5 6)
-			   (setf (gethash name *named-values*)
-				 argument))
-			  ((7)))))
-		    (llvm:params function)
-		    (let ((a (arguments expression)))
-		      ;(format t "~&~a~&" a)
-		      a)))
-	     (error 'kaleidoscope-error
-		    :message "redefinition of function with different # args"))
-	 #+nil
-	 (error 'kaleidoscope-error :message "redefinition of function"))
+					;if (= (llvm:count-basic-blocks function) 0)
+       (if (= (llvm::-count-params function)
+	      (length (arguments expression)))
+	   (when (or (= *chapter* 7)
+		     (boundp '*named-values*))
+	     ;; Set names for all arguments.
+	     (map nil
+		  (lambda (argument name)
+		    (cffi:with-foreign-string
+			(str name
+			     #+nil
+			     (concatenate 'string (write-to-string (incf *symcount*)) name))
+		      (llvm::-set-value-name
+		       argument
+		       str))
+		    (when (eq *depth* :top)
+		      (ecase *chapter*
+			((3 4 5 6)
+			 (setf (gethash name *named-values*)
+			       argument))
+			((7)))))
+		  (params function)
+		  (let ((a (arguments expression)))
+					;(format t "~&~a~&" a)
+		    a)))
+	   (error 'kaleidoscope-error
+		  :message "redefinition of function with different # args"))
+       #+nil
+       (error 'kaleidoscope-error :message "redefinition of function"))
      function))
 
 (defmethod codegen ((expression function-definition))
@@ -608,27 +617,33 @@
       (when function
 	(ecase *chapter*
 	  ((3 4 5)
-	   (llvm:position-builder-at-end *builder*
-					 (llvm:append-basic-block function "entry"))
+	   (llvm::-position-builder-at-end
+	    *builder*
+	    (cffi:with-foreign-string (str "entry")
+	      (llvm::-append-basic-block function str)))
 	   (flet ((remove-function ()
-		    (llvm:delete-function function)
+		    (llvm::-delete-function function)
 		    (format t "fuck me harder ~a" (name prototype))
 		    (terpri)
 		    (remhash (name prototype) *function-protos*)))
 	     (block nil
 	       (let ((retval (codegen (body expression))))
 		 (when retval
-		   (llvm:build-ret *builder* retval)
+		   (build-ret *builder* retval)
 
-		   (when (llvm::%verify-function function :print-message)
+		   (when (llvm::-verify-function
+			  function
+			  (cffi:foreign-enum-value
+			   'llvm::|LLVMVerifierFailureAction|
+			   'llvm::|LLVMPrintMessageAction|))
 		     (dump-value function)
 		     (remove-function)
 		     (error 'kaleidoscope-error
 			    :message "Function verification failure."))
 		   (unless (= *chapter* 3)
-;		     #+nil
+					;		     #+nil
 		     (when *fpm?*
-		       (llvm:run-function-pass-manager *fpm* function)))
+		       (llvm::-run-function-pass-manager *fpm* function)))
 		   (return function))
 		 (remove-function)
 		 nil))))
@@ -638,21 +653,27 @@
 	     (setf (gethash (operator-name (prototype expression))
 			    *binop-precedence*)
 		   (precedence (prototype expression))))
-	   (llvm:position-builder-at-end *builder*
-					 (llvm:append-basic-block function "entry"))
+	   (llvm::-position-builder-at-end
+	    *builder*
+	    (cffi:with-foreign-string (str "entry")
+	      (llvm::-append-basic-block function str)))
 	   (let ((retval (codegen (body expression))))
 	     (if retval
 		 (progn
-		   (llvm:build-ret *builder* retval)
-		   (unless (llvm:verify-function function)
+		   (build-ret *builder* retval)
+		   (when (llvm::-verify-function
+			  function
+			  (cffi:foreign-enum-value
+			   'llvm::|LLVMVerifierFailureAction|
+			   'llvm::|LLVMPrintMessageAction|))
 		     (error 'kaleidoscope-error
 			    :message "Function verification failure."))
-;		   #+nil
+					;		   #+nil
 		   (when *fpm?*
-		     (llvm:run-function-pass-manager *fpm* function))
+		     (llvm::-run-function-pass-manager *fpm* function))
 		   function)
 		 (progn
-		   (llvm:delete-function function)
+		   (llvm::-delete-function function)
 		   (when (binary-operator-p (prototype expression))
 		     (remhash (operator-name (prototype expression))
 			      *binop-precedence*))))))
@@ -662,22 +683,28 @@
 	     (setf (gethash (operator-name (prototype expression))
 			    *binop-precedence*)
 		   (precedence (prototype expression))))
-	   (llvm:position-builder-at-end *builder*
-					 (llvm:append-basic-block function "entry"))
+	   (llvm::-position-builder-at-end
+	    *builder*
+	    (cffi:with-foreign-string (str "entry")
+	      (llvm::-append-basic-block function str)))
 	   (create-argument-allocas (prototype expression) function)
 	   (let ((retval (codegen (body expression))))
 	     (if retval
 		 (progn
-		   (llvm:build-ret *builder* retval)
-		   (unless (llvm:verify-function function)
+		   (build-ret *builder* retval)
+		   (when (llvm::-verify-function
+			  function
+			  (cffi:foreign-enum-value
+			   'llvm::|LLVMVerifierFailureAction|
+			   'llvm::|LLVMPrintMessageAction|))
 		     (error 'kaleidoscope-error
 			    :message "Function verification failure."))
-;		   #+nil
+					;		   #+nil
 		   (when *fpm?*
-		     (llvm:run-function-pass-manager *fpm* function))
+		     (llvm::-run-function-pass-manager *fpm* function))
 		   function)
 		 (progn
-		   (llvm:delete-function function)
+		   (llvm::-delete-function function)
 		   (when (binary-operator-p (prototype expression))
 		     (remhash (operator-name (prototype expression))
 			      *binop-precedence*)))))))))))
