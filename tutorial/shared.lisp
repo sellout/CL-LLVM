@@ -167,7 +167,7 @@
       (cffi:with-foreign-object (var 'llvm::|LLVMValueRef| len)
 	(dotimes (index len)
 	  (setf (cffi:mem-aref var 'llvm::|LLVMValueRef| index)
-		(aref args index)))
+		(elt args index)))
 	(llvm::-build-call builder fn var (length args) str)))))
 
 (defun function-type (return-type param-types &key var-arg-p)
@@ -175,7 +175,7 @@
     (cffi:with-foreign-object (var 'llvm::|LLVMTypeRef| len)
       (dotimes (index len)
 	(setf (cffi:mem-aref var 'llvm::|LLVMTypeRef| index)
-	      (aref param-types index)))
+	      (elt param-types index)))
       (llvm::-function-type return-type var len var-arg-p))))
 
 (defun params (fn)
@@ -208,6 +208,17 @@
     (otherwise
      (with-list-c-array (ptr values 'llvm::|LLVMValueRef|)
        (llvm::-build-aggregate-ret builder values (length values))))))
+
+(defun position-builder (builder block &optional (instr (cffi:null-pointer)))
+  (llvm::-position-builder builder block instr))
+
+(defun add-incoming (phi-node incoming-values incoming-blocks)
+  (with-list-c-array (ptr1 incoming-values 'llvm::|LLVMValueRef|)
+    (with-list-c-array (ptr2 incoming-blocks 'llvm::|LLVMBasicBlockRef|)
+      (llvm::-add-incoming phi-node
+			   ptr1
+			   ptr2
+			   (length incoming-values)))))
 
 (defparameter *c-directory* (merge-pathnames "C/" *this-directory*))
 ;;;;for chap 6 and 5

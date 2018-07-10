@@ -569,15 +569,18 @@
      ;;??? If F conflicted, there was already something named 'Name'.  If it has a
      ;;??? body, don't allow redefinition or reextern.
      #+nil
-     (when (not (string= (llvm:value-name function) (name expression)))
-       (llvm:delete-function function)
+     (when (not (string= (cffi:foreign-string-to-lisp
+			  (llvm::-get-value-name function))
+			 (name expression)))
+       (llvm::-delete-function function)
        (setf function
-	     (llvm:named-function *module* (name expression))))
+	     (cffi:with-foreign-string (str (name expression))
+	       (llvm::-get-named-function *module* str))))
      ;; (inspect expression)
      ;; (print (name expression))
      ;; (terpri)
      (progn
-					;if (= (llvm:count-basic-blocks function) 0)
+       ;;if (= (llvm::-count-basic-blocks function) 0)
        (if (= (llvm::-count-params function)
 	      (length (arguments expression)))
 	   (when (or (= *chapter* 7)
@@ -720,37 +723,50 @@
   (let ((cond-v (codegen (_condition expression))))
     (when cond-v
       (setf cond-v
-            (llvm:build-f-cmp *builder* 
-                              :/= cond-v (llvm:const-real (llvm:double-type) 0)
-                              "ifcond"))
-      (let* ((function (llvm:basic-block-parent
-                        (llvm:insertion-block *builder*)))
-             (then-bb (llvm:append-basic-block function "then"))
+	    (cffi:with-foreign-string (str "ifcond")
+	      (llvm::build-f-cmp
+	       *builder* 
+	       'llvm::|LLVMIntNE|
+	       cond-v
+	       (const-real (llvm::-double-type) 0)
+	       str)))
+      (let* ((function (llvm::-get-basic-block-parent  
+                        (llvm::-get-insert-block *builder*)))
+             (then-bb
+	      (cffi:with-foreign-string (str "then")
+		(llvm::-append-basic-block function str)))
              ;; FIXME: not sure if we can append these at this point
-             (else-bb (llvm:append-basic-block function "else"))
-             (merge-bb (llvm:append-basic-block function "ifcont")))
-        (llvm:build-cond-br *builder* cond-v then-bb else-bb)
-        (llvm:position-builder *builder* then-bb)
+             (else-bb
+	      (cffi:with-foreign-string (str "else")
+		(llvm::-append-basic-block function str)))
+             (merge-bb
+	      (cffi:with-foreign-string (str "ifcont")
+		(llvm::-append-basic-block function str))))
+        (llvm::-build-cond-br *builder* cond-v then-bb else-bb)
+        (position-builder *builder* then-bb)
         (let ((then-v (codegen (then expression))))
           (when then-v
-            (llvm:build-br *builder* merge-bb)
+            (llvm::-build-br *builder* merge-bb)
             ;; Codegen of 'Then' can change the current block, update THEN-BB
             ;; for the PHI.
-            (setf then-bb (llvm:insertion-block *builder*))
-            (llvm:position-builder *builder* else-bb)
+            (setf then-bb (llvm::-get-insert-block *builder*))
+            (position-builder *builder* else-bb)
             (let ((else-v (codegen (else expression))))
               (when else-v
-                (llvm:build-br *builder* merge-bb)
+                (llvm::-build-br *builder* merge-bb)
                 ;; Codegen of 'Else' can change the current block, update
                 ;; ELSE-BB for the PHI.
-                (setf else-bb (llvm:insertion-block *builder*))
+                (setf else-bb (llvm::-get-insert-block *builder*))
                 ;; Emit merge block.
-                (llvm:position-builder *builder* merge-bb)
-                (let ((pn (llvm:build-phi *builder*
-                                          (llvm:double-type) "iftmp")))
-                  (llvm:add-incoming pn
-                                     (list then-v else-v)
-                                     (list then-bb else-bb))
+                (position-builder *builder* merge-bb)
+                (let ((pn (cffi:with-foreign-string (str "iftmp")
+			    (llvm::-build-phi
+			     *builder*
+			     (llvm::-double-type)
+			     str))))
+                  (add-incoming pn
+				(list then-v else-v)
+				(list then-bb else-bb))
                   pn)))))))))
 
 (defmethod codegen ((expression for-expression))
@@ -763,97 +779,129 @@
     (when start-val
       ;; Make the new basic block for the loop header, inserting after current
       ;; block.
-      (let* ((preheader-bb (llvm:insertion-block *builder*))
-	     (function (llvm:basic-block-parent preheader-bb))
-	     (loop-bb (llvm:append-basic-block function "loop")))
-	(llvm:build-br *builder* loop-bb)
-	(llvm:position-builder *builder* loop-bb)
-	(let ((variable (llvm:build-phi *builder*
-					(llvm:double-type)
-					(var-name expression))))
-	  (llvm:add-incoming variable (list start-val) (list preheader-bb))
+      (let* ((preheader-bb (llvm::-get-insert-block *builder*))
+	     (function (llvm::-get-basic-block-parent preheader-bb))
+	     (loop-bb
+		(cffi:with-foreign-string (str "loop")
+		  (llvm::-append-basic-block function str))))
+	(llvm::-build-br *builder* loop-bb)
+	(position-builder *builder* loop-bb)
+	(let ((variable
+	       (cffi:with-foreign-string (str (var-name expression))
+		 (llvm::-build-phi
+		  *builder*
+		  (llvm::-double-type)
+		  str))))
+	  (add-incoming variable
+			(list start-val)
+			(list preheader-bb))
 	  (let ((old-val (gethash (var-name expression) *named-values*)))
 	    (setf (gethash (var-name expression) *named-values*) variable)
 	    (when (codegen (body expression))
 	      (let ((step-val (if (step* expression)
 				  (codegen (step* expression))
-				  (llvm:const-real (llvm:double-type) 1))))
+				  (const-real (llvm::-double-type) 1))))
 		(when step-val
-		  (let ((next-var (llvm:build-f-add *builder*
-						    variable
-						    step-val
-						    "nextvar"))
+		  (let ((next-var
+			 (cffi:with-foreign-string (str "nextvar")
+			   (llvm::-build-f-add
+			    *builder*
+			    variable
+			    step-val
+			    str)))
 			(end-cond (codegen (end expression))))
 		    (when end-cond
 		      (setf end-cond
-			    (llvm:build-f-cmp *builder*
-					      :/=
-					      end-cond
-					      (llvm:const-real
-					       (llvm:double-type)
-					       0)
-					      "loopcond"))
-		      (let ((loop-end-bb (llvm:insertion-block *builder*))
-			    (after-bb (llvm:append-basic-block function
-							       "afterloop")))
-			(llvm:build-cond-br *builder* end-cond loop-bb after-bb)
-			(llvm:position-builder *builder* after-bb)
-			(llvm:add-incoming variable
-					   (list next-var) (list loop-end-bb))
+			    (llvm::-build-f-cmp
+			     *builder*
+			     (cffi:foreign-enum-value 'llvm::|LLVMRealPredicate|
+						      'llvm::|LLVMRealONE|)
+			     end-cond
+			     (const-real
+			      (llvm::-double-type)
+			      0)
+			     "loopcond"))
+		      (let ((loop-end-bb (llvm::-get-insert-block *builder*))
+			    (after-bb (cffi:with-foreign-string (str "afterloop")
+					  (llvm::-append-basic-block
+					   function
+					   str))))
+			(llvm::-build-cond-br *builder* end-cond loop-bb after-bb)
+			(position-builder *builder* after-bb)
+			(add-incoming variable
+				      (list next-var)
+				      (list loop-end-bb))
 			(if old-val
-			    (setf (gethash (var-name expression) *named-values*)
+			    (setf (gethash (var-name expression)
+					   *named-values*)
 				  old-val)
-			    (remhash (var-name expression) *named-values*))
+			    (remhash (var-name expression)
+				     *named-values*))
 			;; for expr always returns 0.
-			(llvm:const-null (llvm:double-type))))))))))))))
+			(llvm::-const-null (llvm::-double-type))))))))))))))
 
 ;;;;7
 (defun codegen7 (expression)
-  (let* ((function (llvm:basic-block-parent (llvm:insertion-block *builder*)))
+  (let* ((function (llvm::-get-basic-block-parent
+		    (llvm::-get-insert-block *builder*)))
 	 (alloca (create-entry-block-alloca function (var-name expression)))
 	 (start-val (codegen (start expression))))
     (when start-val
-      (llvm:build-store *builder* start-val alloca)
+      (llvm::-build-store *builder* start-val alloca)
       ;; Make the new basic block for the loop header, inserting after current
       ;; block.
-      (let* ((loop-bb (llvm:append-basic-block function "loop")))
-	(llvm:build-br *builder* loop-bb)
-	(llvm:position-builder *builder* loop-bb)
+      (let* ((loop-bb
+		(cffi:with-foreign-string (str "loop")
+		  (llvm::-append-basic-block function str))))
+	(llvm::-build-br *builder* loop-bb)
+	(position-builder *builder* loop-bb)
 	(let ((old-val (gethash (var-name expression) *named-values*)))
 	  (setf (gethash (var-name expression) *named-values*) alloca)
 	  (when (codegen (body expression))
 	    (let ((step-val (if (step* expression)
 				(codegen (step* expression))
-				(llvm:const-real (llvm:double-type) 1))))
+				(llvm::-const-real (llvm::-double-type) 1))))
 	      (when step-val
 		(let ((end-cond (codegen (end expression))))
 		  (when end-cond
-		    (let* ((cur-var (llvm:build-load *builder*
-						     alloca
-						     (var-name expression)))
-			   (next-var (llvm:build-f-add *builder*
-						       cur-var
-						       step-val
-						       "nextvar")))
-		      (llvm:build-store *builder* next-var alloca)
+		    (let* ((cur-var
+			    (cffi:with-foreign-string (str (var-name expression))
+			      (llvm::-build-load
+			       *builder*
+			       alloca
+			       str)))
+			   (next-var
+			    (cffi:with-foreign-string (str "nextvar")
+			      (llvm::-build-f-add
+			       *builder*
+			       cur-var
+			       step-val
+			       str))))
+		      (llvm::-build-store *builder* next-var alloca)
 		      (setf end-cond
-			    (llvm:build-f-cmp *builder*
-					      :/=
-					      end-cond
-					      (llvm:const-real
-					       (llvm:double-type)
-					       0)
-					      "loopcond"))
-		      (let ((after-bb (llvm:append-basic-block function
-							       "afterloop")))
-			(llvm:build-cond-br *builder* end-cond loop-bb after-bb)
-			(llvm:position-builder *builder* after-bb)
+			    (llvm::-build-f-cmp
+			     *builder*
+			     (cffi:foreign-enum-value
+			      '|LLVMRealPredicate|
+			      '|LLVMRealONE|)
+			     end-cond
+			     (llvm::-const-real
+			      (llvm::-double-type)
+			      0)
+			     "loopcond"))
+		      (let ((after-bb
+			     (cffi:with-foreign-string (str "afterloop")
+			       (llvm::-append-basic-block
+				function
+				str))))
+			(llvm::-build-cond-br *builder* end-cond loop-bb after-bb)
+			(position-builder *builder* after-bb)
 			(if old-val
 			    (setf (gethash (var-name expression) *named-values*)
 				  old-val)
 			    (remhash (var-name expression) *named-values*))
 			;; for expr always returns 0.
-			(llvm:const-null (llvm:double-type))))))))))))))
+			(llvm::-const-null (llvm::-double-type))))))))))))))
 
 
 ;;; code generation 6
@@ -861,39 +909,44 @@
 (defmethod codegen ((expression unary-expression))
   (let ((operand-v (codegen (operand expression))))
     (when operand-v
-      (let ((f (llvm:named-function *module*
-				    (format nil "unary~a"
-					    (opcode expression)))))
+      (let ((f (cffi:with-foreign-string (str (format nil "unary~a"
+						      (opcode expression)))
+		 (llvm::-get-named-function
+		  *module*
+		  ))))
 	(unless f
 	  (error 'kaleidoscope-error :message "Unknown unary operator"))
-	(llvm:build-call *builder* f (list operand-v) "unop")))))
+	(build-call *builder* f (list operand-v) "unop")))))
 
 ;;; code generation 7
 
 (defun create-entry-block-alloca (function var-name)
   "Create an alloca instruction in the entry block of the function. This is used
    for mutable variables etc."
-  (let ((tmp-b (llvm:make-builder)))
+  (let ((tmp-b (llvm::-create-builder)))
     ;; FIXME: this doesn't set the proper insertion point
-    (llvm:position-builder tmp-b (llvm:entry-basic-block function))
-    (llvm:build-alloca tmp-b (llvm:double-type) var-name)))
+    (position-builder tmp-b (llvm::-get-entry-basic-block function))
+    (cffi:with-foreign-string (str var-name)
+      (llvm::-build-alloca tmp-b (llvm::-double-type) str))))
 
 (defmethod codegen ((expression var-expression))
-  (let* ((function (llvm:basic-block-parent (llvm:insertion-block *builder*)))
+  (let* ((function (llvm::-get-basic-block-parent
+		    (llvm::-get-insert-block *builder*)))
          (old-bindings (map 'vector
                             (lambda (var-binding)
                               (destructuring-bind (var-name . init) var-binding
                                 (let ((alloca
                                        (create-entry-block-alloca function
                                                                   var-name)))
-                                  (llvm:build-store *builder*
-                                                    (if init
-							;; FIXME: handle error
-							(codegen init)
-							(llvm:const-real
-							 (llvm:double-type)
-							 0))
-                                                    alloca)
+                                  (llvm::-build-store
+				   *builder*
+				   (if init
+				       ;; FIXME: handle error
+				       (codegen init)
+				       (llvm::-const-real
+					(llvm::-double-type)
+					0))
+				   alloca)
                                   (prog1 (gethash var-name *named-values*)
                                     (setf (gethash var-name *named-values*)
                                           alloca)))))
@@ -910,35 +963,37 @@
   (map nil
        (lambda (parameter argument)
          (let ((alloca (create-entry-block-alloca f argument)))
-           (llvm:build-store *builder* parameter alloca)
+           (llvm::-build-store *builder* parameter alloca)
            (setf (gethash argument *named-values*) alloca)))
-       (llvm:params f) (arguments expression)))
+       (params f)
+       (arguments expression)))
 
 (defparameter *fucking-modules* nil)
 ;;;;Toplevel
 (defun initialize-module-and-pass-manager ()
-  (let ((module (llvm::module-create-with-name "fuck you")))
+  (let ((module (cffi:with-foreign-string (str "fuck you")
+		  (llvm::-module-create-with-name str))))
     (setf *module* module)
     (let ((target (kaleidoscope-get-target-machine)))
       #+nil
       (let ((msg (get-target-machine-triple target)))
 	(print (cffi:foreign-string-to-lisp msg))
 	(dispose-message msg))
-      (llvm::set-data-layout
+      (llvm::-set-data-layout
        module
        (llvm::-get-target-machine-data
 	target)))
     (push module *fucking-modules*)
 
-    (let ((fpm (llvm:create-function-pass-manager-for-module module)))
+    (let ((fpm (llvm::-create-function-pass-manager-for-module module)))
       (progn
 	(unless (= *chapter* 4)
-	  (llvm:add-promote-memory-to-register-pass fpm))
-	(llvm:add-instruction-combining-pass fpm)
-	(llvm:add-reassociate-pass fpm)
-	(llvm:add-gvn-pass fpm)
-	(llvm:add-cfg-simplification-pass fpm))
-     (llvm:initialize-function-pass-manager fpm)
+	  (llvm::-add-promote-memory-to-register-pass fpm))
+	(llvm::-add-instruction-combining-pass fpm)
+	(llvm::-add-reassociate-pass fpm)
+	(llvm::-add-g-v-n-pass fpm)
+	(llvm::-add-c-f-g-simplification-pass fpm))
+     (llvm::-initialize-function-pass-manager fpm)
      (setf *fpm* fpm))))
 
 
@@ -1013,18 +1068,24 @@
 			      (format *output?* "Evaluated to ~fD0"
 				      result)))))
 					;(print 2323234242342434)
-		    (llvm:dispose-module old)
+		    (llvm::-dispose-module old)
 		    (kaleidoscope-remove-module handle)
 		    (remhash *name* *function-protos*)
 		    (initialize-module-and-pass-manager)
 		    ))
 		#+nil
-		(let ((ptr (llvm:pointer-to-global *execution-engine* lf)))
+		(let ((ptr (llvm::-get-pointer-to-global *execution-engine* lf)))
 		  (format *output?* "Evaluated to ~fD0"
 			  (if (cffi:pointer-eq ptr lf) ; we have an interpreter
-			      (llvm:generic-value-to-float
-			       (llvm:double-type)
-			       (llvm:run-function *execution-engine* ptr ()))
+			      (llvm::-generic-value-to-float
+			       (llvm::-double-type)
+			       (let ((args ()))
+				 (let ((len (length args)))
+				   (cffi:with-foreign-object (var 'llvm::|LLVMGenericValueRef| len)
+				     (dotimes (index len)
+				       (setf (cffi:mem-aref var 'llvm::|LLVMGenericValueRef| index)
+					     (elt args index)))
+				     (llvm::-run-function *execution-engine* ptr len var)))))
 			      (cffi:foreign-funcall-pointer ptr () :double)))))
 	       )))))
     (kaleidoscope-error (e)
@@ -1066,7 +1127,7 @@
     (labels ((%start ()
 	       (unwind-protect
 		    (progn
-		      (setf *builder* (llvm:make-builder))
+		      (setf *builder* (llvm::-create-builder))
 		      (format *output?* "~&ready> ")
 		      (reset-token-reader)
 		      (get-next-token)
@@ -1077,8 +1138,8 @@
 		 ;;destroyed on jit destruction?
 		 #+nil
 		 (dolist (module *fucking-modules*)
-		   (llvm:dispose-module module))
-		 (llvm:dispose-builder *builder*)
+		   (llvm::-dispose-module module))
+		 (llvm::-dispose-builder *builder*)
 					;(resetstuff)
 		 )))
       (if *jit?*

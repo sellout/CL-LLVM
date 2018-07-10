@@ -4,7 +4,8 @@
 (asdf:defsystem #:kaleidoscope256
   :description "A translation of the language created in the LLVM tutorial."
   :depends-on
-  (#:llvm256
+  (;#:llvm256
+   #:cffi
    #:filesystem-util
    #:split-sequence)
   :components
@@ -13,6 +14,7 @@
 	     :components
 	     (#+nil
 	      (:file "cffi")
+	      (:file "package")
 	      (:file "geez")
 	      (:file "shared")
 	      (:file "chapter")
