@@ -95,20 +95,36 @@
 
 ;;; (2 3 4 5 6 7)
 ;;;;number-expression
-(defun make-number-expression (num)
-  "for numeric literals like “1.0”."
-  (list 'number-expression num))
-(defun number-expression.value (sexp)
-  (assert (eq 'number-expression (car sexp)))
-  (second sexp))
+(defstruct (number-expression
+	     (:type list)
+	     :named
+	     (:conc-name number-expression.)
+	     (:constructor make-number-expression
+			   (value)))
+  value)
+#+nil
+((defun make-number-expression (num)
+   "for numeric literals like “1.0”."
+   (list 'number-expression num))
+ (defun number-expression.value (sexp)
+   (assert (eq 'number-expression (car sexp)))
+   (second sexp)))
 
 ;;;;variable expression
-(defun make-variable-expression (num)
-  "for referencing a variable, like “a”."
-  (list 'variable-expression num))
-(defun variable-expression.name (sexp)
-  (assert (eq 'variable-expression (car sexp)))
-  (second sexp))
+(defstruct (variable-expression
+	     (:type list)
+	     :named
+	     (:conc-name variable-expression.)
+	     (:constructor make-variable-expression
+			   (name)))
+  name)
+#+nil
+((defun make-variable-expression (num)
+   "for referencing a variable, like “a”."
+   (list 'variable-expression num))
+ (defun variable-expression.name (sexp)
+   (assert (eq 'variable-expression (car sexp)))
+   (second sexp)))
 
 ;;;;binary expressions
 (defun make-binary-expression (operator lhs rhs)
@@ -172,21 +188,30 @@
 
 ;;;5 6 7
 ;;;;;if
-(defun make-if-expression (_condition then else)
-  "for if/then/else."
-  (list 'if-expression _condition then else))
-(defun if-expression._condition (sexp)
-  (assert (eq (car sexp)
-	      'if-expression))
-  (second sexp))
-(defun if-expression.then (sexp)
-  (assert (eq (car sexp)
-	      'if-expression))
-  (third sexp))
-(defun if-expression.else (sexp)
-  (assert (eq (car sexp)
-	      'if-expression))
-  (fourth sexp))
+(defstruct (if-expression (:type list)
+			  :named
+			  (:conc-name if-expression.)
+			  (:constructor make-if-expression
+					(_condition then else)))
+  _condition
+  then
+  else)
+#+nil
+((defun make-if-expression (_condition then else)
+   "for if/then/else."
+   (list 'if-expression _condition then else))
+ (defun if-expression._condition (sexp)
+   (assert (eq (car sexp)
+	       'if-expression))
+   (second sexp))
+ (defun if-expression.then (sexp)
+   (assert (eq (car sexp)
+	       'if-expression))
+   (third sexp))
+ (defun if-expression.else (sexp)
+   (assert (eq (car sexp)
+	       'if-expression))
+   (fourth sexp)))
 
 ;;;;for
 (defun make-for-expression (var-name start end step body)
