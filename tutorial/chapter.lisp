@@ -170,10 +170,10 @@
 (defun prototype.name (sexp)
   (assert (eq 'prototype (car sexp)))
   (second sexp))
-(defun operatorp (sexp)
+(defun prototype.operatorp (sexp)
   (assert (eq 'prototype (car sexp)))
   (fourth sexp))
-(defun precedence (sexp)
+(defun prototype.precedence (sexp)
   (assert (eq 'prototype (car sexp)))
   (fifth sexp))
 
@@ -182,15 +182,15 @@
 (defun make-if-expression (_condition then else)
   "for if/then/else."
   (list 'if-expression _condition then else))
-(defun _condition (sexp)
+(defun if-expression._condition (sexp)
   (assert (eq (car sexp)
 	      'if-expression))
   (second sexp))
-(defun then (sexp)
+(defun if-expression.then (sexp)
   (assert (eq (car sexp)
 	      'if-expression))
   (third sexp))
-(defun else (sexp)
+(defun if-expression.else (sexp)
   (assert (eq (car sexp)
 	      'if-expression))
   (fourth sexp))
@@ -199,19 +199,19 @@
 (defun make-for-expression (var-name start end step body)
   "for for/in."
   (list 'for-expression var-name start end step body))
-(defun var-name (sexp)
+(defun for-expression.var-name (sexp)
   (assert (eq (car sexp)
 	      'for-expression))
   (first sexp))
-(defun start (sexp)
+(defun for-expression.start (sexp)
   (assert (eq (car sexp)
 	      'for-expression))
   (second sexp))
-(defun end (sexp)
+(defun for-expression.end (sexp)
   (assert (eq (car sexp)
 	      'for-expression))
   (third sexp))
-(defun step* (sexp)
+(defun for-expression.step* (sexp)
   (assert (eq (car sexp)
 	      'for-expression))
   (fourth sexp))
@@ -221,11 +221,11 @@
 (defun make-unary-expression (opcode operand)
   "for a unary operator."
   (list 'unary-expression opcode operand))
-(defun opcode (expression)
+(defun unary-expression.opcode (expression)
   (assert (eq 'unary-expression
 	      (car expression)))
   (second expression))
-(defun operand (expression)
+(defun unary-expression.operand (expression)
   (assert (eq 'unary-expression
 	      (car expression)))
   (third expression))
@@ -234,14 +234,14 @@
 (defun unary-operator-p (expression)
   (assert (eq 'prototype
 	      (car expression)))
-  (and (operatorp expression)
+  (and (prototype.operatorp expression)
        (= (length (arguments expression))
 	  1)))
 ;;;for prototypes
 (defun binary-operator-p (expression)
   (assert (eq 'prototype
 	      (car expression)))
-  (and (operatorp expression)
+  (and (prototype.operatorp expression)
        (= (length (arguments expression))
 	  2)))
 ;;;for prototypes
@@ -263,7 +263,7 @@
 (defun make-var-expression (var-names body)
   "for var/in"
   (list 'var-expression var-names body))
-(defun var-names (expression)
+(defun var-expression.var-names (expression)
   (assert (eq 'var-expression
 	      (car expression)))
   (second expression))
@@ -706,13 +706,13 @@
 				  (prog1 (gethash var-name *named-values*)
 				    (setf (gethash var-name *named-values*)
 					  alloca)))))
-			    (var-names sexp)))
+			    (var-expression.var-names sexp)))
 	 (body-val (codegen (body sexp))))
     (when body-val
       (map 'vector
 	   (lambda (var-binding old-binding)
 	     (setf (gethash (car var-binding) *named-values*) old-binding))
-	   (var-names sexp) old-bindings)
+	   (var-expression.var-names sexp) old-bindings)
       body-val)))
 
 (defun codegen-prototype (sexp)
@@ -892,7 +892,7 @@
 
 ;;;5 6 7
 (defun codegen-if-expression (expression)
-  (let ((cond-v (codegen (_condition expression))))
+  (let ((cond-v (codegen (if-expression._condition expression))))
     (when cond-v
       (setf cond-v
 	    (cffi:with-foreign-string (str "ifcond")
@@ -918,14 +918,14 @@
 		(llvm::-append-basic-block function str))))
         (llvm::-build-cond-br *builder* cond-v then-bb else-bb)
         (position-builder *builder* then-bb)
-        (let ((then-v (codegen (then expression))))
+        (let ((then-v (codegen (if-expression.then expression))))
           (when then-v
             (llvm::-build-br *builder* merge-bb)
             ;; Codegen of 'Then' can change the current block, update THEN-BB
             ;; for the PHI.
             (setf then-bb (llvm::-get-insert-block *builder*))
             (position-builder *builder* else-bb)
-            (let ((else-v (codegen (else expression))))
+            (let ((else-v (codegen (if-expression.else expression))))
               (when else-v
                 (llvm::-build-br *builder* merge-bb)
                 ;; Codegen of 'Else' can change the current block, update
@@ -1018,8 +1018,9 @@
 (defun codegen7 (expression)
   (let* ((function (llvm::-get-basic-block-parent
 		    (llvm::-get-insert-block *builder*)))
-	 (alloca (create-entry-block-alloca function (var-name expression)))
-	 (start-val (codegen (start expression))))
+	 (alloca (create-entry-block-alloca function
+					    (for-expression.var-name expression)))
+	 (start-val (codegen (for-expression.start expression))))
     (when start-val
       (llvm::-build-store *builder* start-val alloca)
       ;; Make the new basic block for the loop header, inserting after current
@@ -1029,17 +1030,17 @@
 		  (llvm::-append-basic-block function str))))
 	(llvm::-build-br *builder* loop-bb)
 	(position-builder *builder* loop-bb)
-	(let ((old-val (gethash (var-name expression) *named-values*)))
-	  (setf (gethash (var-name expression) *named-values*) alloca)
-	  (when (codegen (body expression))
-	    (let ((step-val (if (step* expression)
-				(codegen (step* expression))
+	(let ((old-val (gethash (for-expression.var-name expression) *named-values*)))
+	  (setf (gethash (for-expression.var-name expression) *named-values*) alloca)
+	  (when (codegen (for-expression.body expression))
+	    (let ((step-val (if (for-expression.step* expression)
+				(codegen (for-expression.step* expression))
 				(llvm::-const-real (llvm::-double-type) 1))))
 	      (when step-val
-		(let ((end-cond (codegen (end expression))))
+		(let ((end-cond (codegen (for-expression.end expression))))
 		  (when end-cond
 		    (let* ((cur-var
-			    (cffi:with-foreign-string (str (var-name expression))
+			    (cffi:with-foreign-string (str (for-expression.var-name expression))
 			      (llvm::-build-load
 			       *builder*
 			       alloca
@@ -1071,9 +1072,9 @@
 			(llvm::-build-cond-br *builder* end-cond loop-bb after-bb)
 			(position-builder *builder* after-bb)
 			(if old-val
-			    (setf (gethash (var-name expression) *named-values*)
+			    (setf (gethash (for-expression.var-name expression) *named-values*)
 				  old-val)
-			    (remhash (var-name expression) *named-values*))
+			    (remhash (for-expression.var-name expression) *named-values*))
 			;; for expr always returns 0.
 			(llvm::-const-null (llvm::-double-type))))))))))))))
 
@@ -1081,10 +1082,10 @@
 ;;; code generation 6
 ;;;;6 7
 (defun codegen-unary-expression (expression)
-  (let ((operand-v (codegen (operand expression))))
+  (let ((operand-v (codegen (unary-expression.operand expression))))
     (when operand-v
       (let ((f (cffi:with-foreign-string (str (format nil "unary~a"
-						      (opcode expression)))
+						      (unary-expression.opcode expression)))
 		 (llvm::-get-named-function
 		  *module*
 		  ))))
