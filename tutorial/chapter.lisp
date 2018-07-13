@@ -706,17 +706,44 @@
 	 (cffi:with-foreign-string (str "entry")
 	   (llvm::-append-basic-block function str)))
 	(ecase *chapter*
-	  ((3 4 5)
+	  ((3 4 5 6 7)
 	   (flet ((remove-function ()
 		    (llvm::-delete-function function)
 		    (format t "fuck me harder ~a" name)
 		    (terpri)
-		    (remhash name *function-protos*)))
+		    (remhash name *function-protos*)
+		    (case *chapter*
+		      ((6 7)
+		       (when (binary-operator-p prototype)
+			 (remhash (operator-name prototype)
+				  *binop-precedence*))))))
+
+	     (case *chapter*
+	       ((6 7)
+		;; If this is an operator, install it.
+		(when (binary-operator-p prototype)
+		  (setf (gethash (operator-name prototype)
+				 *binop-precedence*)
+			(prototype.precedence prototype)))
+		(when (= *chapter* 7)
+		  (create-argument-allocas prototype function))))
+	     ;;// Record the function arguments in the NamedValues map.
+	     #+nil
+	     (map nil
+		  (lambda (argument name)
+		    (setf (gethash name *named-values*)
+			  argument))
+		  (params function)
+		  (let ((a (prototype.arguments prototype)))
+					;(format t "~&~a~&" a)
+		    a))
 	     (block nil
 	       (let ((retval (codegen (function-definition.body sexp))))
 		 (when retval
+		   ;;// Finish off the function.
 		   (build-ret *builder* retval)
-
+		   
+		     ;;// Validate the generated code, checking for consistency.
 		   (when (llvm::-verify-function
 			  function
 			  (cffi:foreign-enum-value
@@ -727,84 +754,11 @@
 		     (error 'kaleidoscope-error
 			    :message "Function verification failure."))
 		   (unless (= *chapter* 3)
-					;		     #+nil
 		     (when *fpm?*
 		       (llvm::-run-function-pass-manager *fpm* function)))
 		   (return function))
 		 (remove-function)
-		 nil))))
-	  ((6)
-	   ;; If this is an operator, install it.
-	   (when (binary-operator-p prototype)
-	     (setf (gethash (operator-name prototype)
-			    *binop-precedence*)
-		   (prototype.precedence prototype)))
-
-	   ;;// Record the function arguments in the NamedValues map.
-	   ;;#+nil
-	   (map nil
-		 (lambda (argument name)
-		   (setf (gethash name *named-values*)
-			 argument))
-		 (params function)
-		 (let ((a (prototype.arguments prototype)))
-					;(format t "~&~a~&" a)
-		   a))
-	   
-	   (block nil
-	     (let ((retval (codegen (function-definition.body sexp))))
-	       (if retval
-		   (progn
-		     ;;// Finish off the function.
-		     (build-ret *builder* retval)
-
-		     ;;// Validate the generated code, checking for consistency.
-		     (when (llvm::-verify-function
-			    function
-			    (cffi:foreign-enum-value
-			     'llvm::|LLVMVerifierFailureAction|
-			     'llvm::|LLVMPrintMessageAction|))
-		       (error 'kaleidoscope-error
-			      :message "Function verification failure."))
-		     ;;// Run the optimizer on the function.
-		     (when *fpm?*
-		       (llvm::-run-function-pass-manager *fpm* function))
-		     (return function))
-		   (progn
-		     (llvm::-delete-function function)
-		     (when (binary-operator-p prototype)
-		       (remhash (operator-name prototype)
-				*binop-precedence*)))))
-	     nil))
-	  ((7)
-	   ;; If this is an operator, install it.
-	   (when (binary-operator-p prototype)
-	     (setf (gethash (operator-name prototype)
-			    *binop-precedence*)
-		   (prototype.precedence prototype)))
-	   (create-argument-allocas prototype function)
-	   (block nil
-	     (let ((retval (codegen (function-definition.body sexp))))
-	       (if retval
-		   (progn
-		     (build-ret *builder* retval)
-		     (when (llvm::-verify-function
-			    function
-			    (cffi:foreign-enum-value
-			     'llvm::|LLVMVerifierFailureAction|
-			     'llvm::|LLVMPrintMessageAction|))
-		       (error 'kaleidoscope-error
-			      :message "Function verification failure."))
-					;		   #+nil
-		     (when *fpm?*
-		       (llvm::-run-function-pass-manager *fpm* function))
-		     (return function))
-		   (progn
-		     (llvm::-delete-function function)
-		     (when (binary-operator-p prototype)
-		       (remhash (operator-name prototype)
-				*binop-precedence*)))))
-	     nil)))))))
+		 nil)))))))))
 
 (defun codegen-binary=expression (expression)
   (let ((lhse (binary-expression.lhs expression))
