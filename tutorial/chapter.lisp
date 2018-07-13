@@ -35,10 +35,6 @@
 
 (defvar *token-types*)
 
-(defmacro %with-tokens (chap &body body)
-  `(let ((*token-types* (chap-tokens ,chap)))
-     ,@body))
-
 (defun identifier-string-to-enum (&optional (identifier-string *identifier-string*)
 				    (token-types *token-types*))
   (let ((cell (assoc identifier-string token-types :test (function string=))))
@@ -1201,39 +1197,55 @@
   (clrhash *function-protos*)
   (setf *name-counter* -1))
 
+(defmacro with-kaleidoscope-jit (&body body)
+  `(progn
+     (llvm::initialize-native-target?)
+     (llvm::initialize-native-Asm-parser)
+     (llvm::initialize-native-asm-printer)
+     (let ((*jit?* t))
+       (unwind-protect
+	    (progn (kaleidoscope-create)
+		   ,@body)
+	 (kaleidoscope-destroy)))))
+
+(defmacro with-builder (var &body body)
+  (with-gensyms (completed? value)
+    `(let ((,var nil)
+	   (,completed? nil))
+       (unwind-protect (progn
+			 (let ((,value (llvm::-create-builder)))
+			   (setf ,completed? t)
+			   (setf ,var ,value))
+			 ,@body)
+	 (when ,completed?
+	   (llvm::-dispose-builder ,var))))))
+
 (defun toplevel (n)
   (resetstuff)
-  (let ((*chapter* n))
-    (%with-tokens *chapter*
-      (labels ((%start ()
-		 (unwind-protect
-		      (progn
-			(setf *builder* (llvm::-create-builder))
-			(format *output?* "~&ready> ")
-			(reset-token-reader)
-			(get-next-token)
-			(set-binop-precedence)
-			(when *jit?*
-			  (initialize-module-and-pass-manager))
-			(callcc (function main-loop)))
-		   ;;destroyed on jit destruction?
-		   #+nil
-		   (dolist (module *fucking-modules*)
-		     (dump-module module)
-		     ;;(llvm::-dispose-module module)
-		     )
-		   (llvm::-dispose-builder *builder*)
+  (let ((*chapter* n)
+	(*token-types* (chap-tokens n)))
+    (format *output?* "~&ready> ")
+    (reset-token-reader)
+    (get-next-token)
+    (set-binop-precedence)
+    (labels ((%start ()
+	       (when *jit?*
+		 (initialize-module-and-pass-manager))
+	       (callcc (function main-loop))
+	       ;;destroyed on jit destruction?
+
+	       #+nil
+	       (dolist (module *fucking-modules*)
+		 (dump-module module)
+		 ;;(llvm::-dispose-module module)
+		 )
 					;(resetstuff)
-		   )))
+	       ))
+      (with-builder *builder*
 	(if *jit?*
-	    (progn
-	      (llvm::initialize-native-target?)
-	      (llvm::initialize-native-Asm-parser)
-	      (llvm::initialize-native-asm-printer)
-	      (unwind-protect
-		   (progn (kaleidoscope-create)
-			  (%start)
-			  (dump-module *module*))
-		(kaleidoscope-destroy)))
-	    (%start))
-	(values)))))
+	    (with-kaleidoscope-jit
+	      (%start)
+
+	      )
+	    (%start))))
+    (values)))
