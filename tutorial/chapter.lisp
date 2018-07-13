@@ -95,24 +95,20 @@
 
 ;;; (2 3 4 5 6 7)
 ;;;;number-expression
-(defmethod value ((sexp cons))
-  (ecase (car sexp)
-    ((number-expression)
-     (second sexp))))
 (defun make-number-expression (num)
   "for numeric literals like “1.0”."
   (list 'number-expression num))
+(defun number-expression.value (sexp)
+  (assert (eq 'number-expression (car sexp)))
+  (second sexp))
 
 ;;;;variable expression
 (defun make-variable-expression (num)
   "for referencing a variable, like “a”."
   (list 'variable-expression num))
-(defmethod name ((expression cons))
-  (ecase (car expression)
-    ((variable-expression)
-     (second expression))
-    ((prototype)
-     (second expression))))
+(defun variable-expression.name (sexp)
+  (assert (eq 'variable-expression (car sexp)))
+  (second sexp))
 
 ;;;;binary expressions
 (defun make-binary-expression (operator lhs rhs)
@@ -161,12 +157,6 @@
   (list 'function-definition prototype body))
 
 ;;;;prototype
-(defun operatorp (sexp)
-  (assert (eq 'prototype (car sexp)))
-  (fourth sexp))
-(defun precedence (sexp)
-  (assert (eq 'prototype (car sexp)))
-  (fifth sexp))
 (defun make-prototype (&optional
 			 (name "")
 			 (arguments (make-array 0))
@@ -177,6 +167,15 @@
     name, and its argument names (thus implicitly the number of arguments the
     function takes)."
   (list 'prototype name arguments operatorp precedence))
+(defun prototype.name (sexp)
+  (assert (eq 'prototype (car sexp)))
+  (second sexp))
+(defun operatorp (sexp)
+  (assert (eq 'prototype (car sexp)))
+  (fourth sexp))
+(defun precedence (sexp)
+  (assert (eq 'prototype (car sexp)))
+  (fifth sexp))
 
 ;;;5 6 7
 ;;;;;if
@@ -251,8 +250,8 @@
 	      (car expression)))
   (assert (or (unary-operator-p expression)
 	      (binary-operator-p expression)))
-  (elt (name expression)
-       (1- (length (name expression)))))
+  (elt (prototype.name expression)
+       (1- (length (prototype.name expression)))))
 
 ;;;7
 #+nil
@@ -616,15 +615,15 @@
 
 (defun codegen-number-expression (sexp)
   (llvm::-const-real (llvm::-double-type)
-		     (doublify (value sexp))))
+		     (doublify (number-expression.value sexp))))
 (defun codegen-variable-expression (sexp)
-  (let ((v (gethash (name sexp)
+  (let ((v (gethash (variable-expression.name sexp)
 		    *named-values*)))
     (if v
 	(ecase *chapter*
 	  ((3 4 5 6) v)
 	  ((7)
-	   (cffi:with-foreign-string (str (name sexp))
+	   (cffi:with-foreign-string (str (variable-expression.name sexp))
 	     (llvm::-build-load *builder* v str))))
 	(error 'kaleidoscope-error :message "unknown variable name"))))
 (defun codegen-binary-expression (sexp)
@@ -721,20 +720,20 @@
 			      :initial-element (llvm::-double-type)))
 	 (f-type (function-type (llvm::-double-type) doubles))
 	 (function
-	  (cffi:with-foreign-string (str (name sexp))
+	  (cffi:with-foreign-string (str (prototype.name sexp))
 	    (llvm::-add-function *module* str f-type))))
     ;;??? If F conflicted, there was already something named 'Name'.  If it has a
     ;;??? body, don't allow redefinition or reextern.
     #+nil
     (when (not (string= (cffi:foreign-string-to-lisp
 			 (llvm::-get-value-name function))
-			(name sexp)))
+			(prototype.name sexp)))
       (llvm::-delete-function function)
       (setf function
-	    (cffi:with-foreign-string (str (name sexp))
+	    (cffi:with-foreign-string (str (prototype.name sexp))
 	      (llvm::-get-named-function *module* str))))
     ;; (inspect sexp
-    ;; (print (name sexp
+    ;; (print (prototype.name sexp
     ;; (terpri)
     (progn
       ;;if (= (llvm::-count-basic-blocks function) 0)
@@ -772,11 +771,12 @@
     function))
 
 (defun codegen-function-definition (sexp)
-  (let ((prototype (prototype sexp)))
-    (setf (gethash (name prototype) *function-protos*)
+  (let* ((prototype (prototype sexp))
+	 (name (prototype.name prototype)))
+    (setf (gethash name *function-protos*)
 	  prototype)
     (let* ((*named-values* (make-hash-table :test #'equal))
-	   (function (get-function (name prototype))))
+	   (function (get-function name)))
       (when function
 	(ecase *chapter*
 	  ((3 4 5)
@@ -786,9 +786,9 @@
 	      (llvm::-append-basic-block function str)))
 	   (flet ((remove-function ()
 		    (llvm::-delete-function function)
-		    (format t "fuck me harder ~a" (name prototype))
+		    (format t "fuck me harder ~a" name)
 		    (terpri)
-		    (remhash (name prototype) *function-protos*)))
+		    (remhash name *function-protos*)))
 	     (block nil
 	       (let ((retval (codegen (body sexp))))
 		 (when retval
@@ -876,7 +876,9 @@
   (let ((lhse (binary-expression.lhs expression))
 	(val (codegen (binary-expression.rhs expression))))
     (when val
-      (let ((variable (gethash (name lhse) *named-values*)))
+      (let ((variable
+	     (gethash (variable-expression.name lhse)
+		      *named-values*)))
 	(unless variable
 	  (error 'kaleidoscope-error :message "Unknown variable name"))
 	(llvm::-build-store *builder* val variable)
@@ -1171,7 +1173,7 @@
 	     (when function
 	       (format *output?* "Read extern: ")
 	       (dump-value function)
-	       (setf (gethash (name prototype) *function-protos*)
+	       (setf (gethash (prototype.name prototype) *function-protos*)
 		     prototype)))))
 	(get-next-token))))
 
