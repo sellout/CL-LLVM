@@ -700,13 +700,13 @@
     (let* ((*named-values* (make-hash-table :test #'equal))
 	   (function (get-function name)))
       (when function
+	;;// Create a new basic block to start insertion into.
+	(llvm::-position-builder-at-end
+	 *builder*
+	 (cffi:with-foreign-string (str "entry")
+	   (llvm::-append-basic-block function str)))
 	(ecase *chapter*
 	  ((3 4 5)
-	   ;;// Create a new basic block to start insertion into.
-	   (llvm::-position-builder-at-end
-	    *builder*
-	    (cffi:with-foreign-string (str "entry")
-	      (llvm::-append-basic-block function str)))
 	   (flet ((remove-function ()
 		    (llvm::-delete-function function)
 		    (format t "fuck me harder ~a" name)
