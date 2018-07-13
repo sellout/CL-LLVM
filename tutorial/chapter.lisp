@@ -1103,36 +1103,48 @@
 	  (case *chapter*
 	    ((4 5)
 	     (dump-value lf)))
-	  (let ((old *module*))
+	  (let ((old *module*)
+		(module-abnormal? nil))
 	    (pop *fucking-modules*)
 	    ;;	  (format t "~&module??: ~s" old)
-	    (let ((handle (kaleidoscope-add-module old)))
-	      ;;	    (print 123)
-	      (let ((expr-symbol
-		     (cffi:with-foreign-string (str *name*)
-		       (kaleidoscope-find-symbol str))))
+	    (cffi:with-foreign-object (foo :pointer 1)
+	      (setf module-abnormal?
+		    (llvm::-verify-module
+		     old
+		     (cffi:foreign-enum-value
+		      'llvm::|LLVMVerifierFailureAction|
+		      'llvm::|LLVMPrintMessageAction|)
+		     foo))
+	      (with-llvm-message (ptr) (cffi:mem-ref foo :pointer)
+		(print (cffi:foreign-string-to-lisp ptr) *output?*)))
+	    (unless module-abnormal?
+	      (let ((handle (kaleidoscope-add-module old)))
+		;;	    (print 123)
+		(let ((expr-symbol
+		       (cffi:with-foreign-string (str *name*)
+			 (kaleidoscope-find-symbol str))))
 					;		    (print expr-symbol)
-		(when (cffi:null-pointer-p expr-symbol)
-		  (error 'kaleidoscope-error :message "function not found"))
+		  (when (cffi:null-pointer-p expr-symbol)
+		    (error 'kaleidoscope-error :message "function not found"))
 
 					;		    (print 34234)
-		(let ((ptr (kaleidoscope-get-symbol-address expr-symbol)))
+		  (let ((ptr (kaleidoscope-get-symbol-address expr-symbol)))
 					;		      (print ptr)
 					;		      (print 234234)
-		  (if (= 0 ptr)
-		      (error 'kaleidoscope-error :message "function no body???")
-		      (let ((result
-			     (cffi:foreign-funcall-pointer
-			      (cffi:make-pointer ptr) 
-			      () :double)))
-			(format *output?* "Evaluated to ~fD0"
-				result)))))
+		    (if (= 0 ptr)
+			(error 'kaleidoscope-error :message "function no body???")
+			(let ((result
+			       (cffi:foreign-funcall-pointer
+				(cffi:make-pointer ptr) 
+				() :double)))
+			  (format *output?* "Evaluated to ~fD0"
+				  result)))))
 					;(print 2323234242342434)
-	      (llvm::-dispose-module old)
-	      (kaleidoscope-remove-module handle)
-	      (remhash *name* *function-protos*)
-	      (initialize-module-and-pass-manager)
-	      ))
+		(kaleidoscope-remove-module handle)))
+	    (llvm::-dispose-module old)
+	    (remhash *name* *function-protos*)
+	    (initialize-module-and-pass-manager)
+		)
 	  #+nil
 	  (let ((ptr (llvm::-get-pointer-to-global *execution-engine* lf)))
 	    (format *output?* "Evaluated to ~fD0"
