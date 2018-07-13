@@ -89,28 +89,18 @@
 ;;;;AST
 
 ;;; (2 3 4 5 6 7)
-#+nil
-(defclass expression ()
-  ()
-  (:documentation "Base class for all expression nodes."))
-#+nil
-(defclass number-expression (;expression
-			     )
-  ((value :initarg :value :reader value))
-  (:documentation "Expression class for numeric literals like “1.0”."))
-
+;;;;number-expression
 (defmethod value ((sexp cons))
   (ecase (car sexp)
     ((number-expression)
      (second sexp))))
 (defun make-number-expression (num)
+  "for numeric literals like “1.0”."
   (list 'number-expression num))
-#+nil
-(defclass variable-expression (;expression
-			       )
-  ((name :initarg :name :reader name))
-  (:documentation "Expression class for referencing a variable, like “a”."))
+
+;;;;variable expression
 (defun make-variable-expression (num)
+  "for referencing a variable, like “a”."
   (list 'variable-expression num))
 (defmethod name ((expression cons))
   (ecase (car expression)
@@ -119,14 +109,9 @@
     ((prototype)
      (second expression))))
 
-#+nil
-(defclass binary-expression (;expression
-			     )
-  ((operator :initarg :operator :reader operator)
-   (lhs :initarg :lhs :reader lhs)
-   (rhs :initarg :rhs :reader rhs))
-  (:documentation "Expression class for a binary operator."))
+;;;;binary expressions
 (defun make-binary-expression (operator lhs rhs)
+  "for a binary operator."
   (list 'binary-expression operator lhs rhs))
 (defmethod operator ((expression cons))
   (ecase (car expression)
@@ -141,14 +126,7 @@
     ((binary-expression)
      (fourth expression))))
 
-#+nil
-(defclass call-expression (;expression
-			   )
-  ((callee :initarg :callee :reader callee)
-   (arguments :initarg :arguments :reader arguments))
-  (:documentation "Expression class for function calls."))
-(defun make-call-expression (callee arguments)
-  (list 'call-expression callee arguments))
+;;;;function calls
 (defmethod callee ((expression cons))
   (ecase (car expression)
     ((call-expression)
@@ -159,12 +137,11 @@
      (third expression))
     ((prototype)
      (third expression))))
+(defun make-call-expression (callee arguments)
+  "for function calls."
+  (list 'call-expression callee arguments))
 
-#+nil
-(defclass function-definition ()
-  ((prototype :initarg :prototype :reader prototype)
-   (body :initarg :body :reader body))
-  (:documentation "This class represents a function definition itself."))
+;;;function definition
 (defmethod prototype ((expression cons))
   (ecase (car expression)
     ((function-definition)
@@ -178,29 +155,10 @@
     ((var-expression)
      (third expression))))
 (defun make-function-definition (prototype body)
+  "A function definition itself."
   (list 'function-definition prototype body))
 
-;;(2 3 4 5)
-#+nil
-(defclass prototype ()
-  ((name :initform "" :initarg :name :reader name)
-   (arguments :initform (make-array 0) :initarg :arguments :reader arguments))
-  (:documentation
-   "This class represents the “prototype” for a function, which captures its
-    name, and its argument names (thus implicitly the number of arguments the
-    function takes)."))
-
-;;;6 7
-#+nil
-(defclass prototype ()
-  ((name :initform "" :initarg :name :reader name)
-   (arguments :initform (make-array 0) :initarg :arguments :reader arguments)
-   (operatorp :initform nil :initarg :operatorp :reader operatorp)
-   (precedence :initform 0 :initarg :precedence :reader precedence))
-  (:documentation
-   "This class represents the “prototype” for a function, which captures its
-    name, and its argument names (thus implicitly the number of arguments the
-    function takes)."))
+;;;;prototype
 (defun operatorp (sexp)
   (assert (eq 'prototype (car sexp)))
   (fourth sexp))
@@ -209,11 +167,16 @@
 (defun make-prototype (&optional
 			 (name "")
 			 (arguments (make-array 0))
-			 (operatorp nil)
-			 (precedence 0))
+			 (operatorp nil) ;;;;added from 6 onward
+			 (precedence 0) ;;;;added from 6 onward
+			 )
+  "The “prototype” for a function, which captures its
+    name, and its argument names (thus implicitly the number of arguments the
+    function takes)."
   (list 'prototype name arguments operatorp precedence))
 
 ;;;5 6 7
+;;;;;if
 (defclass if-expression (;expression
 			 )
   ((_condition :initarg :_condition :reader _condition)
@@ -242,16 +205,29 @@
   (:documentation "Expression class for a unary operator."))
 (defun make-unary-expression (opcode operand)
   (list 'unary-expression opcode operand))
-(defmethod unary-operator-p ((expression prototype))
+
+;;;for prototypes
+(defun unary-operator-p (expression)
+  (assert (eq 'prototype
+	      (car expression)))
   (and (operatorp expression)
-       (= (length (arguments expression)) 1)))
-(defmethod binary-operator-p ((expression prototype))
+       (= (length (arguments expression))
+	  1)))
+;;;for prototypes
+(defun binary-operator-p (expression)
+  (assert (eq 'prototype
+	      (car expression)))
   (and (operatorp expression)
-       (= (length (arguments expression)) 2)))
-(defmethod operator-name ((expression prototype))
+       (= (length (arguments expression))
+	  2)))
+;;;for prototypes
+(defun operator-name (expression)
+  (assert (eq 'prototype
+	      (car expression)))
   (assert (or (unary-operator-p expression)
 	      (binary-operator-p expression)))
-  (elt (name expression) (1- (length (name expression)))))
+  (elt (name expression)
+       (1- (length (name expression)))))
 
 ;;;7
 #+nil
@@ -1070,7 +1046,9 @@
       (llvm::-build-alloca tmp-b (llvm::-double-type) str))))
 
 
-(defmethod create-argument-allocas ((expression prototype) f)
+(defun create-argument-allocas (expression f)
+  (assert (eq 'prototype
+	      (car expression)))
   (map nil
        (lambda (parameter argument)
          (let ((alloca (create-entry-block-alloca f argument)))
