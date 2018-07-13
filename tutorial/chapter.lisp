@@ -533,12 +533,15 @@
 (defun codegen-variable-expression (sexp)
   (let ((v (gethash (variable-expression.name sexp)
 		    *named-values*)))
-    (if v
+    (if (and v
+	     (not (cffi:null-pointer-p v)))
 	(ecase *chapter*
 	  ((3 4 5 6) v)
 	  ((7)
-	   (cffi:with-foreign-string (str (variable-expression.name sexp))
-	     (llvm::-build-load *builder* v str))))
+	   (let ((name (variable-expression.name sexp)))
+	     ;;(print name *output?*)
+	     (cffi:with-foreign-string (str name)
+	       (llvm::-build-load *builder* v str)))))
 	(error 'kaleidoscope-error :message "unknown variable name"))))
 (defun codegen-binary-expression (sexp)
   (if (and (= *chapter* 7)
