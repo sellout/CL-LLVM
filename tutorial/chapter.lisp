@@ -577,12 +577,15 @@
 		(error 'kaleidoscope-error
 		       :message "invalid binary operators"))
 	       ((6 7)
-		(let ((f (cffi:with-foreign-string
-			     (str (format nil "binary~a"
-					  (binary-expression.operator sexp)))
-			   (llvm::-get-named-function *module* str))))
-		  (assert f () "binary operator not found!")
-		  (build-call *builder* f (list l r) "binop"))))))))))
+		(let ((fun-name (format nil "binary~a"
+					(binary-expression.operator sexp))))
+		  ;;		  (print fun-name)
+		  (let ((f (cffi:with-foreign-string
+			       (str fun-name)
+			     (llvm::-get-named-function *module* str))))
+		    (assert (not (cffi:null-pointer-p f))
+			    () "binary operator not found!")
+		    (build-call *builder* f (list l r) "binop")))))))))))
 
 (defun codegen-call-expression (sexp)
   (let ((callee (let ((*depth* :not-top))
@@ -729,62 +732,66 @@
 	   (when (binary-operator-p prototype)
 	     (setf (gethash (operator-name prototype)
 			    *binop-precedence*)
-		   (precedence prototype)))
+		   (prototype.precedence prototype)))
 	   (llvm::-position-builder-at-end
 	    *builder*
 	    (cffi:with-foreign-string (str "entry")
 	      (llvm::-append-basic-block function str)))
-	   (let ((retval (codegen (function-definition.body sexp))))
-	     (if retval
-		 (progn
-		   (build-ret *builder* retval)
-		   (when (llvm::-verify-function
-			  function
-			  (cffi:foreign-enum-value
-			   'llvm::|LLVMVerifierFailureAction|
-			   'llvm::|LLVMPrintMessageAction|))
-		     (error 'kaleidoscope-error
-			    :message "Function verification failure."))
+	   (block nil
+	     (let ((retval (codegen (function-definition.body sexp))))
+	       (if retval
+		   (progn
+		     (build-ret *builder* retval)
+		     (when (llvm::-verify-function
+			    function
+			    (cffi:foreign-enum-value
+			     'llvm::|LLVMVerifierFailureAction|
+			     'llvm::|LLVMPrintMessageAction|))
+		       (error 'kaleidoscope-error
+			      :message "Function verification failure."))
 					;		   #+nil
-		   (when *fpm?*
-		     (llvm::-run-function-pass-manager *fpm* function))
-		   function)
-		 (progn
-		   (llvm::-delete-function function)
-		   (when (binary-operator-p prototype)
-		     (remhash (operator-name prototype)
-			      *binop-precedence*))))))
+		     (when *fpm?*
+		       (llvm::-run-function-pass-manager *fpm* function))
+		     (return function))
+		   (progn
+		     (llvm::-delete-function function)
+		     (when (binary-operator-p prototype)
+		       (remhash (operator-name prototype)
+				*binop-precedence*)))))
+	     nil))
 	  ((7)
 	   ;; If this is an operator, install it.
 	   (when (binary-operator-p prototype)
 	     (setf (gethash (operator-name prototype)
 			    *binop-precedence*)
-		   (precedence prototype)))
+		   (prototype.precedence prototype)))
 	   (llvm::-position-builder-at-end
 	    *builder*
 	    (cffi:with-foreign-string (str "entry")
 	      (llvm::-append-basic-block function str)))
 	   (create-argument-allocas prototype function)
-	   (let ((retval (codegen (function-definition.body sexp))))
-	     (if retval
-		 (progn
-		   (build-ret *builder* retval)
-		   (when (llvm::-verify-function
-			  function
-			  (cffi:foreign-enum-value
-			   'llvm::|LLVMVerifierFailureAction|
-			   'llvm::|LLVMPrintMessageAction|))
-		     (error 'kaleidoscope-error
-			    :message "Function verification failure."))
+	   (block nil
+	     (let ((retval (codegen (function-definition.body sexp))))
+	       (if retval
+		   (progn
+		     (build-ret *builder* retval)
+		     (when (llvm::-verify-function
+			    function
+			    (cffi:foreign-enum-value
+			     'llvm::|LLVMVerifierFailureAction|
+			     'llvm::|LLVMPrintMessageAction|))
+		       (error 'kaleidoscope-error
+			      :message "Function verification failure."))
 					;		   #+nil
-		   (when *fpm?*
-		     (llvm::-run-function-pass-manager *fpm* function))
-		   function)
-		 (progn
-		   (llvm::-delete-function function)
-		   (when (binary-operator-p prototype)
-		     (remhash (operator-name prototype)
-			      *binop-precedence*)))))))))))
+		     (when *fpm?*
+		       (llvm::-run-function-pass-manager *fpm* function))
+		     (return function))
+		   (progn
+		     (llvm::-delete-function function)
+		     (when (binary-operator-p prototype)
+		       (remhash (operator-name prototype)
+				*binop-precedence*)))))
+	     nil)))))))
 
 (defun codegen-binary=expression (expression)
   (let ((lhse (binary-expression.lhs expression))
@@ -1039,7 +1046,7 @@
 						      (unary-expression.opcode expression)))
 		 (llvm::-get-named-function
 		  *module*
-		  ))))
+		  str))))
 	(unless f
 	  (error 'kaleidoscope-error :message "Unknown unary operator"))
 	(build-call *builder* f (list operand-v) "unop")))))

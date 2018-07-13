@@ -41,7 +41,7 @@
 	 (trim-empty-lines
 	  (with-output-to-string (stream)
 	    (let ((all (make-broadcast-stream stream
-					;*standard-output*
+					*standard-output*
 					      )))
 	      (let ((input-file-name (merge-pathnames in *test-directory*)))
 		(print input-file-name)
