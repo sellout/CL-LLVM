@@ -1,5 +1,10 @@
 (in-package :k-shared)
 
+(declaim (optimize (speed 0) (safety 3) (debug 3)))
+
+(defun doublify (x)
+  (coerce x 'double-float))
+
 ;;;;lexer
 
 (defvar +whitespace+ '(#\space #\tab nil #\linefeed #\return))
@@ -113,18 +118,15 @@
 (defun make-binary-expression (operator lhs rhs)
   "for a binary operator."
   (list 'binary-expression operator lhs rhs))
-(defmethod operator ((expression cons))
-  (ecase (car expression)
-    ((binary-expression)
-     (second expression))))
-(defmethod lhs ((expression cons))
-  (ecase (car expression)
-    ((binary-expression)
-     (third expression))))
-(defmethod rhs ((expression cons))
-  (ecase (car expression)
-    ((binary-expression)
-     (fourth expression))))
+(defun binary-expression.operator (sexp)
+  (assert (eq 'binary-expression (car sexp)))
+  (second sexp))
+(defun binary-expression.lhs (sexp)
+  (assert (eq 'binary-expression (car sexp)))
+  (third sexp))
+(defun binary-expression.rhs (sexp)
+  (assert (eq 'binary-expression (car sexp)))
+  (fourth sexp))
 
 ;;;;function calls
 (defmethod callee ((expression cons))
@@ -163,7 +165,8 @@
   (assert (eq 'prototype (car sexp)))
   (fourth sexp))
 (defun precedence (sexp)
-  (assert (eq 'prototype (car sexp))))
+  (assert (eq 'prototype (car sexp)))
+  (fifth sexp))
 (defun make-prototype (&optional
 			 (name "")
 			 (arguments (make-array 0))
@@ -177,34 +180,56 @@
 
 ;;;5 6 7
 ;;;;;if
-(defclass if-expression (;expression
-			 )
-  ((_condition :initarg :_condition :reader _condition)
-   (then :initarg :then :reader then)
-   (else :initarg :else :reader else))
-  (:documentation "Expression class for if/then/else."))
 (defun make-if-expression (_condition then else)
+  "for if/then/else."
   (list 'if-expression _condition then else))
-(defclass for-expression (;expression
-			  )
-  ((var-name :initarg :var-name :reader var-name)
-   (start :initarg :start :reader start)
-   (end :initarg :end :reader end)
-   ;; FIXME: why is CCL's conflicting STEP visible here?
-   (step :initarg :step :reader step*)
-   (body :initarg :body :reader body))
-  (:documentation "Expression class for for/in."))
+(defun _condition (sexp)
+  (assert (eq (car sexp)
+	      'if-expression))
+  (second sexp))
+(defun then (sexp)
+  (assert (eq (car sexp)
+	      'if-expression))
+  (third sexp))
+(defun else (sexp)
+  (assert (eq (car sexp)
+	      'if-expression))
+  (fourth sexp))
+
+;;;;for
 (defun make-for-expression (var-name start end step body)
+  "for for/in."
   (list 'for-expression var-name start end step body))
+(defun var-name (sexp)
+  (assert (eq (car sexp)
+	      'for-expression))
+  (first sexp))
+(defun start (sexp)
+  (assert (eq (car sexp)
+	      'for-expression))
+  (second sexp))
+(defun end (sexp)
+  (assert (eq (car sexp)
+	      'for-expression))
+  (third sexp))
+(defun step* (sexp)
+  (assert (eq (car sexp)
+	      'for-expression))
+  (fourth sexp))
 
 ;;;;6 7
-(defclass unary-expression (;expression
-			    )
-  ((opcode :initarg :opcode :reader opcode)
-   (operand :initarg :operand :reader operand))
-  (:documentation "Expression class for a unary operator."))
+;;;;unary expression
 (defun make-unary-expression (opcode operand)
+  "for a unary operator."
   (list 'unary-expression opcode operand))
+(defun opcode (expression)
+  (assert (eq 'unary-expression
+	      (car expression)))
+  (second expression))
+(defun operand (expression)
+  (assert (eq 'unary-expression
+	      (car expression)))
+  (third expression))
 
 ;;;for prototypes
 (defun unary-operator-p (expression)
@@ -235,13 +260,14 @@
 			  )
   ((var-names :initarg :var-names :reader var-names)
    (body :initarg :body :reader body))
-  (:documentation "Expression class for var/in"))
-(defmethod var-names ((expression cons))
-  (ecase (car expression)
-    ((var-expression)
-     (second expression))))
+  (:documentation ))
 (defun make-var-expression (var-names body)
+  "for var/in"
   (list 'var-expression var-names body))
+(defun var-names (expression)
+  (assert (eq 'var-expression
+	      (car expression)))
+  (second expression))
 
 ;;;;Parser
 
@@ -558,10 +584,39 @@
 ;;;(defmethod codegen ((expression function-definition)))
 ;;;(defmethod codegen ((expression var-expression)))
 ;;;(defmethod codegen ((expression prototype)))
+;;;(defmethod codegen ((expression if-expression)))
+;;;(defmethod codegen ((expression for-expression)))
+(defmethod codegen ((expression cons))
+  (let ((token (car expression)))
+    (cond
+      ((eql token 'number-expression)
+       (codegen-number-expression expression))
+      ((eql token 'variable-expression)
+       (codegen-variable-expression expression))
+      ((eql token 'binary-expression)
+       (codegen-binary-expression expression))
+      ((eql token 'call-expression)
+       (codegen-call-expression expression))
+      ((eql token 'var-expression)
+       (codegen-var-expression expression))
+      ((eql token 'prototype)
+       (codegen-prototype expression))
+      ((eql token 'function-definition)
+       (codegen-function-definition expression))
+      ((and (eql token 'if-expression)
+	    (member *chapter* '(5 6 7) :test 'eql))
+       (codegen-if-expression expression))
+      ((and (eql token 'for-expression)
+	    (member *chapter* '(5 6 7) :test 'eql))
+       (codegen-for-expression expression))
+      ((and (eql token 'unary-expression)
+	    (member *chapter* '(6 7) :test 'eql))
+       (codegen-unary-expression expression))
+      (t (error "codegen not applicaple")))))
+
 (defun codegen-number-expression (sexp)
   (llvm::-const-real (llvm::-double-type)
-		     (coerce (value sexp)
-			     'double-float)))
+		     (doublify (value sexp))))
 (defun codegen-variable-expression (sexp)
   (let ((v (gethash (name sexp)
 		    *named-values*)))
@@ -574,14 +629,14 @@
 	(error 'kaleidoscope-error :message "unknown variable name"))))
 (defun codegen-binary-expression (sexp)
   (if (and (= *chapter* 7)
-	   (eql (operator sexp)
+	   (eql (binary-expression.operator sexp)
 		#\=))
       ;; TODO: can we typecheck (lhs expression) here?
       (codegen-binary=expression sexp)
-      (let ((l (codegen (lhs sexp)))
-	    (r (codegen (rhs sexp))))
+      (let ((l (codegen (binary-expression.lhs sexp)))
+	    (r (codegen (binary-expression.rhs sexp))))
 	(when (and l r)
-	  (case (operator sexp)
+	  (case (binary-expression.operator sexp)
 	    (#\+ (cffi:with-foreign-string (str "addtmp")
 		   (llvm::-build-f-add *builder* l r str)))
 	    (#\- (cffi:with-foreign-string (str "subtmp")
@@ -595,7 +650,11 @@
 		*builder*
 		(llvm::-build-f-cmp
 		 *builder*
-		 :unordered-< l r
+		 (cffi:foreign-enum-value
+		  'llvm::|LLVMRealPredicate|
+		  'llvm::|LLVMRealULT|)
+		 ;;:unordered-<
+		 l r
 		 cmptmp)
 		(llvm::-double-type)
 		booltmp)))
@@ -605,8 +664,9 @@
 		(error 'kaleidoscope-error
 		       :message "invalid binary operators"))
 	       ((6 7)
-		(let ((f (cffi:with-foreign-string (str (format nil "binary~a"
-								(operator sexp)))
+		(let ((f (cffi:with-foreign-string
+			     (str (format nil "binary~a"
+					  (binary-expression.operator sexp)))
 			   (llvm::-get-named-function *module* str))))
 		  (assert f () "binary operator not found!")
 		  (build-call *builder* f (list l r) "binop"))))))))))
@@ -618,7 +678,6 @@
     (if callee
 	(if (= (llvm::-count-params callee)
 	       (length (arguments sexp)))
-					;(cffi:with-foreign-string (calltmp ))
 	    (build-call
 	     *builder*
 	     callee
@@ -643,7 +702,7 @@
 				       (codegen init)
 				       (llvm::-const-real
 					(llvm::-double-type)
-					0))
+					(doublify 0)))
 				   alloca)
 				  (prog1 (gethash var-name *named-values*)
 				    (setf (gethash var-name *named-values*)
@@ -813,28 +872,9 @@
 		     (remhash (operator-name (prototype sexp))
 			      *binop-precedence*)))))))))))
 
-(defmethod codegen ((expression cons))
-  (let ((token (car expression)))
-    (cond
-      ((eql token 'number-expression)
-       (codegen-number-expression expression))
-      ((eql token 'variable-expression)
-       (codegen-variable-expression expression))
-      ((eql token 'binary-expression)
-       (codegen-binary-expression expression))
-      ((eql token 'call-expression)
-       (codegen-call-expression expression))
-      ((eql token 'var-expression)
-       (codegen-var-expression expression))
-      ((eql token 'prototype)
-       (codegen-prototype expression))
-      ((eql token 'function-definition)
-       (codegen-function-definition expression))
-      (t (error "??")))))
-
 (defun codegen-binary=expression (expression)
-  (let ((lhse (lhs expression))
-	(val (codegen (rhs expression))))
+  (let ((lhse (binary-expression.lhs expression))
+	(val (codegen (binary-expression.rhs expression))))
     (when val
       (let ((variable (gethash (name lhse) *named-values*)))
 	(unless variable
@@ -849,16 +889,18 @@
 ;;; code generation 5
 
 ;;;5 6 7
-(defmethod codegen ((expression if-expression))
+(defun codegen-if-expression (expression)
   (let ((cond-v (codegen (_condition expression))))
     (when cond-v
       (setf cond-v
 	    (cffi:with-foreign-string (str "ifcond")
-	      (llvm::build-f-cmp
+	      (llvm::-build-f-cmp
 	       *builder* 
-	       'llvm::|LLVMIntNE|
+	       (cffi:foreign-enum-value
+		'llvm::|LLVMRealPredicate|
+		'llvm::|LLVMRealONE|)
 	       cond-v
-	       (const-real (llvm::-double-type) 0)
+	       (const-real (llvm::-double-type) (doublify 0))
 	       str)))
       (let* ((function (llvm::-get-basic-block-parent  
                         (llvm::-get-insert-block *builder*)))
@@ -899,7 +941,7 @@
 				(list then-bb else-bb))
                   pn)))))))))
 
-(defmethod codegen ((expression for-expression))
+(defun codegen-for-expression (expression)
   (ecase *chapter*
     ((5 6) (codegen56 expression))
     ((7) (codegen7 expression))))
@@ -1036,7 +1078,7 @@
 
 ;;; code generation 6
 ;;;;6 7
-(defmethod codegen ((expression unary-expression))
+(defun codegen-unary-expression (expression)
   (let ((operand-v (codegen (operand expression))))
     (when operand-v
       (let ((f (cffi:with-foreign-string (str (format nil "unary~a"
@@ -1071,8 +1113,11 @@
        (params f)
        (arguments expression)))
 
-(defparameter *fucking-modules* nil)
+
+;;;;END CODE GENERATION
+
 ;;;;Toplevel
+(defparameter *fucking-modules* nil)
 (defun initialize-module-and-pass-manager ()
   (let ((module (cffi:with-foreign-string (str "fuck you")
 		  (llvm::-module-create-with-name str))))
@@ -1149,8 +1194,9 @@
 		   (dump-value lf)))
 		(let ((old *module*))
 		  (pop *fucking-modules*)
+		  (format t "~&module??: ~s" old)
 		  (let ((handle (kaleidoscope-add-module old)))
-					;		  (print 123)
+		    (print 123)
 		    (let ((expr-symbol
 			   (cffi:with-foreign-string (str *name*)
 			     (kaleidoscope-find-symbol str))))
