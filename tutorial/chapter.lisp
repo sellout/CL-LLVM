@@ -1060,129 +1060,135 @@
 	(llvm::-add-reassociate-pass fpm)
 	(llvm::-add-g-v-n-pass fpm)
 	(llvm::-add-c-f-g-simplification-pass fpm))
-     (llvm::-initialize-function-pass-manager fpm)
-     (setf *fpm* fpm))))
+      (llvm::-initialize-function-pass-manager fpm)
+      (setf *fpm* fpm))))
 
+(defun %handle-definition (function-ast)
+  (ecase *chapter*
+    ((2)
+     (format *output?* "Parsed a function definition~%"))
+    ((3 4 5 6 7)
+     (let ((lf (codegen function-ast)))
+       (when lf
+	 (format *output?* "Read function definition:")
+	 (dump-value lf)
+	 (kaleidoscope-add-module *module*)
+	 (initialize-module-and-pass-manager))))))
 
-(defun handle-definition ()
-  (let ((function (parse-definition)))
-    (if function
-	(ecase *chapter*
-	  ((2)
-	   (format *output?* "Parsed a function definition~%"))
-	  ((3 4 5 6 7)
-	   (let ((lf (codegen function)))
-	     (when lf
-	       (format *output?* "Read function definition:")
-	       (dump-value lf)
-	       (kaleidoscope-add-module *module*)
-	       (initialize-module-and-pass-manager)))))
-	(get-next-token))))
+(defun %handle-extern (prototype-ast)
+  (ecase *chapter*
+    ((2)
+     (format *output?* "Parsed an extern~%"))
+    ((3 4 5 6 7)
+     (let ((function (codegen prototype-ast)))
+       (when function
+	 (format *output?* "Read extern: ")
+	 (dump-value function)
+	 (setf (gethash (prototype.name prototype-ast) *function-protos*)
+	       prototype-ast))))))
 
-(defun handle-extern ()
-  (let ((prototype (parse-extern)))
-    (if prototype
-	(ecase *chapter*
-	  ((2)
-	   (format *output?* "Parsed an extern~%"))
-	  ((3 4 5 6 7)
-	   (let ((function (codegen prototype)))
-	     (when function
-	       (format *output?* "Read extern: ")
-	       (dump-value function)
-	       (setf (gethash (prototype.name prototype) *function-protos*)
-		     prototype)))))
-	(get-next-token))))
-
-(defun handle-top-level-expression ()
+(defun %handle-top-level-expression (ast)
   "Evaluate a top-level expression into an anonymous function."
-  (handler-case
-      (let ((func-ast (parse-top-level-expression)))
-	(ecase *chapter*
-	  ((2)
-	   (format *output?* "Parsed a top-level expr~%"))
-	  ((3 4 5 6 7)
-	   (let ((lf (codegen func-ast)))
-	     (case *chapter*
-	       ((3)
-		(format *output?* "Read top-level expression:")
-		(dump-value lf))
-	       ((4 5 6 7)
-		(case *chapter*
-		  ((4 5)
-		   (dump-value lf)))
-		(let ((old *module*))
-		  (pop *fucking-modules*)
-	;;	  (format t "~&module??: ~s" old)
-		  (let ((handle (kaleidoscope-add-module old)))
-	;;	    (print 123)
-		    (let ((expr-symbol
-			   (cffi:with-foreign-string (str *name*)
-			     (kaleidoscope-find-symbol str))))
+  (ecase *chapter*
+    ((2)
+     (format *output?* "Parsed a top-level expr~%"))
+    ((3 4 5 6 7)
+     (let ((lf (codegen ast)))
+       (case *chapter*
+	 ((3)
+	  (format *output?* "Read top-level expression:")
+	  (dump-value lf))
+	 ((4 5 6 7)
+	  (case *chapter*
+	    ((4 5)
+	     (dump-value lf)))
+	  (let ((old *module*))
+	    (pop *fucking-modules*)
+	    ;;	  (format t "~&module??: ~s" old)
+	    (let ((handle (kaleidoscope-add-module old)))
+	      ;;	    (print 123)
+	      (let ((expr-symbol
+		     (cffi:with-foreign-string (str *name*)
+		       (kaleidoscope-find-symbol str))))
 					;		    (print expr-symbol)
-		      (when (cffi:null-pointer-p expr-symbol)
-			(error 'kaleidoscope-error :message "function not found"))
+		(when (cffi:null-pointer-p expr-symbol)
+		  (error 'kaleidoscope-error :message "function not found"))
 
 					;		    (print 34234)
-		      (let ((ptr (kaleidoscope-get-symbol-address expr-symbol)))
+		(let ((ptr (kaleidoscope-get-symbol-address expr-symbol)))
 					;		      (print ptr)
 					;		      (print 234234)
-			(if (= 0 ptr)
-			    (error 'kaleidoscope-error :message "function no body???")
-			    (let ((result
-				   (cffi:foreign-funcall-pointer
-				    (cffi:make-pointer ptr) 
-				    () :double)))
-			      (format *output?* "Evaluated to ~fD0"
-				      result)))))
+		  (if (= 0 ptr)
+		      (error 'kaleidoscope-error :message "function no body???")
+		      (let ((result
+			     (cffi:foreign-funcall-pointer
+			      (cffi:make-pointer ptr) 
+			      () :double)))
+			(format *output?* "Evaluated to ~fD0"
+				result)))))
 					;(print 2323234242342434)
-		    (llvm::-dispose-module old)
-		    (kaleidoscope-remove-module handle)
-		    (remhash *name* *function-protos*)
-		    (initialize-module-and-pass-manager)
-		    ))
-		#+nil
-		(let ((ptr (llvm::-get-pointer-to-global *execution-engine* lf)))
-		  (format *output?* "Evaluated to ~fD0"
-			  (if (cffi:pointer-eq ptr lf) ; we have an interpreter
-			      (llvm::-generic-value-to-float
-			       (llvm::-double-type)
-			       (let ((args ()))
-				 (let ((len (length args)))
-				   (cffi:with-foreign-object (var 'llvm::|LLVMGenericValueRef| len)
-				     (dotimes (index len)
-				       (setf (cffi:mem-aref var 'llvm::|LLVMGenericValueRef| index)
-					     (elt args index)))
-				     (llvm::-run-function *execution-engine* ptr len var)))))
-			      (cffi:foreign-funcall-pointer ptr () :double)))))
-	       )))))
-    (kaleidoscope-error (e)
-      (get-next-token)
-      (format *output?* "error: ~a~%" e))))
+	      (llvm::-dispose-module old)
+	      (kaleidoscope-remove-module handle)
+	      (remhash *name* *function-protos*)
+	      (initialize-module-and-pass-manager)
+	      ))
+	  #+nil
+	  (let ((ptr (llvm::-get-pointer-to-global *execution-engine* lf)))
+	    (format *output?* "Evaluated to ~fD0"
+		    (if (cffi:pointer-eq ptr lf) ; we have an interpreter
+			(llvm::-generic-value-to-float
+			 (llvm::-double-type)
+			 (let ((args ()))
+			   (let ((len (length args)))
+			     (cffi:with-foreign-object (var 'llvm::|LLVMGenericValueRef| len)
+			       (dotimes (index len)
+				 (setf (cffi:mem-aref var 'llvm::|LLVMGenericValueRef| index)
+				       (elt args index)))
+			       (llvm::-run-function *execution-engine* ptr len var)))))
+			(cffi:foreign-funcall-pointer ptr () :double)))))
+	 )))))
 
-(defun main-loop (exit)
-  (do ()
-      ((main-loop-end))
-    (per-loop exit)))
-(defun main-loop-end ()
-  (eql *current-token* ':tok-eof))
-(defun per-loop (exit)
-  (format *output?* "~&ready> ")
-  (handler-case (case *current-token*
-		  (#\; (get-next-token))
-		  (:tok-def (handle-definition))
-		  (:tok-extern (handle-extern))
-		  (:tok-quit (funcall exit))
-		  (otherwise (handle-top-level-expression)))
-    (kaleidoscope-error (e) (format *output?* "error: ~a~%" e))))
+(progn
+  (defun main-loop (exit)
+    (do ()
+	((main-loop-end))
+      (per-loop exit)))
+  (defun main-loop-end ()
+    (eql *current-token* ':tok-eof))
+  (defun per-loop (exit)
+    (format *output?* "~&ready> ")
+    (handler-case
+	(case *current-token*
+	  (#\; (get-next-token))
+	  (:tok-def
+	   ;;handle-definition
+	   (let ((function-ast (parse-definition)))
+	     ;(print function-ast *output?*)
+	     (if function-ast
+		 (%handle-definition function-ast)
+		 (get-next-token))))
+	  (:tok-extern
+	   ;;handle-extern
+	   (let ((prototype (parse-extern)))
+	     ;(print prototype *output?*)
+	     (if prototype
+		 (%handle-extern prototype)
+		 (get-next-token))))
+	  (:tok-quit (funcall exit))
+	  (otherwise
+	   ;;handle-top-level-expression
+	   (handler-case
+	       (let ((ast (parse-top-level-expression)))
+		 ;(print ast *output?*)
+		 (%handle-top-level-expression ast))
+	     (kaleidoscope-error (e)
+	       (get-next-token)
+	       (format *output?* "error: ~a~%" e)))
+	   ))
+      (kaleidoscope-error (e) (format *output?* "error: ~a~%" e)))))
 
 ;;; top-level 4 5 6 7
 (defvar *execution-engine*)
-
-(defmacro with-chapter (n &body body)
-  (once-only (n)
-    `(let ((*chapter* ,n))
-       (%with-tokens ,n ,@body))))
 
 (defun resetstuff ()
   (setf *fucking-modules* nil)
@@ -1191,34 +1197,35 @@
 
 (defun toplevel (n)
   (resetstuff)
-  (with-chapter n
-    (labels ((%start ()
-	       (unwind-protect
-		    (progn
-		      (setf *builder* (llvm::-create-builder))
-		      (format *output?* "~&ready> ")
-		      (reset-token-reader)
-		      (get-next-token)
-		      (set-binop-precedence)
-		      (when *jit?*
-			(initialize-module-and-pass-manager))
-		      (callcc (function main-loop)))
-		 ;;destroyed on jit destruction?
-		 #+nil
-		 (dolist (module *fucking-modules*)
-		   (llvm::-dispose-module module))
-		 (llvm::-dispose-builder *builder*)
+  (let ((*chapter* n))
+    (%with-tokens *chapter*
+      (labels ((%start ()
+		 (unwind-protect
+		      (progn
+			(setf *builder* (llvm::-create-builder))
+			(format *output?* "~&ready> ")
+			(reset-token-reader)
+			(get-next-token)
+			(set-binop-precedence)
+			(when *jit?*
+			  (initialize-module-and-pass-manager))
+			(callcc (function main-loop)))
+		   ;;destroyed on jit destruction?
+		   #+nil
+		   (dolist (module *fucking-modules*)
+		     (llvm::-dispose-module module))
+		   (llvm::-dispose-builder *builder*)
 					;(resetstuff)
-		 )))
-      (if *jit?*
-	  (progn
-	    (llvm::initialize-native-target?)
-	    (llvm::initialize-native-Asm-parser)
-	    (llvm::initialize-native-asm-printer)
-	    (unwind-protect
-		 (progn (kaleidoscope-create)
-			(%start)
-			(dump-module *module*))
-	      (kaleidoscope-destroy)))
-	  (%start))
-      (values))))
+		   )))
+	(if *jit?*
+	    (progn
+	      (llvm::initialize-native-target?)
+	      (llvm::initialize-native-Asm-parser)
+	      (llvm::initialize-native-asm-printer)
+	      (unwind-protect
+		   (progn (kaleidoscope-create)
+			  (%start)
+			  (dump-module *module*))
+		(kaleidoscope-destroy)))
+	    (%start))
+	(values)))))
