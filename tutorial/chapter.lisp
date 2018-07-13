@@ -807,6 +807,8 @@
 (defun codegen-if-expression (expression)
   (let ((cond-v (codegen (if-expression._condition expression))))
     (when cond-v
+
+      ;; Convert condition to a bool by comparing equal to 0.0.
       (setf cond-v
 	    (cffi:with-foreign-string (str "ifcond")
 	      (llvm::-build-f-cmp
@@ -817,6 +819,9 @@
 	       cond-v
 	       (const-real (llvm::-double-type) (doublify 0))
 	       str)))
+
+      ;; Create blocks for the then and else cases.  Insert the 'then' block at the
+      ;; end of the function.
       (let* ((function (llvm::-get-basic-block-parent  
                         (llvm::-get-insert-block *builder*)))
              (then-bb
@@ -826,10 +831,13 @@
              (else-bb
 	      (cffi:with-foreign-string (str "else")
 		(llvm::-append-basic-block function str)))
+	     
              (merge-bb
 	      (cffi:with-foreign-string (str "ifcont")
 		(llvm::-append-basic-block function str))))
         (llvm::-build-cond-br *builder* cond-v then-bb else-bb)
+
+	;;Emit then value.
         (position-builder *builder* then-bb)
         (let ((then-v (codegen (if-expression.then expression))))
           (when then-v
@@ -837,6 +845,8 @@
             ;; Codegen of 'Then' can change the current block, update THEN-BB
             ;; for the PHI.
             (setf then-bb (llvm::-get-insert-block *builder*))
+
+	    ;;Emit else block.
             (position-builder *builder* else-bb)
             (let ((else-v (codegen (if-expression.else expression))))
               (when else-v
