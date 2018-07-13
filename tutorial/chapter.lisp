@@ -531,18 +531,19 @@
   (llvm::-const-real (llvm::-double-type)
 		     (doublify (number-expression.value sexp))))
 (defun codegen-variable-expression (sexp)
-  (let ((v (gethash (variable-expression.name sexp)
-		    *named-values*)))
-    (if (and v
-	     (not (cffi:null-pointer-p v)))
-	(ecase *chapter*
-	  ((3 4 5 6) v)
-	  ((7)
-	   (let ((name (variable-expression.name sexp)))
-	     ;;(print name *output?*)
+  ;;// Look this variable up in the function.
+  (let ((name (variable-expression.name sexp)))
+    (let ((value (gethash name *named-values*)))
+      (if (and value
+	       (not (cffi:null-pointer-p value)))
+	  (ecase *chapter*
+	    ((3 4 5 6) value)
+	    ((7)
+					;(print name *output?*)
+	     ;;// Load the value.
 	     (cffi:with-foreign-string (str name)
-	       (llvm::-build-load *builder* v str)))))
-	(error 'kaleidoscope-error :message "unknown variable name"))))
+	       (llvm::-build-load *builder* value str))))
+	  (error 'kaleidoscope-error :message "unknown variable name")))))
 (defun codegen-binary-expression (sexp)
   (if (and (= *chapter* 7)
 	   (eql (binary-expression.operator sexp)
@@ -759,16 +760,21 @@
 		 nil)))))))))
 
 (defun codegen-binary=expression (expression)
-  (let ((lhse (binary-expression.lhs expression))
-	(val (codegen (binary-expression.rhs expression))))
-    (when val
-      (let ((variable
-	     (gethash (variable-expression.name lhse)
-		      *named-values*)))
-	(unless variable
-	  (error 'kaleidoscope-error :message "Unknown variable name"))
-	(llvm::-build-store *builder* val variable)
-	val))))
+  (let ((lhse (binary-expression.lhs expression)))
+    (if (variable-expression-p lhse)
+
+	;;// Codegen the RHS.
+	(let ((val (codegen (binary-expression.rhs expression))))
+	  (when val
+	    ;;; // Look up the name.
+	    (let ((variable
+		   (gethash (variable-expression.name lhse)
+			    *named-values*)))
+	      (unless variable
+		(error 'kaleidoscope-error :message "Unknown variable name"))
+	      (llvm::-build-store *builder* val variable)
+	      val)))
+	(error 'kaleidoscope-error :message "destination of '=' must be a variable"))))
 
 ;;; code generation 4
 
@@ -941,8 +947,9 @@
 (defun codegen7 (expression)
   (let* ((function (llvm::-get-basic-block-parent
 		    (llvm::-get-insert-block *builder*)))
-	 (alloca (create-entry-block-alloca function
-					    (for-expression.var-name expression)))
+	 (alloca (create-entry-block-alloca
+		  function
+		  (for-expression.var-name expression)))
 	 (start-val (codegen (for-expression.start expression))))
     (when start-val
       (llvm::-build-store *builder* start-val alloca)
