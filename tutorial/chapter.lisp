@@ -146,6 +146,26 @@
   (precedence 0) ;;;;added from 6 onward
   )
 
+;;;for prototypes
+(defun unary-operator-p (expression)
+  (assert (prototype-p expression))
+  (and (prototype.operatorp expression)
+       (= (length (prototype.arguments expression))
+	  1)))
+;;;for prototypes
+(defun binary-operator-p (expression)
+  (assert (prototype-p expression))
+  (and (prototype.operatorp expression)
+       (= (length (prototype.arguments expression))
+	  2)))
+;;;for prototypes
+(defun operator-name (expression)
+  (assert (prototype-p expression))
+  (assert (or (unary-operator-p expression)
+	      (binary-operator-p expression)))
+  (elt (prototype.name expression)
+       (1- (length (prototype.name expression))))) ;;;;works with characters?
+
 ;;;5 6 7
 ;;;;;if
 (define-ast-node (if-expression) _condition then else)
@@ -158,29 +178,6 @@
 ;;;;unary expression
 ;;;;"for a unary operator."
 (define-ast-node (unary-expression) opcode operand)
-
-;;;for prototypes
-(defun unary-operator-p (expression)
-  (assert (eq 'prototype
-	      (car expression)))
-  (and (prototype.operatorp expression)
-       (= (length (prototype.arguments expression))
-	  1)))
-;;;for prototypes
-(defun binary-operator-p (expression)
-  (assert (eq 'prototype
-	      (car expression)))
-  (and (prototype.operatorp expression)
-       (= (length (prototype.arguments expression))
-	  2)))
-;;;for prototypes
-(defun operator-name (expression)
-  (assert (eq 'prototype
-	      (car expression)))
-  (assert (or (unary-operator-p expression)
-	      (binary-operator-p expression)))
-  (elt (prototype.name expression)
-       (1- (length (prototype.name expression)))))
 
 ;;;7
 ;;;;mutable variables?
