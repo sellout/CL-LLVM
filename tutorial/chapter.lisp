@@ -123,114 +123,41 @@
 (define-ast-node (variable-expression) name)
 
 ;;;;binary expressions
-(defun make-binary-expression (operator lhs rhs)
-  "for a binary operator."
-  (list 'binary-expression operator lhs rhs))
-(defun binary-expression.operator (sexp)
-  (assert (eq 'binary-expression (car sexp)))
-  (second sexp))
-(defun binary-expression.lhs (sexp)
-  (assert (eq 'binary-expression (car sexp)))
-  (third sexp))
-(defun binary-expression.rhs (sexp)
-  (assert (eq 'binary-expression (car sexp)))
-  (fourth sexp))
+;;;  "for a binary operator."
+(define-ast-node (binary-expression) operator lhs rhs)
 
 ;;;;function calls
-(defun make-call-expression (callee arguments)
-  "for function calls."
-  (list 'call-expression callee arguments))
-(defun call-expression.callee (sexp)
-  (assert (eq 'call-expression (car sexp)))
-  (second sexp))
-(defun call-expression.arguments (sexp)
-  (assert (eq 'call-expression (car sexp)))
-  (third sexp))
+;;; "for function calls."
+(define-ast-node (call-expression) callee arguments)
 
 ;;;function definition
-(defun make-function-definition (prototype body)
-  "A function definition itself."
-  (list 'function-definition prototype body))
-(defun function-definition.prototype (sexp)
-  (assert (eq 'function-definition (car sexp)))
-  (second sexp))
-(defun function-definition.body (sexp)
-  (assert (eq 'function-definition (car sexp)))
-  (third sexp))
+;;;"A function definition itself."
+(define-ast-node (function-definition) prototype body)
 
 ;;;;prototype
-(defun make-prototype (&optional
-			 (name "")
-			 (arguments (make-array 0))
-			 (operatorp nil) ;;;;added from 6 onward
-			 (precedence 0) ;;;;added from 6 onward
-			 )
-  "The “prototype” for a function, which captures its
+#+nil
+"The “prototype” for a function, which captures its
     name, and its argument names (thus implicitly the number of arguments the
     function takes)."
-  (list 'prototype name arguments operatorp precedence))
-(defun prototype.name (sexp)
-  (assert (eq 'prototype (car sexp)))
-  (second sexp))
-(defun prototype.arguments (sexp)
-  (assert (eq 'prototype (car sexp)))
-  (third sexp))
-(defun prototype.operatorp (sexp)
-  (assert (eq 'prototype (car sexp)))
-  (fourth sexp))
-(defun prototype.precedence (sexp)
-  (assert (eq 'prototype (car sexp)))
-  (fifth sexp))
+(define-ast-node (prototype)
+    (name "")
+  (arguments (make-array 0))
+  (operatorp nil) ;;;;added from 6 onward
+  (precedence 0) ;;;;added from 6 onward
+  )
 
 ;;;5 6 7
 ;;;;;if
-(defstruct (if-expression (:type list)
-			  :named
-			  (:conc-name if-expression.)
-			  (:constructor make-if-expression
-					(_condition then else)))
-  _condition
-  then
-  else)
+(define-ast-node (if-expression) _condition then else)
 
 ;;;;for
-(defun make-for-expression (var-name start end step body)
-  "for for/in."
-  (list 'for-expression var-name start end step body))
-(defun for-expression.var-name (sexp)
-  (assert (eq (car sexp)
-	      'for-expression))
-  (first sexp))
-(defun for-expression.start (sexp)
-  (assert (eq (car sexp)
-	      'for-expression))
-  (second sexp))
-(defun for-expression.end (sexp)
-  (assert (eq (car sexp)
-	      'for-expression))
-  (third sexp))
-(defun for-expression.step* (sexp)
-  (assert (eq (car sexp)
-	      'for-expression))
-  (fourth sexp))
-(defun for-expression.body (sexp)
-  (assert (eq (car sexp)
-	      'for-expression))
-  (fifth sexp))
+;;;"for for/in."
+(define-ast-node (for-expression) var-name start end step body)
 
 ;;;;6 7
 ;;;;unary expression
-(defun make-unary-expression (opcode operand)
-  "for a unary operator."
-  (list 'unary-expression opcode operand))
-(defun unary-expression.opcode (expression)
-  (assert (eq 'unary-expression
-	      (car expression)))
-  (second expression))
-(defun unary-expression.operand (expression)
-  (assert (eq 'unary-expression
-	      (car expression)))
-  (third expression))
+;;;;"for a unary operator."
+(define-ast-node (unary-expression) opcode operand)
 
 ;;;for prototypes
 (defun unary-operator-p (expression)
@@ -257,17 +184,8 @@
 
 ;;;7
 ;;;;mutable variables?
-(defun make-var-expression (var-names body)
-  "for var/in"
-  (list 'var-expression var-names body))
-(defun var-expression.var-names (expression)
-  (assert (eq 'var-expression
-	      (car expression)))
-  (second expression))
-(defun var-expression.body (expression)
-  (assert (eq 'var-expression
-	      (car expression)))
-  (third expression))
+;;;;"for var/in"
+(define-ast-node (var-expression) var-names body)
 
 ;;;;Parser
 
