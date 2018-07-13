@@ -1163,14 +1163,14 @@
 	  (:tok-def
 	   ;;handle-definition
 	   (let ((function-ast (parse-definition)))
-	     ;(print function-ast *output?*)
+	     (dump-ast function-ast)
 	     (if function-ast
 		 (%handle-definition function-ast)
 		 (get-next-token))))
 	  (:tok-extern
 	   ;;handle-extern
 	   (let ((prototype (parse-extern)))
-	     ;(print prototype *output?*)
+	     (dump-ast prototype)
 	     (if prototype
 		 (%handle-extern prototype)
 		 (get-next-token))))
@@ -1179,13 +1179,19 @@
 	   ;;handle-top-level-expression
 	   (handler-case
 	       (let ((ast (parse-top-level-expression)))
-		 ;(print ast *output?*)
+		 (dump-ast ast)
 		 (%handle-top-level-expression ast))
 	     (kaleidoscope-error (e)
 	       (get-next-token)
 	       (format *output?* "error: ~a~%" e)))
 	   ))
       (kaleidoscope-error (e) (format *output?* "error: ~a~%" e)))))
+
+(defparameter *dump-ast?* t)
+(defun dump-ast (ast)
+  (when *dump-ast?*
+    (let ((*print-case* :downcase))
+      (print ast *output?*))))
 
 ;;; top-level 4 5 6 7
 (defvar *execution-engine*)
