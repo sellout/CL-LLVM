@@ -611,212 +611,226 @@
 		  (assert f () "binary operator not found!")
 		  (build-call *builder* f (list l r) "binop"))))))))))
 
-(defmethod codegen ((expression cons))
-  (ecase (car expression)
-    ((number-expression)
-     (codegen-number-expression expression))
-    ((variable-expression)
-     (codegen-variable-expression expression))
-    ((binary-expression)
-     (codegen-binary-expression expression))
-    ((call-expression)
-     (let ((callee (let ((*depth* :not-top))
-		     (get-function					  
-		      (callee expression)))))
-       (if callee
-	   (if (= (llvm::-count-params callee)
-		  (length (arguments expression)))
+(defun codegen-call-expression (sexp)
+  (let ((callee (let ((*depth* :not-top))
+		  (get-function					  
+		   (callee sexp)))))
+    (if callee
+	(if (= (llvm::-count-params callee)
+	       (length (arguments sexp)))
 					;(cffi:with-foreign-string (calltmp ))
-	       (build-call
-		*builder*
-		callee
-		(map 'vector #'codegen (arguments expression))
-		"calltmp")
-	       (error 'kaleidoscope-error :message "incorrect # arguments passed"))
-	   (error 'kaleidoscope-error :message "unknown function referenced"))))
-    ((var-expression)
-     (let* ((function (llvm::-get-basic-block-parent
-		       (llvm::-get-insert-block *builder*)))
-	    (old-bindings (map 'vector
-			       (lambda (var-binding)
-				 (destructuring-bind (var-name . init) var-binding
-				   (let ((alloca
-					  (create-entry-block-alloca function
-								     var-name)))
-				     (llvm::-build-store
-				      *builder*
-				      (if init
-					  ;; FIXME: handle error
-					  (codegen init)
-					  (llvm::-const-real
-					   (llvm::-double-type)
-					   0))
-				      alloca)
-				     (prog1 (gethash var-name *named-values*)
-				       (setf (gethash var-name *named-values*)
-					     alloca)))))
-			       (var-names expression)))
-	    (body-val (codegen (body expression))))
-       (when body-val
-	 (map 'vector
-	      (lambda (var-binding old-binding)
-		(setf (gethash (car var-binding) *named-values*) old-binding))
-	      (var-names expression) old-bindings)
-	 body-val)))
-    ((prototype)
-     (let* ((doubles (make-array (length (arguments expression))
-				 :initial-element (llvm::-double-type)))
-	    (f-type (function-type (llvm::-double-type) doubles))
-	    (function
-	     (cffi:with-foreign-string (str (name expression))
-	       (llvm::-add-function *module* str f-type))))
-       ;;??? If F conflicted, there was already something named 'Name'.  If it has a
-       ;;??? body, don't allow redefinition or reextern.
-       #+nil
-       (when (not (string= (cffi:foreign-string-to-lisp
-			    (llvm::-get-value-name function))
-			   (name expression)))
-	 (llvm::-delete-function function)
-	 (setf function
-	       (cffi:with-foreign-string (str (name expression))
-		 (llvm::-get-named-function *module* str))))
-       ;; (inspect expression)
-       ;; (print (name expression))
-       ;; (terpri)
-       (progn
-	 ;;if (= (llvm::-count-basic-blocks function) 0)
-	 (if (= (llvm::-count-params function)
-		(length (arguments expression)))
-	     (when (or (= *chapter* 7)
-		       (boundp '*named-values*))
-	       ;; Set names for all arguments.
-	       (map nil
-		    (lambda (argument name)
-		      (cffi:with-foreign-string
-			  (str name
-			       #+nil
-			       (concatenate 'string
-					    (write-to-string
-					     (incf
-					      (car (load-time-value (list 0))))) name))
-			(llvm::-set-value-name
-			 argument
-			 str))
-		      (when (eq *depth* :top)
-			(ecase *chapter*
-			  ((3 4 5 6)
-			   (setf (gethash name *named-values*)
-				 argument))
-			  ((7)))))
-		    (params function)
-		    (let ((a (arguments expression)))
-					;(format t "~&~a~&" a)
-		      a)))
-	     (error 'kaleidoscope-error
-		    :message "redefinition of function with different # args"))
-	 #+nil
-	 (error 'kaleidoscope-error :message "redefinition of function"))
-       function))
-    ((function-definition)
-     (let ((prototype (prototype expression)))
-       (setf (gethash (name prototype) *function-protos*)
-	     prototype)
-       (let* ((*named-values* (make-hash-table :test #'equal))
-	      (function (get-function (name prototype))))
-	 (when function
-	   (ecase *chapter*
-	     ((3 4 5)
-	      (llvm::-position-builder-at-end
-	       *builder*
-	       (cffi:with-foreign-string (str "entry")
-		 (llvm::-append-basic-block function str)))
-	      (flet ((remove-function ()
-		       (llvm::-delete-function function)
-		       (format t "fuck me harder ~a" (name prototype))
-		       (terpri)
-		       (remhash (name prototype) *function-protos*)))
-		(block nil
-		  (let ((retval (codegen (body expression))))
-		    (when retval
-		      (build-ret *builder* retval)
+	    (build-call
+	     *builder*
+	     callee
+	     (map 'vector #'codegen (arguments sexp))
+	     "calltmp")
+	    (error 'kaleidoscope-error :message "incorrect # arguments passed"))
+	(error 'kaleidoscope-error :message "unknown function referenced"))))
 
-		      (when (llvm::-verify-function
-			     function
-			     (cffi:foreign-enum-value
-			      'llvm::|LLVMVerifierFailureAction|
-			      'llvm::|LLVMPrintMessageAction|))
-			(dump-value function)
-			(remove-function)
-			(error 'kaleidoscope-error
-			       :message "Function verification failure."))
-		      (unless (= *chapter* 3)
+(defun codegen-var-expression (sexp)
+  (let* ((function (llvm::-get-basic-block-parent
+		    (llvm::-get-insert-block *builder*)))
+	 (old-bindings (map 'vector
+			    (lambda (var-binding)
+			      (destructuring-bind (var-name . init) var-binding
+				(let ((alloca
+				       (create-entry-block-alloca function
+								  var-name)))
+				  (llvm::-build-store
+				   *builder*
+				   (if init
+				       ;; FIXME: handle error
+				       (codegen init)
+				       (llvm::-const-real
+					(llvm::-double-type)
+					0))
+				   alloca)
+				  (prog1 (gethash var-name *named-values*)
+				    (setf (gethash var-name *named-values*)
+					  alloca)))))
+			    (var-names sexp)))
+	 (body-val (codegen (body sexp))))
+    (when body-val
+      (map 'vector
+	   (lambda (var-binding old-binding)
+	     (setf (gethash (car var-binding) *named-values*) old-binding))
+	   (var-names sexp) old-bindings)
+      body-val)))
+
+(defun codegen-prototype (sexp)
+  (let* ((doubles (make-array (length (arguments sexp))
+			      :initial-element (llvm::-double-type)))
+	 (f-type (function-type (llvm::-double-type) doubles))
+	 (function
+	  (cffi:with-foreign-string (str (name sexp))
+	    (llvm::-add-function *module* str f-type))))
+    ;;??? If F conflicted, there was already something named 'Name'.  If it has a
+    ;;??? body, don't allow redefinition or reextern.
+    #+nil
+    (when (not (string= (cffi:foreign-string-to-lisp
+			 (llvm::-get-value-name function))
+			(name sexp)))
+      (llvm::-delete-function function)
+      (setf function
+	    (cffi:with-foreign-string (str (name sexp))
+	      (llvm::-get-named-function *module* str))))
+    ;; (inspect sexp
+    ;; (print (name sexp
+    ;; (terpri)
+    (progn
+      ;;if (= (llvm::-count-basic-blocks function) 0)
+      (if (= (llvm::-count-params function)
+	     (length (arguments sexp)))
+	  (when (or (= *chapter* 7)
+		    (boundp '*named-values*))
+	    ;; Set names for all arguments.
+	    (map nil
+		 (lambda (argument name)
+		   (cffi:with-foreign-string
+		       (str name
+			    #+nil
+			    (concatenate 'string
+					 (write-to-string
+					  (incf
+					   (car (load-time-value (list 0))))) name))
+		     (llvm::-set-value-name
+		      argument
+		      str))
+		   (when (eq *depth* :top)
+		     (ecase *chapter*
+		       ((3 4 5 6)
+			(setf (gethash name *named-values*)
+			      argument))
+		       ((7)))))
+		 (params function)
+		 (let ((a (arguments sexp)))
+					;(format t "~&~a~&" a)
+		   a)))
+	  (error 'kaleidoscope-error
+		 :message "redefinition of function with different # args"))
+      #+nil
+      (error 'kaleidoscope-error :message "redefinition of function"))
+    function))
+
+(defun codegen-function-definition (sexp)
+  (let ((prototype (prototype sexp)))
+    (setf (gethash (name prototype) *function-protos*)
+	  prototype)
+    (let* ((*named-values* (make-hash-table :test #'equal))
+	   (function (get-function (name prototype))))
+      (when function
+	(ecase *chapter*
+	  ((3 4 5)
+	   (llvm::-position-builder-at-end
+	    *builder*
+	    (cffi:with-foreign-string (str "entry")
+	      (llvm::-append-basic-block function str)))
+	   (flet ((remove-function ()
+		    (llvm::-delete-function function)
+		    (format t "fuck me harder ~a" (name prototype))
+		    (terpri)
+		    (remhash (name prototype) *function-protos*)))
+	     (block nil
+	       (let ((retval (codegen (body sexp))))
+		 (when retval
+		   (build-ret *builder* retval)
+
+		   (when (llvm::-verify-function
+			  function
+			  (cffi:foreign-enum-value
+			   'llvm::|LLVMVerifierFailureAction|
+			   'llvm::|LLVMPrintMessageAction|))
+		     (dump-value function)
+		     (remove-function)
+		     (error 'kaleidoscope-error
+			    :message "Function verification failure."))
+		   (unless (= *chapter* 3)
 					;		     #+nil
-			(when *fpm?*
-			  (llvm::-run-function-pass-manager *fpm* function)))
-		      (return function))
-		    (remove-function)
-		    nil))))
-	     ((6)
-	      ;; If this is an operator, install it.
-	      (when (binary-operator-p (prototype expression))
-		(setf (gethash (operator-name (prototype expression))
-			       *binop-precedence*)
-		      (precedence (prototype expression))))
-	      (llvm::-position-builder-at-end
-	       *builder*
-	       (cffi:with-foreign-string (str "entry")
-		 (llvm::-append-basic-block function str)))
-	      (let ((retval (codegen (body expression))))
-		(if retval
-		    (progn
-		      (build-ret *builder* retval)
-		      (when (llvm::-verify-function
-			     function
-			     (cffi:foreign-enum-value
-			      'llvm::|LLVMVerifierFailureAction|
-			      'llvm::|LLVMPrintMessageAction|))
-			(error 'kaleidoscope-error
-			       :message "Function verification failure."))
+		     (when *fpm?*
+		       (llvm::-run-function-pass-manager *fpm* function)))
+		   (return function))
+		 (remove-function)
+		 nil))))
+	  ((6)
+	   ;; If this is an operator, install it.
+	   (when (binary-operator-p (prototype sexp))
+	     (setf (gethash (operator-name (prototype sexp))
+			    *binop-precedence*)
+		   (precedence (prototype sexp))))
+	   (llvm::-position-builder-at-end
+	    *builder*
+	    (cffi:with-foreign-string (str "entry")
+	      (llvm::-append-basic-block function str)))
+	   (let ((retval (codegen (body sexp))))
+	     (if retval
+		 (progn
+		   (build-ret *builder* retval)
+		   (when (llvm::-verify-function
+			  function
+			  (cffi:foreign-enum-value
+			   'llvm::|LLVMVerifierFailureAction|
+			   'llvm::|LLVMPrintMessageAction|))
+		     (error 'kaleidoscope-error
+			    :message "Function verification failure."))
 					;		   #+nil
-		      (when *fpm?*
-			(llvm::-run-function-pass-manager *fpm* function))
-		      function)
-		    (progn
-		      (llvm::-delete-function function)
-		      (when (binary-operator-p (prototype expression))
-			(remhash (operator-name (prototype expression))
-				 *binop-precedence*))))))
-	     ((7)
-	      ;; If this is an operator, install it.
-	      (when (binary-operator-p (prototype expression))
-		(setf (gethash (operator-name (prototype expression))
-			       *binop-precedence*)
-		      (precedence (prototype expression))))
-	      (llvm::-position-builder-at-end
-	       *builder*
-	       (cffi:with-foreign-string (str "entry")
-		 (llvm::-append-basic-block function str)))
-	      (create-argument-allocas (prototype expression) function)
-	      (let ((retval (codegen (body expression))))
-		(if retval
-		    (progn
-		      (build-ret *builder* retval)
-		      (when (llvm::-verify-function
-			     function
-			     (cffi:foreign-enum-value
-			      'llvm::|LLVMVerifierFailureAction|
-			      'llvm::|LLVMPrintMessageAction|))
-			(error 'kaleidoscope-error
-			       :message "Function verification failure."))
+		   (when *fpm?*
+		     (llvm::-run-function-pass-manager *fpm* function))
+		   function)
+		 (progn
+		   (llvm::-delete-function function)
+		   (when (binary-operator-p (prototype sexp))
+		     (remhash (operator-name (prototype sexp))
+			      *binop-precedence*))))))
+	  ((7)
+	   ;; If this is an operator, install it.
+	   (when (binary-operator-p (prototype sexp))
+	     (setf (gethash (operator-name (prototype sexp))
+			    *binop-precedence*)
+		   (precedence (prototype sexp))))
+	   (llvm::-position-builder-at-end
+	    *builder*
+	    (cffi:with-foreign-string (str "entry")
+	      (llvm::-append-basic-block function str)))
+	   (create-argument-allocas (prototype sexp) function)
+	   (let ((retval (codegen (body sexp))))
+	     (if retval
+		 (progn
+		   (build-ret *builder* retval)
+		   (when (llvm::-verify-function
+			  function
+			  (cffi:foreign-enum-value
+			   'llvm::|LLVMVerifierFailureAction|
+			   'llvm::|LLVMPrintMessageAction|))
+		     (error 'kaleidoscope-error
+			    :message "Function verification failure."))
 					;		   #+nil
-		      (when *fpm?*
-			(llvm::-run-function-pass-manager *fpm* function))
-		      function)
-		    (progn
-		      (llvm::-delete-function function)
-		      (when (binary-operator-p (prototype expression))
-			(remhash (operator-name (prototype expression))
-				 *binop-precedence*)))))))))))))
+		   (when *fpm?*
+		     (llvm::-run-function-pass-manager *fpm* function))
+		   function)
+		 (progn
+		   (llvm::-delete-function function)
+		   (when (binary-operator-p (prototype sexp))
+		     (remhash (operator-name (prototype sexp))
+			      *binop-precedence*)))))))))))
+
+(defmethod codegen ((expression cons))
+  (let ((token (car expression)))
+    (cond
+      ((eql token 'number-expression)
+       (codegen-number-expression expression))
+      ((eql token 'variable-expression)
+       (codegen-variable-expression expression))
+      ((eql token 'binary-expression)
+       (codegen-binary-expression expression))
+      ((eql token 'call-expression)
+       (codegen-call-expression expression))
+      ((eql token 'var-expression)
+       (codegen-var-expression expression))
+      ((eql token 'prototype)
+       (codegen-prototype expression))
+      ((eql token 'function-definition)
+       (codegen-function-definition expression))
+      (t (error "??")))))
 
 (defun codegen-binary=expression (expression)
   (let ((lhse (lhs expression))
