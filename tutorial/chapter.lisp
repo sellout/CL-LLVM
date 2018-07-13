@@ -93,38 +93,34 @@
 
 ;;;;AST
 
+(defmacro define-ast-node
+    ((name &optional (conc-name nil given?)) &rest parameters)
+  `(defstruct
+       (,name
+	 (:type list)
+	 :named
+	 (:conc-name
+	  ,(if given?
+	       conc-name
+	       (symbolicate2 (list name "."))))
+	 (:constructor
+	  ,(symbolicate2 (list 'make- name))
+	  (&optional
+	   ,@(mapcar (lambda (x)
+		       (cond ((and x (symbolp x)) x)
+			     ((listp x)
+			      (list (first x)
+				    (second x)))
+			     (t (error "not legal"))))
+		     parameters))))
+     ,@parameters))
+
 ;;; (2 3 4 5 6 7)
 ;;;;number-expression
-(defstruct (number-expression
-	     (:type list)
-	     :named
-	     (:conc-name number-expression.)
-	     (:constructor make-number-expression
-			   (value)))
-  value)
-#+nil
-((defun make-number-expression (num)
-   "for numeric literals like “1.0”."
-   (list 'number-expression num))
- (defun number-expression.value (sexp)
-   (assert (eq 'number-expression (car sexp)))
-   (second sexp)))
+(define-ast-node (number-expression) value)
 
 ;;;;variable expression
-(defstruct (variable-expression
-	     (:type list)
-	     :named
-	     (:conc-name variable-expression.)
-	     (:constructor make-variable-expression
-			   (name)))
-  name)
-#+nil
-((defun make-variable-expression (num)
-   "for referencing a variable, like “a”."
-   (list 'variable-expression num))
- (defun variable-expression.name (sexp)
-   (assert (eq 'variable-expression (car sexp)))
-   (second sexp)))
+(define-ast-node (variable-expression) name)
 
 ;;;;binary expressions
 (defun make-binary-expression (operator lhs rhs)
@@ -196,22 +192,6 @@
   _condition
   then
   else)
-#+nil
-((defun make-if-expression (_condition then else)
-   "for if/then/else."
-   (list 'if-expression _condition then else))
- (defun if-expression._condition (sexp)
-   (assert (eq (car sexp)
-	       'if-expression))
-   (second sexp))
- (defun if-expression.then (sexp)
-   (assert (eq (car sexp)
-	       'if-expression))
-   (third sexp))
- (defun if-expression.else (sexp)
-   (assert (eq (car sexp)
-	       'if-expression))
-   (fourth sexp)))
 
 ;;;;for
 (defun make-for-expression (var-name start end step body)
