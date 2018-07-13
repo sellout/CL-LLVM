@@ -305,39 +305,26 @@
       v)))
 
 (defun parse-primary ()
-  (ecase *chapter*
-    ((2 3 4) (parse-primary234))
-    ((5 6) (parse-primary56))
-    ((7) (parse-primary7))))
-;;;;2 3 4
-(defun parse-primary234 ()
-  (case *current-token*
-    (:tok-identifier (parse-identifier-expression))
-    (:tok-number (parse-number-expression))
-    (#\( (parse-paren-expression))
-    (otherwise (error 'kaleidoscope-error
-		      :message "unknown token when expecting an expression"))))
-;;;;5 6
-(defun parse-primary56 ()
-  (case *current-token*
-    (:tok-identifier (parse-identifier-expression))
-    (:tok-number (parse-number-expression))
-    (#\( (parse-paren-expression))
-    (:tok-if (parse-if-expression))
-    (:tok-for (parse-for-expression))
-    (otherwise (error 'kaleidoscope-error
-		      :message "unknown token when expecting an expression"))))
-;;;7
-(defun parse-primary7 ()
-  (case *current-token*
-    (:tok-identifier (parse-identifier-expression))
-    (:tok-number (parse-number-expression))
-    (#\( (parse-paren-expression))
-    (:tok-if (parse-if-expression))
-    (:tok-for (parse-for-expression))
-    (:tok-var (parse-var-expression))
-    (otherwise (error 'kaleidoscope-error
-                      :message "unknown token when expecting an expression"))))
+  (let ((token *current-token*))
+    (cond
+      ((eql token :tok-identifier)
+       (parse-identifier-expression))
+      ((eql token :tok-number)
+       (parse-number-expression))
+      ((eql token #\()
+       (parse-paren-expression))
+      ((and (eql token :tok-if)
+	    (member *chapter* '(5 6 7) :test 'eql))
+       (parse-if-expression))
+      ((and (eql token :tok-for)
+	    (member *chapter* '(6 7) :test 'eql))
+       (parse-for-expression))
+      ((and (eql token :tok-var)
+	    (= *chapter* 7))
+       (parse-var-expression))
+      (t
+       (error 'kaleidoscope-error
+	      :message "unknown token when expecting an expression")))))
 
 (defun parse-dispatch ()
   (ecase *chapter*
@@ -595,58 +582,67 @@
 ;;;(defmethod codegen ((expression function-definition)))
 ;;;(defmethod codegen ((expression var-expression)))
 ;;;(defmethod codegen ((expression prototype)))
+(defun codegen-number-expression (sexp)
+  (llvm::-const-real (llvm::-double-type)
+		     (coerce (value sexp)
+			     'double-float)))
+(defun codegen-variable-expression (sexp)
+  (let ((v (gethash (name sexp)
+		    *named-values*)))
+    (if v
+	(ecase *chapter*
+	  ((3 4 5 6) v)
+	  ((7)
+	   (cffi:with-foreign-string (str (name sexp))
+	     (llvm::-build-load *builder* v str))))
+	(error 'kaleidoscope-error :message "unknown variable name"))))
+(defun codegen-binary-expression (sexp)
+  (if (and (= *chapter* 7)
+	   (eql (operator sexp)
+		#\=))
+      ;; TODO: can we typecheck (lhs expression) here?
+      (codegen-binary=expression sexp)
+      (let ((l (codegen (lhs sexp)))
+	    (r (codegen (rhs sexp))))
+	(when (and l r)
+	  (case (operator sexp)
+	    (#\+ (cffi:with-foreign-string (str "addtmp")
+		   (llvm::-build-f-add *builder* l r str)))
+	    (#\- (cffi:with-foreign-string (str "subtmp")
+		   (llvm::-build-f-sub *builder* l r str)))
+	    (#\* (cffi:with-foreign-string (str "multmp")
+		   (llvm::-build-f-mul *builder* l r str)))
+	    (#\<
+	     (cffi:with-foreign-strings ((cmptmp "cmptmp")
+					 (booltmp "booltmp"))
+	       (llvm::-build-u-i-to-f-p
+		*builder*
+		(llvm::-build-f-cmp
+		 *builder*
+		 :unordered-< l r
+		 cmptmp)
+		(llvm::-double-type)
+		booltmp)))
+	    (otherwise
+	     (ecase *chapter*
+	       ((3 4 5)
+		(error 'kaleidoscope-error
+		       :message "invalid binary operators"))
+	       ((6 7)
+		(let ((f (cffi:with-foreign-string (str (format nil "binary~a"
+								(operator sexp)))
+			   (llvm::-get-named-function *module* str))))
+		  (assert f () "binary operator not found!")
+		  (build-call *builder* f (list l r) "binop"))))))))))
+
 (defmethod codegen ((expression cons))
   (ecase (car expression)
     ((number-expression)
-     (llvm::-const-real (llvm::-double-type)
-			(coerce (value expression)
-				'double-float)))
+     (codegen-number-expression expression))
     ((variable-expression)
-     (let ((v (gethash (name expression) *named-values*)))
-       (if v
-	   (ecase *chapter*
-	     ((3 4 5 6) v)
-	     ((7)
-	      (cffi:with-foreign-string (str (name expression))
-		(llvm::-build-load *builder* v str))))
-	   (error 'kaleidoscope-error :message "unknown variable name"))))
+     (codegen-variable-expression expression))
     ((binary-expression)
-     (if (and (= *chapter* 7)
-	      (eql (operator expression) #\=))
-	 ;; TODO: can we typecheck (lhs expression) here?
-	 (codegen-binary=expression expression)
-	 (let ((l (codegen (lhs expression)))
-	       (r (codegen (rhs expression))))
-	   (when (and l r)
-	     (case (operator expression)
-	       (#\+ (cffi:with-foreign-string (str "addtmp")
-		      (llvm::-build-f-add *builder* l r str)))
-	       (#\- (cffi:with-foreign-string (str "subtmp")
-		      (llvm::-build-f-sub *builder* l r str)))
-	       (#\* (cffi:with-foreign-string (str "multmp")
-		      (llvm::-build-f-mul *builder* l r str)))
-	       (#\<
-		(cffi:with-foreign-strings ((cmptmp "cmptmp")
-					    (booltmp "booltmp"))
-		  (llvm::-build-u-i-to-f-p
-		   *builder*
-		   (llvm::-build-f-cmp
-		    *builder*
-		    :unordered-< l r
-		    cmptmp)
-		   (llvm::-double-type)
-		   booltmp)))
-	       (otherwise
-		(ecase *chapter*
-		  ((3 4 5)
-		   (error 'kaleidoscope-error
-			  :message "invalid binary operators"))
-		  ((6 7)
-		   (let ((f (cffi:with-foreign-string (str (format nil "binary~a"
-								   (operator expression)))
-			      (llvm::-get-named-function *module* str))))
-		     (assert f () "binary operator not found!")
-		     (build-call *builder* f (list l r) "binop"))))))))))
+     (codegen-binary-expression expression))
     ((call-expression)
      (let ((callee (let ((*depth* :not-top))
 		     (get-function					  
