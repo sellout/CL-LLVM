@@ -125,36 +125,26 @@
   (fourth sexp))
 
 ;;;;function calls
-(defmethod callee ((expression cons))
-  (ecase (car expression)
-    ((call-expression)
-     (second expression))))
-(defmethod arguments ((expression cons))
-  (ecase (car expression)
-    ((call-expression)
-     (third expression))
-    ((prototype)
-     (third expression))))
 (defun make-call-expression (callee arguments)
   "for function calls."
   (list 'call-expression callee arguments))
+(defun call-expression.callee (sexp)
+  (assert (eq 'call-expression (car sexp)))
+  (second sexp))
+(defun call-expression.arguments (sexp)
+  (assert (eq 'call-expression (car sexp)))
+  (third sexp))
 
 ;;;function definition
-(defmethod prototype ((expression cons))
-  (ecase (car expression)
-    ((function-definition)
-     (second expression))))
-(defmethod body ((expression cons))
-  (ecase (car expression)
-    ((function-definition)
-     (third expression))
-    ((for-expression)
-     (sixth expression))
-    ((var-expression)
-     (third expression))))
 (defun make-function-definition (prototype body)
   "A function definition itself."
   (list 'function-definition prototype body))
+(defun function-definition.prototype (sexp)
+  (assert (eq 'function-definition (car sexp)))
+  (second sexp))
+(defun function-definition.body (sexp)
+  (assert (eq 'function-definition (car sexp)))
+  (third sexp))
 
 ;;;;prototype
 (defun make-prototype (&optional
@@ -170,6 +160,9 @@
 (defun prototype.name (sexp)
   (assert (eq 'prototype (car sexp)))
   (second sexp))
+(defun prototype.arguments (sexp)
+  (assert (eq 'prototype (car sexp)))
+  (third sexp))
 (defun prototype.operatorp (sexp)
   (assert (eq 'prototype (car sexp)))
   (fourth sexp))
@@ -215,6 +208,10 @@
   (assert (eq (car sexp)
 	      'for-expression))
   (fourth sexp))
+(defun for-expression.body (sexp)
+  (assert (eq (car sexp)
+	      'for-expression))
+  (fifth sexp))
 
 ;;;;6 7
 ;;;;unary expression
@@ -235,14 +232,14 @@
   (assert (eq 'prototype
 	      (car expression)))
   (and (prototype.operatorp expression)
-       (= (length (arguments expression))
+       (= (length (prototype.arguments expression))
 	  1)))
 ;;;for prototypes
 (defun binary-operator-p (expression)
   (assert (eq 'prototype
 	      (car expression)))
   (and (prototype.operatorp expression)
-       (= (length (arguments expression))
+       (= (length (prototype.arguments expression))
 	  2)))
 ;;;for prototypes
 (defun operator-name (expression)
@@ -254,12 +251,7 @@
        (1- (length (prototype.name expression)))))
 
 ;;;7
-#+nil
-(defclass var-expression (;expression
-			  )
-  ((var-names :initarg :var-names :reader var-names)
-   (body :initarg :body :reader body))
-  (:documentation ))
+;;;;mutable variables?
 (defun make-var-expression (var-names body)
   "for var/in"
   (list 'var-expression var-names body))
@@ -267,6 +259,10 @@
   (assert (eq 'var-expression
 	      (car expression)))
   (second expression))
+(defun var-expression.body (expression)
+  (assert (eq 'var-expression
+	      (car expression)))
+  (third expression))
 
 ;;;;Parser
 
@@ -585,7 +581,7 @@
 ;;;(defmethod codegen ((expression prototype)))
 ;;;(defmethod codegen ((expression if-expression)))
 ;;;(defmethod codegen ((expression for-expression)))
-(defmethod codegen ((expression cons))
+(defun codegen (expression)
   (let ((token (car expression)))
     (cond
       ((eql token 'number-expression)
@@ -673,14 +669,14 @@
 (defun codegen-call-expression (sexp)
   (let ((callee (let ((*depth* :not-top))
 		  (get-function					  
-		   (callee sexp)))))
+		   (call-expression.callee sexp)))))
     (if callee
 	(if (= (llvm::-count-params callee)
-	       (length (arguments sexp)))
+	       (length (call-expression.arguments sexp)))
 	    (build-call
 	     *builder*
 	     callee
-	     (map 'vector #'codegen (arguments sexp))
+	     (map 'vector #'codegen (call-expression.arguments sexp))
 	     "calltmp")
 	    (error 'kaleidoscope-error :message "incorrect # arguments passed"))
 	(error 'kaleidoscope-error :message "unknown function referenced"))))
@@ -707,7 +703,7 @@
 				    (setf (gethash var-name *named-values*)
 					  alloca)))))
 			    (var-expression.var-names sexp)))
-	 (body-val (codegen (body sexp))))
+	 (body-val (codegen (var-expression.body sexp))))
     (when body-val
       (map 'vector
 	   (lambda (var-binding old-binding)
@@ -716,7 +712,7 @@
       body-val)))
 
 (defun codegen-prototype (sexp)
-  (let* ((doubles (make-array (length (arguments sexp))
+  (let* ((doubles (make-array (length (prototype.arguments sexp))
 			      :initial-element (llvm::-double-type)))
 	 (f-type (function-type (llvm::-double-type) doubles))
 	 (function
@@ -738,7 +734,7 @@
     (progn
       ;;if (= (llvm::-count-basic-blocks function) 0)
       (if (= (llvm::-count-params function)
-	     (length (arguments sexp)))
+	     (length (prototype.arguments sexp)))
 	  (when (or (= *chapter* 7)
 		    (boundp '*named-values*))
 	    ;; Set names for all arguments.
@@ -761,7 +757,7 @@
 			      argument))
 		       ((7)))))
 		 (params function)
-		 (let ((a (arguments sexp)))
+		 (let ((a (prototype.arguments sexp)))
 					;(format t "~&~a~&" a)
 		   a)))
 	  (error 'kaleidoscope-error
@@ -771,7 +767,7 @@
     function))
 
 (defun codegen-function-definition (sexp)
-  (let* ((prototype (prototype sexp))
+  (let* ((prototype (function-definition.prototype sexp))
 	 (name (prototype.name prototype)))
     (setf (gethash name *function-protos*)
 	  prototype)
@@ -790,7 +786,7 @@
 		    (terpri)
 		    (remhash name *function-protos*)))
 	     (block nil
-	       (let ((retval (codegen (body sexp))))
+	       (let ((retval (codegen (function-definition.body sexp))))
 		 (when retval
 		   (build-ret *builder* retval)
 
@@ -812,15 +808,15 @@
 		 nil))))
 	  ((6)
 	   ;; If this is an operator, install it.
-	   (when (binary-operator-p (prototype sexp))
-	     (setf (gethash (operator-name (prototype sexp))
+	   (when (binary-operator-p prototype)
+	     (setf (gethash (operator-name prototype)
 			    *binop-precedence*)
-		   (precedence (prototype sexp))))
+		   (precedence prototype)))
 	   (llvm::-position-builder-at-end
 	    *builder*
 	    (cffi:with-foreign-string (str "entry")
 	      (llvm::-append-basic-block function str)))
-	   (let ((retval (codegen (body sexp))))
+	   (let ((retval (codegen (function-definition.body sexp))))
 	     (if retval
 		 (progn
 		   (build-ret *builder* retval)
@@ -837,21 +833,21 @@
 		   function)
 		 (progn
 		   (llvm::-delete-function function)
-		   (when (binary-operator-p (prototype sexp))
-		     (remhash (operator-name (prototype sexp))
+		   (when (binary-operator-p prototype)
+		     (remhash (operator-name prototype)
 			      *binop-precedence*))))))
 	  ((7)
 	   ;; If this is an operator, install it.
-	   (when (binary-operator-p (prototype sexp))
-	     (setf (gethash (operator-name (prototype sexp))
+	   (when (binary-operator-p prototype)
+	     (setf (gethash (operator-name prototype)
 			    *binop-precedence*)
-		   (precedence (prototype sexp))))
+		   (precedence prototype)))
 	   (llvm::-position-builder-at-end
 	    *builder*
 	    (cffi:with-foreign-string (str "entry")
 	      (llvm::-append-basic-block function str)))
-	   (create-argument-allocas (prototype sexp) function)
-	   (let ((retval (codegen (body sexp))))
+	   (create-argument-allocas prototype function)
+	   (let ((retval (codegen (function-definition.body sexp))))
 	     (if retval
 		 (progn
 		   (build-ret *builder* retval)
@@ -868,8 +864,8 @@
 		   function)
 		 (progn
 		   (llvm::-delete-function function)
-		   (when (binary-operator-p (prototype sexp))
-		     (remhash (operator-name (prototype sexp))
+		   (when (binary-operator-p prototype)
+		     (remhash (operator-name prototype)
 			      *binop-precedence*)))))))))))
 
 (defun codegen-binary=expression (expression)
@@ -971,7 +967,7 @@
 			(list preheader-bb))
 	  (let ((old-val (gethash (var-name expression) *named-values*)))
 	    (setf (gethash (var-name expression) *named-values*) variable)
-	    (when (codegen (body expression))
+	    (when (codegen (for-expression.body expression))
 	      (let ((step-val (if (step* expression)
 				  (codegen (step* expression))
 				  (const-real (llvm::-double-type) 1))))
@@ -1114,7 +1110,7 @@
            (llvm::-build-store *builder* parameter alloca)
            (setf (gethash argument *named-values*) alloca)))
        (params f)
-       (arguments expression)))
+       (prototype.arguments expression)))
 
 
 ;;;;END CODE GENERATION
@@ -1197,9 +1193,9 @@
 		   (dump-value lf)))
 		(let ((old *module*))
 		  (pop *fucking-modules*)
-		  (format t "~&module??: ~s" old)
+	;;	  (format t "~&module??: ~s" old)
 		  (let ((handle (kaleidoscope-add-module old)))
-		    (print 123)
+	;;	    (print 123)
 		    (let ((expr-symbol
 			   (cffi:with-foreign-string (str *name*)
 			     (kaleidoscope-find-symbol str))))
