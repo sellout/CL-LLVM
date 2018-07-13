@@ -644,6 +644,20 @@
 	 (function
 	  (cffi:with-foreign-string (str (prototype.name sexp))
 	    (llvm::-add-function *module* str f-type))))
+    (map nil
+	 (lambda (argument name)
+	   (cffi:with-foreign-string
+	       (str name)
+	     (llvm::-set-value-name
+	      argument
+	      str)))
+	 (params function)
+	 (let ((a (prototype.arguments sexp)))
+					;(format t "~&~a~&" a)
+	   a))
+
+    ;;;FIXME: does the commented code below have any use?
+    
     ;;??? If F conflicted, there was already something named 'Name'.  If it has a
     ;;??? body, don't allow redefinition or reextern.
     #+nil
@@ -664,32 +678,8 @@
 	     #+nil
 	     (= (llvm::-count-params function)
 		(length (prototype.arguments sexp)))
-	  (when (or (= *chapter* 7)
-		    (boundp '*named-values*))
-	    ;; Set names for all arguments.
-	    (map nil
-		 (lambda (argument name)
-		   (cffi:with-foreign-string
-		       (str name
-			    #+nil
-			    (concatenate 'string
-					 (write-to-string
-					  (incf
-					   (car (load-time-value (list 0))))) name))
-		     (llvm::-set-value-name
-		      argument
-		      str))
-		   #+nil
-		   (when (eq *depth* :top)
-		     (ecase *chapter*
-		       ((3 4 5 6)
-			(setf (gethash name *named-values*)
-			      argument))
-		       ((7)))))
-		 (params function)
-		 (let ((a (prototype.arguments sexp)))
-					;(format t "~&~a~&" a)
-		   a)))
+	     ;; Set names for all arguments.
+
 	  #+nil
 	  (error 'kaleidoscope-error
 		 :message "redefinition of function with different # args"))
