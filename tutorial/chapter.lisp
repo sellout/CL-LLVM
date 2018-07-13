@@ -230,14 +230,15 @@
 	    (member *chapter* '(5 6 7) :test 'eql))
        (parse-if-expression))
       ((and (eql token :tok-for)
-	    (member *chapter* '(6 7) :test 'eql))
+	    (member *chapter* '(5 6 7) :test 'eql))
        (parse-for-expression))
       ((and (eql token :tok-var)
 	    (= *chapter* 7))
        (parse-var-expression))
       (t
        (error 'kaleidoscope-error
-	      :message "unknown token when expecting an expression")))))
+	      :message
+	      (format nil "unknown token when expecting an expression: ~s" token))))))
 
 (defun parse-dispatch ()
   (ecase *chapter*
@@ -872,7 +873,7 @@
     ((7) (codegen7 expression))))
 ;;;;5 6
 (defun codegen56 (expression)
-  (let ((start-val (codegen (start expression))))
+  (let ((start-val (codegen (for-expression.start expression))))
     (when start-val
       ;; Make the new basic block for the loop header, inserting after current
       ;; block.
@@ -881,10 +882,14 @@
 	     (loop-bb
 		(cffi:with-foreign-string (str "loop")
 		  (llvm::-append-basic-block function str))))
+	;;Insert an explicit fall through from the current block to the LoopBB.
 	(llvm::-build-br *builder* loop-bb)
+
 	(position-builder *builder* loop-bb)
+
+	;;Start the PHI node with an entry for Start.
 	(let ((variable
-	       (cffi:with-foreign-string (str (var-name expression))
+	       (cffi:with-foreign-string (str (for-expression.var-name expression))
 		 (llvm::-build-phi
 		  *builder*
 		  (llvm::-double-type)
@@ -892,12 +897,23 @@
 	  (add-incoming variable
 			(list start-val)
 			(list preheader-bb))
-	  (let ((old-val (gethash (var-name expression) *named-values*)))
-	    (setf (gethash (var-name expression) *named-values*) variable)
+
+	  ;; Within the loop, the variable is defined equal to the PHI node.  If it
+	  ;; shadows an existing variable, we have to restore it, so save it now.
+	  (let ((old-val (gethash (for-expression.var-name expression) *named-values*)))
+	    (setf (gethash (for-expression.var-name expression) *named-values*) variable)
+
+	    ;; Emit the body of the loop.  This, like any other expr, can change the
+	    ;; current BB.  Note that we ignore the value computed by the body, but don't
+	    ;; allow an error.
 	    (when (codegen (for-expression.body expression))
-	      (let ((step-val (if (step* expression)
-				  (codegen (step* expression))
-				  (const-real (llvm::-double-type) 1))))
+
+	      ;;Emit the step value.
+	      (let ((step-val
+		     (if (for-expression.step expression)
+			 (codegen (for-expression.step expression))
+			 ;;// If not specified, use 1.0.
+			 (const-real (llvm::-double-type) 1))))
 		(when step-val
 		  (let ((next-var
 			 (cffi:with-foreign-string (str "nextvar")
@@ -906,35 +922,47 @@
 			    variable
 			    step-val
 			    str)))
-			(end-cond (codegen (end expression))))
+			;;// Compute the end condition.
+			(end-cond (codegen (for-expression.end expression))))
 		    (when end-cond
-		      (setf end-cond
-			    (llvm::-build-f-cmp
-			     *builder*
-			     (cffi:foreign-enum-value 'llvm::|LLVMRealPredicate|
-						      'llvm::|LLVMRealONE|)
-			     end-cond
-			     (const-real
-			      (llvm::-double-type)
-			      0)
-			     "loopcond"))
+		      (cffi:with-foreign-string (str "loopcond")
+			(setf end-cond
+			      (llvm::-build-f-cmp
+			       *builder*
+			       (cffi:foreign-enum-value 'llvm::|LLVMRealPredicate|
+							'llvm::|LLVMRealONE|)
+			       end-cond
+			       (const-real
+				(llvm::-double-type)
+				(doublify 0))
+			       str)))
+
+		      ;;// Create the "after loop" block and insert it.
 		      (let ((loop-end-bb (llvm::-get-insert-block *builder*))
 			    (after-bb (cffi:with-foreign-string (str "afterloop")
 					  (llvm::-append-basic-block
 					   function
 					   str))))
+
+			;;// Insert the conditional branch into the end of LoopEndBB.
 			(llvm::-build-cond-br *builder* end-cond loop-bb after-bb)
+
+			;;// Any new code will be inserted in AfterBB.
 			(position-builder *builder* after-bb)
+
+			;;// Add a new entry to the PHI node for the backedge.
 			(add-incoming variable
 				      (list next-var)
 				      (list loop-end-bb))
+
+			;;// Restore the unshadowed variable.
 			(if old-val
-			    (setf (gethash (var-name expression)
+			    (setf (gethash (for-expression.var-name expression)
 					   *named-values*)
 				  old-val)
-			    (remhash (var-name expression)
+			    (remhash (for-expression.var-name expression)
 				     *named-values*))
-			;; for expr always returns 0.
+			;;// for expr always returns 0.0
 			(llvm::-const-null (llvm::-double-type))))))))))))))
 
 ;;;;7
@@ -956,8 +984,8 @@
 	(let ((old-val (gethash (for-expression.var-name expression) *named-values*)))
 	  (setf (gethash (for-expression.var-name expression) *named-values*) alloca)
 	  (when (codegen (for-expression.body expression))
-	    (let ((step-val (if (for-expression.step* expression)
-				(codegen (for-expression.step* expression))
+	    (let ((step-val (if (for-expression.step expression)
+				(codegen (for-expression.step expression))
 				(llvm::-const-real (llvm::-double-type) 1))))
 	      (when step-val
 		(let ((end-cond (codegen (for-expression.end expression))))
@@ -985,7 +1013,7 @@
 			     end-cond
 			     (llvm::-const-real
 			      (llvm::-double-type)
-			      0)
+			      (doublify 0))
 			     "loopcond"))
 		      (let ((after-bb
 			     (cffi:with-foreign-string (str "afterloop")
@@ -1081,7 +1109,7 @@
     ((3 4 5 6 7)
      (let ((lf (codegen function-ast)))
        (when lf
-	 (format *output?* "Read function definition:")
+	 (format *output?* "~&~%Read function definition:")
 	 (dump-value lf)
 	 (kaleidoscope-add-module *module*)
 	 (initialize-module-and-pass-manager))))))
@@ -1210,11 +1238,11 @@
 	   ))
       (kaleidoscope-error (e) (format *output?* "error: ~a~%" e)))))
 
-(defparameter *dump-ast?* nil)
+(defparameter *dump-ast?* t)
 (defun dump-ast (ast)
   (when *dump-ast?*
     (let ((*print-case* :downcase))
-      (print ast *output?*))))
+      (format *output?* "~2%DUMP-AST:: ~s~&~%" ast))))
 
 ;;; top-level 4 5 6 7
 (defvar *execution-engine*)

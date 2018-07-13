@@ -147,13 +147,21 @@
      (prog1 (progn ,@body)
        (llvm::-dispose-message ,ptr-var))))
 
+(defun print-with-indent (stream string &optional (indent 0))
+  (dotimes (index (length string))
+    (let ((char (aref string index)))
+      (write-char char stream)
+      (when (char= char #\Newline)
+	(dotimes (repeat indent)
+	  (write-char #\Space stream))))))
+
 (defun dump-value (value)
   (with-llvm-message (ptr) (llvm::-print-value-to-string value)
-    (write-string (cffi:foreign-string-to-lisp ptr) *output?*)))
+    (print-with-indent *output?* (cffi:foreign-string-to-lisp ptr))))
 
 (defun dump-module (module)
   (with-llvm-message (ptr) (llvm::-print-module-to-string module)
-    (write-string (cffi:foreign-string-to-lisp ptr) *output?*)))
+    (print-with-indent *output?* (cffi:foreign-string-to-lisp ptr))))
 
 (defun const-real (real-ty value)
   (if (stringp value)
