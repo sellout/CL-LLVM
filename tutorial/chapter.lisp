@@ -350,17 +350,18 @@
 	       prototype
 	       expression))))))
 
-(defparameter *name-counter* -1)
-(defparameter *name* nil)
-(defun update-name-counter ()
-  (setf *name* (write-to-string (incf *name-counter*))))
-(defun parse-top-level-expression ()
-  (update-name-counter)
-  (let ((expression (parse-expression)))
-    (if expression
-	(make-function-definition
-	 (make-prototype *name*)
-	 expression))))
+(progn
+  (defparameter *name-counter* -1)
+  (defparameter *name* nil)
+  (defun update-name-counter ()
+    (setf *name* (write-to-string (incf *name-counter*))))
+  (defun parse-top-level-expression ()
+    (update-name-counter)
+    (let ((expression (parse-expression)))
+      (if expression
+	  (make-function-definition
+	   (make-prototype *name*)
+	   expression)))))
 
 (defun parse-extern ()
   (get-next-token) ; eat extern
@@ -1032,11 +1033,10 @@
 ;;;;END CODE GENERATION
 
 ;;;;Toplevel
-(defparameter *fucking-modules* nil)
-(defun initialize-module-and-pass-manager ()
-  (let ((module (cffi:with-foreign-string (str "my cool jit")
+(defun %initialize-module-and-pass-manager (&optional (string "my cool jit"))
+  "return (values [NEW MODULE] [NEW FUNCTION PASS MANAGER])"
+  (let ((module (cffi:with-foreign-string (str string)
 		  (llvm::-module-create-with-name str))))
-    (setf *module* module)
     (let ((target (kaleidoscope-get-target-machine)))
       #+nil
       (let ((msg (get-target-machine-triple target)))
@@ -1046,8 +1046,6 @@
        module
        (llvm::-get-target-machine-data
 	target)))
-    (push module *fucking-modules*)
-
     (let ((fpm (llvm::-create-function-pass-manager-for-module module)))
       (progn
 	(unless (= *chapter* 4)
@@ -1057,7 +1055,14 @@
 	(llvm::-add-g-v-n-pass fpm)
 	(llvm::-add-c-f-g-simplification-pass fpm))
       (llvm::-initialize-function-pass-manager fpm)
-      (setf *fpm* fpm))))
+      (values module fpm))))
+
+(defparameter *fucking-modules* nil)
+(defun initialize-module-and-pass-manager ()
+  (multiple-value-bind (module fpm) (%initialize-module-and-pass-manager)
+    (setf *module* module)
+    (push module *fucking-modules*)
+    (setf *fpm* fpm)))
 
 (defun %handle-definition (function-ast)
   (ecase *chapter*
@@ -1192,17 +1197,13 @@
 ;;; top-level 4 5 6 7
 (defvar *execution-engine*)
 
-(defun resetstuff ()
-  (setf *fucking-modules* nil)
-  (clrhash *function-protos*)
-  (setf *name-counter* -1))
-
 (defmacro with-kaleidoscope-jit (&body body)
   `(progn
      (llvm::initialize-native-target?)
      (llvm::initialize-native-Asm-parser)
      (llvm::initialize-native-asm-printer)
      (let ((*jit?* t))
+       (clrhash *function-protos*)
        (unwind-protect
 	    (progn (kaleidoscope-create)
 		   ,@body)
@@ -1221,7 +1222,11 @@
 	   (llvm::-dispose-builder ,var))))))
 
 (defun toplevel (n)
-  (resetstuff)
+  ;;;reset toplevel name counter
+  (setf *name-counter* -1)
+  ;;;reset allocated modules list
+  (setf *fucking-modules* nil)
+  
   (let ((*chapter* n)
 	(*token-types* (chap-tokens n)))
     (format *output?* "~&ready> ")
@@ -1233,14 +1238,11 @@
 		 (initialize-module-and-pass-manager))
 	       (callcc (function main-loop))
 	       ;;destroyed on jit destruction?
-
 	       #+nil
 	       (dolist (module *fucking-modules*)
 		 (dump-module module)
 		 ;;(llvm::-dispose-module module)
-		 )
-					;(resetstuff)
-	       ))
+		 )))
       (with-builder *builder*
 	(if *jit?*
 	    (with-kaleidoscope-jit
