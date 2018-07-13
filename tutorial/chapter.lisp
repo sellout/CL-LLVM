@@ -1038,7 +1038,7 @@
 ;;;;Toplevel
 (defparameter *fucking-modules* nil)
 (defun initialize-module-and-pass-manager ()
-  (let ((module (cffi:with-foreign-string (str "fuck you")
+  (let ((module (cffi:with-foreign-string (str "my cool jit")
 		  (llvm::-module-create-with-name str))))
     (setf *module* module)
     (let ((target (kaleidoscope-get-target-machine)))
@@ -1187,7 +1187,7 @@
 	   ))
       (kaleidoscope-error (e) (format *output?* "error: ~a~%" e)))))
 
-(defparameter *dump-ast?* t)
+(defparameter *dump-ast?* nil)
 (defun dump-ast (ast)
   (when *dump-ast?*
     (let ((*print-case* :downcase))
@@ -1219,7 +1219,9 @@
 		   ;;destroyed on jit destruction?
 		   #+nil
 		   (dolist (module *fucking-modules*)
-		     (llvm::-dispose-module module))
+		     (dump-module module)
+		     ;;(llvm::-dispose-module module)
+		     )
 		   (llvm::-dispose-builder *builder*)
 					;(resetstuff)
 		   )))
