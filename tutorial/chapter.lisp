@@ -580,10 +580,15 @@
 		(let ((fun-name (format nil "binary~a"
 					(binary-expression.operator sexp))))
 		  ;;		  (print fun-name)
-		  (let ((f (cffi:with-foreign-string
-			       (str fun-name)
-			     (llvm::-get-named-function *module* str))))
-		    (assert (not (cffi:null-pointer-p f))
+		  (let ((f
+			 (get-function fun-name)
+			  #+nil
+			 (cffi:with-foreign-string
+			     (str fun-name)
+			   (llvm::-get-named-function *module* str))))
+		    
+		    (assert (and f
+				 (not (cffi:null-pointer-p f)))
 			    () "binary operator not found!")
 		    (build-call *builder* f (list l r) "binop")))))))))))
 
@@ -697,6 +702,7 @@
       (when function
 	(ecase *chapter*
 	  ((3 4 5)
+	   ;;// Create a new basic block to start insertion into.
 	   (llvm::-position-builder-at-end
 	    *builder*
 	    (cffi:with-foreign-string (str "entry")
@@ -733,15 +739,26 @@
 	     (setf (gethash (operator-name prototype)
 			    *binop-precedence*)
 		   (prototype.precedence prototype)))
-	   (llvm::-position-builder-at-end
-	    *builder*
-	    (cffi:with-foreign-string (str "entry")
-	      (llvm::-append-basic-block function str)))
+
+	   ;;// Record the function arguments in the NamedValues map.
+	   ;;#+nil
+	   (map nil
+		 (lambda (argument name)
+		   (setf (gethash name *named-values*)
+			 argument))
+		 (params function)
+		 (let ((a (prototype.arguments prototype)))
+					;(format t "~&~a~&" a)
+		   a))
+	   
 	   (block nil
 	     (let ((retval (codegen (function-definition.body sexp))))
 	       (if retval
 		   (progn
+		     ;;// Finish off the function.
 		     (build-ret *builder* retval)
+
+		     ;;// Validate the generated code, checking for consistency.
 		     (when (llvm::-verify-function
 			    function
 			    (cffi:foreign-enum-value
@@ -749,7 +766,7 @@
 			     'llvm::|LLVMPrintMessageAction|))
 		       (error 'kaleidoscope-error
 			      :message "Function verification failure."))
-					;		   #+nil
+		     ;;// Run the optimizer on the function.
 		     (when *fpm?*
 		       (llvm::-run-function-pass-manager *fpm* function))
 		     (return function))
@@ -765,10 +782,6 @@
 	     (setf (gethash (operator-name prototype)
 			    *binop-precedence*)
 		   (prototype.precedence prototype)))
-	   (llvm::-position-builder-at-end
-	    *builder*
-	    (cffi:with-foreign-string (str "entry")
-	      (llvm::-append-basic-block function str)))
 	   (create-argument-allocas prototype function)
 	   (block nil
 	     (let ((retval (codegen (function-definition.body sexp))))
@@ -1042,14 +1055,18 @@
 (defun codegen-unary-expression (expression)
   (let ((operand-v (codegen (unary-expression.operand expression))))
     (when operand-v
-      (let ((f (cffi:with-foreign-string (str (format nil "unary~a"
-						      (unary-expression.opcode expression)))
-		 (llvm::-get-named-function
-		  *module*
-		  str))))
-	(unless f
-	  (error 'kaleidoscope-error :message "Unknown unary operator"))
-	(build-call *builder* f (list operand-v) "unop")))))
+      (let ((name (format nil "unary~a"
+			  (unary-expression.opcode expression))))
+	(let ((f
+	       (get-function name)
+		#+nil
+		(cffi:with-foreign-string (str name)
+		  (llvm::-get-named-function
+		   *module*
+		   str))))
+	  (unless f
+	    (error 'kaleidoscope-error :message "Unknown unary operator"))
+	  (build-call *builder* f (list operand-v) "unop"))))))
 
 ;;; code generation 7
 
