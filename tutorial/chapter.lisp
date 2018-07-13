@@ -659,8 +659,11 @@
     ;; (terpri)
     (progn
       ;;if (= (llvm::-count-basic-blocks function) 0)
-      (if (= (llvm::-count-params function)
-	     (length (prototype.arguments sexp)))
+      (progn
+       #+nil if
+	     #+nil
+	     (= (llvm::-count-params function)
+		(length (prototype.arguments sexp)))
 	  (when (or (= *chapter* 7)
 		    (boundp '*named-values*))
 	    ;; Set names for all arguments.
@@ -676,6 +679,7 @@
 		     (llvm::-set-value-name
 		      argument
 		      str))
+		   #+nil
 		   (when (eq *depth* :top)
 		     (ecase *chapter*
 		       ((3 4 5 6)
@@ -686,6 +690,7 @@
 		 (let ((a (prototype.arguments sexp)))
 					;(format t "~&~a~&" a)
 		   a)))
+	  #+nil
 	  (error 'kaleidoscope-error
 		 :message "redefinition of function with different # args"))
       #+nil
@@ -728,7 +733,7 @@
 		(when (= *chapter* 7)
 		  (create-argument-allocas prototype function))))
 	     ;;// Record the function arguments in the NamedValues map.
-	     #+nil
+	     ;#+nil
 	     (map nil
 		  (lambda (argument name)
 		    (setf (gethash name *named-values*)
