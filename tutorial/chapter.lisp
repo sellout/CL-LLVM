@@ -1277,12 +1277,9 @@
 	       (when *jit?*
 		 (initialize-module-and-pass-manager))
 	       (callcc (function main-loop))
-	       ;;destroyed on jit destruction?
-	       #+nil
-	       (dolist (module *fucking-modules*)
-		 (dump-module module)
-		 ;;(llvm::-dispose-module module)
-		 )))
+	       ;;from 6.0.0/docs/tutorial/BuildingAJIT1.html
+	       ;;All resources will be cleaned up when your JIT class is destructed
+	       ))
       (with-builder *builder*
 	(if *jit?*
 	    (with-kaleidoscope-jit
