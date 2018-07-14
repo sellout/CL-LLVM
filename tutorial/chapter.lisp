@@ -1139,8 +1139,9 @@
 		      'llvm::|LLVMVerifierFailureAction|
 		      'llvm::|LLVMPrintMessageAction|)
 		     foo))
-	      (with-llvm-message (ptr) (cffi:mem-ref foo :pointer)
-		(print (cffi:foreign-string-to-lisp ptr) *output?*)))
+	      (when module-abnormal?
+		(with-llvm-message (ptr) (cffi:mem-ref foo :pointer)
+		  (print (cffi:foreign-string-to-lisp ptr) *output?*))))
 	    (unless module-abnormal?
 	      (let ((handle (kaleidoscope-add-module old)))
 		;;	    (print 123)
@@ -1161,7 +1162,7 @@
 			       (cffi:foreign-funcall-pointer
 				(cffi:make-pointer ptr) 
 				() :double)))
-			  (format *output?* "Evaluated to ~fD0"
+			  (format *output?* "~%Evaluated to ~fD0"
 				  result)))))
 					;(print 2323234242342434)
 		(kaleidoscope-remove-module handle)))

@@ -33,22 +33,32 @@
     (%test out in toplevel n)))
 
 (defun %test (ref in toplevel n)
-  (let ((ref
+  (with-output-to-string (stream)
+    (let ((all (make-broadcast-stream stream
+				      *standard-output*
+				      )))
+      (let ((input-file-name (merge-pathnames in *test-directory*)))
+	(print input-file-name)
+	(with-open-file (file input-file-name)
+	  (let ((*output?*  all)
+		(*input?* file))
+	    (funcall toplevel))))))
+  #+nil
+  (let (
+	#+nil
+	(ref
 	 (trim-empty-lines
 	  (alexandria:read-file-into-string
 	   (merge-pathnames ref *test-directory*))))
 	(output
 	 (trim-empty-lines
-	  (with-output-to-string (stream)
-	    (let ((all (make-broadcast-stream stream
-					*standard-output*
-					      )))
-	      (let ((input-file-name (merge-pathnames in *test-directory*)))
-		(print input-file-name)
-		(with-open-file (file input-file-name)
-		  (let ((*output?*  all)
-			(*input?* file))
-		    (funcall toplevel)))))))))
+	  )))
+    #+nil
+    (progn
+      (format t "~&test ~a" n)
+      (print-with-lines output)
+      (print-with-lines ref))
+    #+nil
     (let ((line-number 0))
       (cond ((block out
 	       (mapc 
