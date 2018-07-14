@@ -1066,8 +1066,12 @@
       (let ((msg (get-target-machine-triple target)))
 	(print (cffi:foreign-string-to-lisp msg))
 	(dispose-message msg))
+
+      ;;;;FIXME -potential bug? why set the layout of the module itself?
       (llvm::-set-data-layout
        module
+       (llvm::-get-data-layout-str module)
+       #+nil
        (llvm::-get-target-machine-data
 	target)))
     (let ((fpm (llvm::-create-function-pass-manager-for-module module)))
@@ -1130,7 +1134,7 @@
 	  (let ((old *module*)
 		(module-abnormal? nil))
 	    (pop *fucking-modules*)
-	    ;;	  (format t "~&module??: ~s" old)
+	    ;;(format t "~&module??: ~s" old)
 	    (cffi:with-foreign-object (foo :pointer 1)
 	      (setf module-abnormal?
 		    (llvm::-verify-module
@@ -1141,21 +1145,21 @@
 		     foo))
 	      (when module-abnormal?
 		(with-llvm-message (ptr) (cffi:mem-ref foo :pointer)
-		  (print (cffi:foreign-string-to-lisp ptr) *output?*))))
+		  (print (cffi:foreign-string-to-lisp ptr) *output?*))
+		(llvm::-dispose-module old)))
 	    (unless module-abnormal?
 	      (let ((handle (kaleidoscope-add-module old)))
-		;;	    (print 123)
 		(let ((expr-symbol
 		       (cffi:with-foreign-string (str *name*)
 			 (kaleidoscope-find-symbol str))))
-					;		    (print expr-symbol)
+		  ;;(print expr-symbol)
 		  (when (cffi:null-pointer-p expr-symbol)
 		    (error 'kaleidoscope-error :message "function not found"))
 
-					;		    (print 34234)
+		  ;;(print 34234)
 		  (let ((ptr (kaleidoscope-get-symbol-address expr-symbol)))
-					;		      (print ptr)
-					;		      (print 234234)
+		    ;;(print ptr)
+		    ;;(print 234234)
 		    (if (= 0 ptr)
 			(error 'kaleidoscope-error :message "function no body???")
 			(let ((result
@@ -1164,12 +1168,10 @@
 				() :double)))
 			  (format *output?* "~%Evaluated to ~fD0"
 				  result)))))
-					;(print 2323234242342434)
 		(kaleidoscope-remove-module handle)))
-	    (llvm::-dispose-module old)
 	    (remhash *name* *function-protos*)
 	    (initialize-module-and-pass-manager)
-		)
+	    )
 	  #+nil
 	  (let ((ptr (llvm::-get-pointer-to-global *execution-engine* lf)))
 	    (format *output?* "Evaluated to ~fD0"

@@ -290,6 +290,10 @@
   (|m| |LLVMModuleRef|))
 (defcfun (-get-data-layout "LLVMGetDataLayout") (:pointer :char)
   (|m| |LLVMModuleRef|))
+
+(defcfun (-get-data-layout-str "LLVMGetDataLayoutStr") (:pointer :char)
+  (|m| |LLVMModuleRef|))
+
 (defcfun (-set-data-layout "LLVMSetDataLayout") :void
   (|m| |LLVMModuleRef|)
   (|Triple| (:pointer :char)))
