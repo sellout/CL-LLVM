@@ -1061,11 +1061,12 @@
   "return (values [NEW MODULE] [NEW FUNCTION PASS MANAGER])"
   (let ((module (cffi:with-foreign-string (str string)
 		  (llvm::-module-create-with-name str))))
+    #+nil
     (let ((target (kaleidoscope-get-target-machine)))
       #+nil
-      (let ((msg (get-target-machine-triple target)))
+      (let ((msg (llvm::-get-target-machine-triple target)))
 	(print (cffi:foreign-string-to-lisp msg))
-	(dispose-message msg))
+	(llvm::-dispose-message msg))
 
       ;;;;FIXME -potential bug? why set the layout of the module itself?
       (llvm::-set-data-layout
