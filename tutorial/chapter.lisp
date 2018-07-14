@@ -595,6 +595,22 @@
 				 (not (cffi:null-pointer-p f)))
 			    () "binary operator not found!")
 		    (build-call *builder* f (list l r) "binop")))))))))))
+(defun codegen-binary=expression (expression)
+  (let ((lhse (binary-expression.lhs expression)))
+    (if (variable-expression-p lhse)
+
+	;;// Codegen the RHS.
+	(let ((val (codegen (binary-expression.rhs expression))))
+	  (when val
+	    ;;; // Look up the name.
+	    (let ((variable
+		   (gethash (variable-expression.name lhse)
+			    *named-values*)))
+	      (unless variable
+		(error 'kaleidoscope-error :message "Unknown variable name"))
+	      (llvm::-build-store *builder* val variable)
+	      val)))
+	(error 'kaleidoscope-error :message "destination of '=' must be a variable"))))
 
 (defun codegen-call-expression (sexp)
   (let ((callee (let ((*depth* :not-top))
@@ -758,23 +774,6 @@
 		   (return function))
 		 (remove-function)
 		 nil)))))))))
-
-(defun codegen-binary=expression (expression)
-  (let ((lhse (binary-expression.lhs expression)))
-    (if (variable-expression-p lhse)
-
-	;;// Codegen the RHS.
-	(let ((val (codegen (binary-expression.rhs expression))))
-	  (when val
-	    ;;; // Look up the name.
-	    (let ((variable
-		   (gethash (variable-expression.name lhse)
-			    *named-values*)))
-	      (unless variable
-		(error 'kaleidoscope-error :message "Unknown variable name"))
-	      (llvm::-build-store *builder* val variable)
-	      val)))
-	(error 'kaleidoscope-error :message "destination of '=' must be a variable"))))
 
 ;;; code generation 4
 
