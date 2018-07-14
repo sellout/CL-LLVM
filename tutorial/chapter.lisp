@@ -539,7 +539,7 @@
 	  (ecase *chapter*
 	    ((3 4 5 6) value)
 	    ((7)
-					;(print name *output?*)
+	     ;;(print name *output?*)
 	     ;;// Load the value.
 	     (cffi:with-foreign-string (str name)
 	       (llvm::-build-load *builder* value str))))
