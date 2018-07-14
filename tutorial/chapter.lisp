@@ -739,19 +739,21 @@
 		(when (binary-operator-p prototype)
 		  (setf (gethash (operator-name prototype)
 				 *binop-precedence*)
-			(prototype.precedence prototype)))
-		(when (= *chapter* 7)
-		  (create-argument-allocas prototype function))))
+			(prototype.precedence prototype)))))
 	     ;;// Record the function arguments in the NamedValues map.
-	     ;#+nil
-	     (map nil
-		  (lambda (argument name)
-		    (setf (gethash name *named-values*)
-			  argument))
-		  (params function)
-		  (let ((a (prototype.arguments prototype)))
+					;#+nil
+	     (case *chapter*
+	       ((2 3 4 5 6)
+		(map nil
+		     (lambda (argument name)
+		       (setf (gethash name *named-values*)
+			     argument))
+		     (params function)
+		     (let ((a (prototype.arguments prototype)))
 					;(format t "~&~a~&" a)
-		    a))
+		       a)))
+	       ((7)
+		 (create-argument-allocas prototype function)))
 	     (block nil
 	       (let ((retval (codegen (function-definition.body sexp))))
 		 (when retval
@@ -964,7 +966,8 @@
 	  (when (codegen (for-expression.body expression))
 	    (let ((step-val (if (for-expression.step expression)
 				(codegen (for-expression.step expression))
-				(llvm::-const-real (llvm::-double-type) 1))))
+				(llvm::-const-real (llvm::-double-type)
+						   (doublify 1)))))
 	      (when step-val
 		(let ((end-cond (codegen (for-expression.end expression))))
 		  (when end-cond
@@ -983,16 +986,17 @@
 			       str))))
 		      (llvm::-build-store *builder* next-var alloca)
 		      (setf end-cond
-			    (llvm::-build-f-cmp
-			     *builder*
-			     (cffi:foreign-enum-value
-			      '|LLVMRealPredicate|
-			      '|LLVMRealONE|)
-			     end-cond
-			     (llvm::-const-real
-			      (llvm::-double-type)
-			      (doublify 0))
-			     "loopcond"))
+			    (cffi:with-foreign-string (str "loopcond")
+			      (llvm::-build-f-cmp
+			       *builder*
+			       (cffi:foreign-enum-value
+				'llvm::|LLVMRealPredicate|
+				'llvm::|LLVMRealONE|)
+			       end-cond			       
+			       (llvm::-const-real
+				(llvm::-double-type)
+				(doublify 0))
+			       str)))
 		      (let ((after-bb
 			     (cffi:with-foreign-string (str "afterloop")
 			       (llvm::-append-basic-block
