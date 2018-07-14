@@ -30,7 +30,8 @@
 
 (defun test (&optional (n *chapter*))
   (multiple-value-bind (out in toplevel) (wow n)
-    (%test out in toplevel n)))
+    (%test out in toplevel n))
+  (values))
 
 (defun %test (ref in toplevel n)
   (with-output-to-string (stream)
