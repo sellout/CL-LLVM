@@ -1063,31 +1063,33 @@
   "return (values [NEW MODULE] [NEW FUNCTION PASS MANAGER])"
   (let ((module (cffi:with-foreign-string (str string)
 		  (llvm::-module-create-with-name str))))
-    (when (not *compile-to-object-code?*)
-      #+nil
-      (let ((target (kaleidoscope-get-target-machine)))
-	#+nil
-	(let ((msg (llvm::-get-target-machine-triple target)))
-	  (print (cffi:foreign-string-to-lisp msg))
-	  (llvm::-dispose-message msg))
-      ;;;;FIXME -potential bug? why set the layout of the module itself?
-	(llvm::-set-data-layout
-	 module
-	 (llvm::-get-data-layout-str module)
+    (values
+     module
+     (when (not *compile-to-object-code?*)
+       #+nil
+       (let ((target (kaleidoscope-get-target-machine)))
 	 #+nil
-	 (llvm::-get-target-machine-data
-	  target)))
-      (when *fpm?*
-	(let ((fpm (llvm::-create-function-pass-manager-for-module module)))
-	  (progn
-	    (unless (= *chapter* 4)
-	      (llvm::-add-promote-memory-to-register-pass fpm))
-	    (llvm::-add-instruction-combining-pass fpm)
-	    (llvm::-add-reassociate-pass fpm)
-	    (llvm::-add-g-v-n-pass fpm)
-	    (llvm::-add-c-f-g-simplification-pass fpm))
-	  (llvm::-initialize-function-pass-manager fpm)
-	  (values module fpm))))))
+	 (let ((msg (llvm::-get-target-machine-triple target)))
+	   (print (cffi:foreign-string-to-lisp msg))
+	   (llvm::-dispose-message msg))
+      ;;;;FIXME -potential bug? why set the layout of the module itself?
+	 (llvm::-set-data-layout
+	  module
+	  (llvm::-get-data-layout-str module)
+	  #+nil
+	  (llvm::-get-target-machine-data
+	   target)))
+       (when *fpm?*
+	 (let ((fpm (llvm::-create-function-pass-manager-for-module module)))
+	   (progn
+	     (unless (= *chapter* 4)
+	       (llvm::-add-promote-memory-to-register-pass fpm))
+	     (llvm::-add-instruction-combining-pass fpm)
+	     (llvm::-add-reassociate-pass fpm)
+	     (llvm::-add-g-v-n-pass fpm)
+	     (llvm::-add-c-f-g-simplification-pass fpm))
+	   (llvm::-initialize-function-pass-manager fpm)
+	   fpm))))))
 
 (defparameter *fucking-modules* nil)
 (defun initialize-module-and-pass-manager ()
@@ -1290,7 +1292,16 @@
 	       (with-kaleidoscope-jit
 		 (%start)))
 	      (*compile-to-object-code?*
-	       (%start))
+	       (%start)
+	       (llvm::initialize-all-target-infos)
+	       (llvm::initialize-all-targets)
+	       (llvm::initialize-all-target-m-cs)
+	       (llvm::initialize-all-asm-parsers)
+	       (llvm::initialize-all-asm-printers)
+	       (with-llvm-message (ptr) (llvm::-get-default-target-triple)
+		 ;;(print (cffi:foreign-string-to-lisp ptr))
+		 (llvm::-set-target *module* ptr))
+	       )
 	      (t
 	       (%start)))))
     (values)))
