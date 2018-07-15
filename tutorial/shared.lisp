@@ -129,9 +129,9 @@
   (:report (lambda (condition stream)
 	     (write-string (message condition) stream))))
 
-(defparameter *jit?* nil)
+(defparameter *jit?* t)
 (defparameter *fpm?* t)
-(defparameter *compile-to-object-code?* t)
+(defparameter *compile-to-object-code?* nil)
 
 ;;; install standard binary operators
 ;;; 1 is lowest precedence
