@@ -771,7 +771,9 @@
 		     (error 'kaleidoscope-error
 			    :message "Function verification failure."))
 		   (unless (= *chapter* 3)
-		     (when *fpm?*
+		     ;;// Run the optimizer on the function.
+		     (when (and *fpm?*
+				(not *compile-to-object-code?*))
 		       (llvm::-run-function-pass-manager *fpm* function)))
 		   (return function))
 		 (remove-function)
@@ -1061,30 +1063,31 @@
   "return (values [NEW MODULE] [NEW FUNCTION PASS MANAGER])"
   (let ((module (cffi:with-foreign-string (str string)
 		  (llvm::-module-create-with-name str))))
-    #+nil
-    (let ((target (kaleidoscope-get-target-machine)))
+    (when (not *compile-to-object-code?*)
       #+nil
-      (let ((msg (llvm::-get-target-machine-triple target)))
-	(print (cffi:foreign-string-to-lisp msg))
-	(llvm::-dispose-message msg))
-
+      (let ((target (kaleidoscope-get-target-machine)))
+	#+nil
+	(let ((msg (llvm::-get-target-machine-triple target)))
+	  (print (cffi:foreign-string-to-lisp msg))
+	  (llvm::-dispose-message msg))
       ;;;;FIXME -potential bug? why set the layout of the module itself?
-      (llvm::-set-data-layout
-       module
-       (llvm::-get-data-layout-str module)
-       #+nil
-       (llvm::-get-target-machine-data
-	target)))
-    (let ((fpm (llvm::-create-function-pass-manager-for-module module)))
-      (progn
-	(unless (= *chapter* 4)
-	  (llvm::-add-promote-memory-to-register-pass fpm))
-	(llvm::-add-instruction-combining-pass fpm)
-	(llvm::-add-reassociate-pass fpm)
-	(llvm::-add-g-v-n-pass fpm)
-	(llvm::-add-c-f-g-simplification-pass fpm))
-      (llvm::-initialize-function-pass-manager fpm)
-      (values module fpm))))
+	(llvm::-set-data-layout
+	 module
+	 (llvm::-get-data-layout-str module)
+	 #+nil
+	 (llvm::-get-target-machine-data
+	  target)))
+      (when *fpm?*
+	(let ((fpm (llvm::-create-function-pass-manager-for-module module)))
+	  (progn
+	    (unless (= *chapter* 4)
+	      (llvm::-add-promote-memory-to-register-pass fpm))
+	    (llvm::-add-instruction-combining-pass fpm)
+	    (llvm::-add-reassociate-pass fpm)
+	    (llvm::-add-g-v-n-pass fpm)
+	    (llvm::-add-c-f-g-simplification-pass fpm))
+	  (llvm::-initialize-function-pass-manager fpm)
+	  (values module fpm))))))
 
 (defparameter *fucking-modules* nil)
 (defun initialize-module-and-pass-manager ()
@@ -1102,8 +1105,9 @@
        (when lf
 	 (format *output?* "~&~%Read function definition:")
 	 (dump-value lf)
-	 (kaleidoscope-add-module *module*)
-	 (initialize-module-and-pass-manager))))))
+	 (when (not *compile-to-object-code?*)
+	   (kaleidoscope-add-module *module*)
+	   (initialize-module-and-pass-manager)))))))
 
 (defun %handle-extern (prototype-ast)
   (ecase *chapter*
@@ -1124,70 +1128,71 @@
      (format *output?* "Parsed a top-level expr~%"))
     ((3 4 5 6 7)
      (let ((lf (codegen ast)))
-       (case *chapter*
-	 ((3)
-	  (format *output?* "Read top-level expression:")
-	  (dump-value lf))
-	 ((4 5 6 7)
-	  (case *chapter*
-	    ((4 5)
-	     (dump-value lf)))
-	  (let ((old *module*)
-		(module-abnormal? nil))
-	    (pop *fucking-modules*)
-	    ;;(format t "~&module??: ~s" old)
-	    (cffi:with-foreign-object (foo :pointer 1)
-	      (setf module-abnormal?
-		    (llvm::-verify-module
-		     old
-		     (cffi:foreign-enum-value
-		      'llvm::|LLVMVerifierFailureAction|
-		      'llvm::|LLVMPrintMessageAction|)
-		     foo))
-	      (when module-abnormal?
-		(with-llvm-message (ptr) (cffi:mem-ref foo :pointer)
-		  (print (cffi:foreign-string-to-lisp ptr) *output?*))
-		(llvm::-dispose-module old)))
-	    (unless module-abnormal?
-	      (let ((handle (kaleidoscope-add-module old)))
-		(let ((expr-symbol
-		       (cffi:with-foreign-string (str *name*)
-			 (kaleidoscope-find-symbol str))))
-		  ;;(print expr-symbol)
-		  (when (cffi:null-pointer-p expr-symbol)
-		    (error 'kaleidoscope-error :message "function not found"))
+       (when (not *compile-to-object-code?*)
+	 (case *chapter*
+	   ((3)
+	    (format *output?* "Read top-level expression:")
+	    (dump-value lf))
+	   ((4 5 6 7)
+	    (case *chapter*
+	      ((4 5)
+	       (dump-value lf)))
+	    (let ((old *module*)
+		  (module-abnormal? nil))
+	      (pop *fucking-modules*)
+	      ;;(format t "~&module??: ~s" old)
+	      (cffi:with-foreign-object (foo :pointer 1)
+		(setf module-abnormal?
+		      (llvm::-verify-module
+		       old
+		       (cffi:foreign-enum-value
+			'llvm::|LLVMVerifierFailureAction|
+			'llvm::|LLVMPrintMessageAction|)
+		       foo))
+		(when module-abnormal?
+		  (with-llvm-message (ptr) (cffi:mem-ref foo :pointer)
+		    (print (cffi:foreign-string-to-lisp ptr) *output?*))
+		  (llvm::-dispose-module old)))
+	      (unless module-abnormal?
+		(let ((handle (kaleidoscope-add-module old)))
+		  (let ((expr-symbol
+			 (cffi:with-foreign-string (str *name*)
+			   (kaleidoscope-find-symbol str))))
+		    ;;(print expr-symbol)
+		    (when (cffi:null-pointer-p expr-symbol)
+		      (error 'kaleidoscope-error :message "function not found"))
 
-		  ;;(print 34234)
-		  (let ((ptr (kaleidoscope-get-symbol-address expr-symbol)))
-		    ;;(print ptr)
-		    ;;(print 234234)
-		    (if (= 0 ptr)
-			(error 'kaleidoscope-error :message "function no body???")
-			(let ((result
-			       (cffi:foreign-funcall-pointer
-				(cffi:make-pointer ptr) 
-				() :double)))
-			  (format *output?* "~%Evaluated to ~fD0"
-				  result)))))
-		(kaleidoscope-remove-module handle)))
-	    (remhash *name* *function-protos*)
-	    (initialize-module-and-pass-manager)
-	    )
-	  #+nil
-	  (let ((ptr (llvm::-get-pointer-to-global *execution-engine* lf)))
-	    (format *output?* "Evaluated to ~fD0"
-		    (if (cffi:pointer-eq ptr lf) ; we have an interpreter
-			(llvm::-generic-value-to-float
-			 (llvm::-double-type)
-			 (let ((args ()))
-			   (let ((len (length args)))
-			     (cffi:with-foreign-object (var 'llvm::|LLVMGenericValueRef| len)
-			       (dotimes (index len)
-				 (setf (cffi:mem-aref var 'llvm::|LLVMGenericValueRef| index)
-				       (elt args index)))
-			       (llvm::-run-function *execution-engine* ptr len var)))))
-			(cffi:foreign-funcall-pointer ptr () :double)))))
-	 )))))
+		    ;;(print 34234)
+		    (let ((ptr (kaleidoscope-get-symbol-address expr-symbol)))
+		      ;;(print ptr)
+		      ;;(print 234234)
+		      (if (= 0 ptr)
+			  (error 'kaleidoscope-error :message "function no body???")
+			  (let ((result
+				 (cffi:foreign-funcall-pointer
+				  (cffi:make-pointer ptr) 
+				  () :double)))
+			    (format *output?* "~%Evaluated to ~fD0"
+				    result)))))
+		  (kaleidoscope-remove-module handle)))
+	      (remhash *name* *function-protos*)
+	      (initialize-module-and-pass-manager)
+	      )
+	    #+nil
+	    (let ((ptr (llvm::-get-pointer-to-global *execution-engine* lf)))
+	      (format *output?* "Evaluated to ~fD0"
+		      (if (cffi:pointer-eq ptr lf) ; we have an interpreter
+			  (llvm::-generic-value-to-float
+			   (llvm::-double-type)
+			   (let ((args ()))
+			     (let ((len (length args)))
+			       (cffi:with-foreign-object (var 'llvm::|LLVMGenericValueRef| len)
+				 (dotimes (index len)
+				   (setf (cffi:mem-aref var 'llvm::|LLVMGenericValueRef| index)
+					 (elt args index)))
+				 (llvm::-run-function *execution-engine* ptr len var)))))
+			  (cffi:foreign-funcall-pointer ptr () :double)))))
+	   ))))))
 
 (progn
   (defun main-loop (exit)
@@ -1197,7 +1202,8 @@
   (defun main-loop-end ()
     (eql *current-token* ':tok-eof))
   (defun per-loop (exit)
-    (format *output?* "~&ready> ")
+    (when (not *compile-to-object-code?*)
+      (format *output?* "~&ready> "))
     (handler-case
 	(case *current-token*
 	  (#\; (get-next-token))
@@ -1274,17 +1280,17 @@
     (get-next-token)
     (set-binop-precedence)
     (labels ((%start ()
-	       (when *jit?*
-		 (initialize-module-and-pass-manager))
+	       (initialize-module-and-pass-manager)
 	       (callcc (function main-loop))
 	       ;;from 6.0.0/docs/tutorial/BuildingAJIT1.html
 	       ;;All resources will be cleaned up when your JIT class is destructed
 	       ))
       (with-builder *builder*
-	(if *jit?*
-	    (with-kaleidoscope-jit
-	      (%start)
-
-	      )
-	    (%start))))
+	(cond (*jit?*
+	       (with-kaleidoscope-jit
+		 (%start)))
+	      (*compile-to-object-code?*
+	       (%start))
+	      (t
+	       (%start)))))
     (values)))

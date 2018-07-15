@@ -131,6 +131,7 @@
 
 (defparameter *jit?* t)
 (defparameter *fpm?* t)
+(defparameter *compile-to-object-code?* nil)
 
 ;;; install standard binary operators
 ;;; 1 is lowest precedence
@@ -306,3 +307,10 @@ LLVMBool LLVMInitializeNativeDisassembler__(void) {
   (cffi:defcfun (initialize-native-asm-parser "LLVMInitializeNativeAsmParser__") :int)
   (cffi:defcfun (initialize-native-asm-printer "LLVMInitializeNativeAsmPrinter__") :int)
   (cffi:defcfun (initialize-native-disassembler "LLVMInitializeNativeDisassembler__") :int))
+
+(progn
+  (cffi:defcfun (initialize-all-target-infos "LLVMInitializeAllTargetInfos__") :void)
+  (cffi:defcfun (initialize-all-targets "LLVMInitializeAllTargets__") :void)
+  (cffi:defcfun (initialize-all-target-m-cs "LLVMInitializeAllTargetMCs__") :void)
+  (cffi:defcfun (initialize-all-asm-parsers "LLVMInitializeAllAsmParsers__") :void)
+  (cffi:defcfun (initialize-all-asm-printers "LLVMInitializeAllAsmPrinters__") :void))
