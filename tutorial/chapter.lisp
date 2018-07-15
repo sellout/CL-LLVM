@@ -1300,7 +1300,12 @@
 	       (llvm::initialize-all-asm-printers)
 	       (with-llvm-message (ptr) (llvm::-get-default-target-triple)
 		 ;;(print (cffi:foreign-string-to-lisp ptr))
-		 (llvm::-set-target *module* ptr))
+		 (llvm::-set-target *module* ptr)
+		 (cffi:with-foreign-object (target-ref 'llvm::|LLVMTargetRef|)
+		   (let ((not-success? (llvm::-get-target-from-triple ptr target-ref
+								      (cffi:null-pointer))))
+		     (format t "get target: ~s" (not not-success?))))
+		 )
 	       )
 	      (t
 	       (%start)))))
