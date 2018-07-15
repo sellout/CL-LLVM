@@ -1269,6 +1269,7 @@
 	 (when ,completed?
 	   (llvm::-dispose-builder ,var))))))
 
+(defparameter *object-filename* "/home/imac/install/other/huh.o")
 (defun toplevel (n)
   ;;;reset toplevel name counter
   (setf *name-counter* -1)
@@ -1298,14 +1299,49 @@
 	       (llvm::initialize-all-target-m-cs)
 	       (llvm::initialize-all-asm-parsers)
 	       (llvm::initialize-all-asm-printers)
-	       (with-llvm-message (ptr) (llvm::-get-default-target-triple)
+	       (with-llvm-message (triple) (llvm::-get-default-target-triple)
 		 ;;(print (cffi:foreign-string-to-lisp ptr))
-		 (llvm::-set-target *module* ptr)
+		 (llvm::-set-target *module* triple)
 		 (cffi:with-foreign-object (target-ref 'llvm::|LLVMTargetRef|)
-		   (let ((not-success? (llvm::-get-target-from-triple ptr target-ref
-								      (cffi:null-pointer))))
-		     (format t "get target: ~s" (not not-success?))))
-		 )
+		   (let ((not-success? (llvm::-get-target-from-triple
+					triple
+					target-ref
+					(cffi:null-pointer))))
+		     (format t "get target: ~s" (not not-success?))
+		     (unless not-success?
+		       (let ((target-machine-ref
+			      (cffi:with-foreign-string (cpu "generic")
+				(cffi:with-foreign-string (features "")
+				  (llvm::-create-target-machine
+				   target-ref
+				   triple
+				   cpu
+				   features
+				   (cffi:foreign-enum-value
+				      'llvm::|LLVMCodeGenOptLevel|
+				      'llvm::|LLVMCodeGenLevelAggressive|)
+				   (cffi:foreign-enum-value
+				      'llvm::|LLVMRelocMode|
+				      'llvm::|LLVMRelocPIC|)
+				   (cffi:foreign-enum-value
+				      'llvm::|LLVMCodeModel|
+				      'llvm::|LLVMCodeModelDefault|)
+				   )))))
+			 (print "target machine ref created")
+			 (cffi:with-foreign-object (error-message :pointer)
+			   (cffi:with-foreign-string (str *object-filename*)
+			     (let ((not-success?
+				    (llvm::-target-machine-emit-to-file
+				     target-machine-ref
+				     *module*
+				     str
+				     (cffi:foreign-enum-value
+				      'llvm::|LLVMCodeGenFileType|
+				      'llvm::|LLVMAssemblyFile|)
+				     error-message)))
+			       (format t "dump file: ~s ~%~a"
+				       (not not-success?)
+				       *object-filename*)))))))))
 	       )
 	      (t
 	       (%start)))))
