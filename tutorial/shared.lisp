@@ -159,12 +159,10 @@
 (cffi:defcfun (dispose-message "LLVMDisposeMessage") :void
   (target-machine--ref :pointer))
 
-(eval-when (:compile-toplevel :load-toplevel :execute)
-  (defparameter *chapter-test-cases* (make-array 16)))
+(defparameter *chapter-test-cases* (make-array 16))
 
 (defmacro define-chapter-test (chapter-number data)
-  (setf (aref *chapter-test-cases* chapter-number) data)
-  (values))
+  `(setf (aref *chapter-test-cases* ,chapter-number) (quote ,data)))
 
 (defun test-all ()
   (loop for i from 2 to 7 do
