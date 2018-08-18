@@ -816,35 +816,24 @@
 	   ))))))
 
 
-(progn
-  (defun main-loop (exit)
-    (declare (ignorable exit))
-    (dolist (sexp (aref *chapter-test-cases* *chapter*))
-      (handler-case
-	  (destructuring-bind (type ast) sexp
-	    (case type
-	      (%defun
-	       ;;handle-definition
-	       (%handle-definition ast))
-	      (%extern
-	       ;;handle-extern
-	       (%handle-extern ast))
-	      (%toplevel
-	       ;;handle-top-level-expression
-	       (%handle-top-level-expression ast))
-	      (%comment)))
-	(kaleidoscope-error (e) (format *output?* "error: ~a~%" e)))))
-  )
-
-(defparameter *dump-ast?* t)
-(defun dump-ast (ast)
-  (when *dump-ast?*
-    (let ((*print-case* :downcase))
-      (format *output?* "~2%DUMP-AST:: ~s~&~%" ast))))
-(defparameter *ast2-stuff* nil)
-(defun dump-ast2 (ast)
-  (print ast)
-  (push ast *ast2-stuff*))
+(defun main-loop (exit)
+  (declare (ignorable exit))
+  (dolist (sexp (aref *chapter-test-cases* *chapter*))
+    (handler-case
+	(destructuring-bind (type ast) sexp
+	  (case type
+	    (%defun
+	     ;;handle-definition
+	     (%handle-definition ast))
+	    (%extern
+	     ;;handle-extern
+	     (%handle-extern ast))
+	    (%toplevel
+	     ;;handle-top-level-expression
+	     (%handle-top-level-expression ast))
+	    (%comment)))
+      (kaleidoscope-error (e) (format *output?* "error: ~a~%" e)))))
+  
 
 ;;; top-level 4 5 6 7
 (defvar *execution-engine*)

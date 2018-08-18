@@ -71,3 +71,13 @@
  :main-loop
  :*chapter*
  :toplevel)
+
+(defparameter *dump-ast?* t)
+(defun dump-ast (ast)
+  (when *dump-ast?*
+    (let ((*print-case* :downcase))
+      (format *output?* "~2%DUMP-AST:: ~s~&~%" ast))))
+(defparameter *ast2-stuff* nil)
+(defun dump-ast2 (ast)
+  (print ast)
+  (push ast *ast2-stuff*))
