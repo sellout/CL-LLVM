@@ -43,8 +43,11 @@
 	':tok-identifier)))
 
 (defparameter *last-char* #\space)
+(defparameter *comment-buffer* (make-array 0 :adjustable t :fill-pointer 0))
+(defparameter *comments* nil)
 (defun reset-token-reader ()
   (setf *last-char* #\space))
+(defparameter *comment-strings* t)
 (defun read-token (&optional (token-types *token-types*) (stream *standard-input*))
   "Returns either a character or one of ':tok-eof, ':tok-def, ':tok-extern,
      ':tok-identifier, or ':tok-number."
@@ -75,9 +78,22 @@
 			    'string))))
 	   ':tok-number)
 	  ((eql *last-char* #\#) ; comment until end of line
-	   (loop do (setf *last-char* (get-char))
-	      until (find *last-char* '(nil #\linefeed #\return)))
-	   (if (null *last-char*) ':tok-eof (read-token token-types stream)))
+	   (when *comment-strings*
+	     (setf (fill-pointer *comment-buffer*) 0))
+	   (block out
+	     (loop 
+		(setf *last-char* (get-char))
+		(when 
+		    (find *last-char* '(nil #\linefeed #\return))
+		  (return-from out))
+		(when *comment-strings*
+		  (vector-push-extend *last-char* *comment-buffer*))))
+	   (push
+	    (map 'string #'identity *comment-buffer*)
+	     *comments*)
+	   (if (null *last-char*)
+	       ':tok-eof
+	       (read-token token-types stream)))
 	  (t
 	   (let ((this-char *last-char*))
 	     (setf *last-char* (get-char))
@@ -1196,6 +1212,9 @@
 			  (cffi:foreign-funcall-pointer ptr () :double)))))
 	   ))))))
 
+(defparameter *doing-stuff* nil)
+(defparameter *interactive* nil)
+
 (progn
   (defun main-loop (exit)
     (do ()
@@ -1204,32 +1223,42 @@
   (defun main-loop-end ()
     (eql *current-token* ':tok-eof))
   (defun per-loop (exit)
-    (when (not *compile-to-object-code?*)
+    (when (and *interactive*
+	       (not *compile-to-object-code?*))
       (format *output?* "~&ready> "))
+    (when *comments*
+      (dump-ast2 `(%comment ,(nreverse *comments*)))
+      (setf *comments* nil))
     (handler-case
 	(case *current-token*
 	  (#\; (get-next-token))
 	  (:tok-def
 	   ;;handle-definition
 	   (let ((function-ast (parse-definition)))
-	     (dump-ast function-ast)
 	     (if function-ast
-		 (%handle-definition function-ast)
+		 (cond (*doing-stuff*
+			(dump-ast function-ast)
+			(%handle-definition function-ast))
+		       (t (dump-ast2 `(%defun ,function-ast))))
 		 (get-next-token))))
 	  (:tok-extern
 	   ;;handle-extern
 	   (let ((prototype (parse-extern)))
-	     (dump-ast prototype)
 	     (if prototype
-		 (%handle-extern prototype)
+		 (cond (*doing-stuff*
+			(dump-ast prototype)
+			(%handle-extern prototype))
+		       (t (dump-ast2 `(%extern ,prototype))))
 		 (get-next-token))))
 	  (:tok-quit (funcall exit))
 	  (otherwise
 	   ;;handle-top-level-expression
 	   (handler-case
 	       (let ((ast (parse-top-level-expression)))
-		 (dump-ast ast)
-		 (%handle-top-level-expression ast))
+		 (cond (*doing-stuff*
+			(dump-ast ast)
+			(%handle-top-level-expression ast))
+		       (t (dump-ast2 `(%toplevel ,ast)))))
 	     (kaleidoscope-error (e)
 	       (get-next-token)
 	       (format *output?* "error: ~a~%" e)))
@@ -1241,6 +1270,10 @@
   (when *dump-ast?*
     (let ((*print-case* :downcase))
       (format *output?* "~2%DUMP-AST:: ~s~&~%" ast))))
+(defun dump-ast2 (ast)
+  (when *dump-ast?*
+    (let ((*print-case* :downcase))
+      (format *output?* "~%~s~%" ast))))
 
 ;;; top-level 4 5 6 7
 (defvar *execution-engine*)
@@ -1269,7 +1302,7 @@
 	 (when ,completed?
 	   (llvm::-dispose-builder ,var))))))
 
-(defun toplevel (n)
+(defun toplevel (n &optional (cont (function main-loop)))
   ;;;reset toplevel name counter
   (setf *name-counter* -1)
   ;;;reset allocated modules list
@@ -1277,13 +1310,12 @@
   
   (let ((*chapter* n)
 	(*token-types* (chap-tokens n)))
-    (format *output?* "~&ready> ")
     (reset-token-reader)
     (get-next-token)
     (set-binop-precedence)
     (labels ((%start ()
 	       (initialize-module-and-pass-manager)
-	       (callcc (function main-loop))
+	       (callcc cont)
 	       ;;from 6.0.0/docs/tutorial/BuildingAJIT1.html
 	       ;;All resources will be cleaned up when your JIT class is destructed
 	       ))

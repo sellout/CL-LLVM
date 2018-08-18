@@ -26,20 +26,22 @@
 
 (defun testfoo ()
   (loop for i from 2 to 7 do
-       (test i)))
+       (test i))
+  (values))
 
 (defun test (&optional (n *chapter*))
   (multiple-value-bind (out in toplevel) (wow n)
-    (%test out in toplevel n))
+    (%test out in toplevel))
   (values))
 
-(defun %test (ref in toplevel n)
+(defun %test (ref in toplevel)
   (with-output-to-string (stream)
     (let ((all (make-broadcast-stream stream
 				      *standard-output*
 				      )))
       (let ((input-file-name (merge-pathnames in *test-directory*)))
 	(print input-file-name)
+	(terpri)
 	(with-open-file (file input-file-name)
 	  (let ((*output?*  all)
 		(*input?* file))
