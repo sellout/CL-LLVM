@@ -172,7 +172,7 @@
 	 (format
 	  t
 	  "~%----------------------------------CHAPTER ~s----------------------------------~%" i)
-	 (toplevel i)))
+	 (toplevel i (chapter-test-sexps i))))
   (values))
 
 

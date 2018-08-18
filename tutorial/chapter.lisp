@@ -815,26 +815,6 @@
 			  (cffi:foreign-funcall-pointer ptr () :double)))))
 	   ))))))
 
-
-(defun main-loop (exit)
-  (declare (ignorable exit))
-  (dolist (sexp (aref *chapter-test-cases* *chapter*))
-    (handler-case
-	(destructuring-bind (type ast) sexp
-	  (case type
-	    (%defun
-	     ;;handle-definition
-	     (%handle-definition ast))
-	    (%extern
-	     ;;handle-extern
-	     (%handle-extern ast))
-	    (%toplevel
-	     ;;handle-top-level-expression
-	     (%handle-top-level-expression ast))
-	    (%comment)))
-      (kaleidoscope-error (e) (format *output?* "error: ~a~%" e)))))
-  
-
 ;;; top-level 4 5 6 7
 (defvar *execution-engine*)
 
@@ -862,14 +842,55 @@
 	 (when ,completed?
 	   (llvm::-dispose-builder ,var))))))
 
-(defun toplevel (n &optional (cont (function main-loop)))
+(defun chapter-test-sexps (&optional (n *chapter*))
+  (let ((cell (aref *chapter-test-cases* n)))
+    (lambda ()
+      (if (consp cell)
+	  (multiple-value-prog1 (values (car cell) t)
+	    (setf cell (cdr cell)))
+	  (values "error" nil)))))
+
+(defun input-reader ()
+  (lambda ()
+    (let* ((eof (load-time-value (gensym)))
+	   (value (read *standard-input* nil eof)))
+      (if (or (eq eof value)
+	      (eq value :quit))
+	  (values "error" nil)
+	  (values value t)))))
+
+(defmacro do-provider ((value-var form) body)
+  (with-gensyms (exists out)
+    (once-only (form)
+      `(block ,out
+	 (loop
+	    (multiple-value-bind (,value-var ,exists) (funcall ,form)
+	      (if ,exists
+		  ,body
+		  (return-from ,out))))))))
+
+(defun toplevel (n &optional (sexp-generator (input-reader)))
   ;;;reset allocated modules list
-  (setf *fucking-modules* nil)
-  
+  (setf *fucking-modules* nil)  
   (let ((*chapter* n))
     (labels ((%start ()
 	       (initialize-module-and-pass-manager)
-	       (callcc cont)
+	       (do-provider
+		   (sexp sexp-generator)
+		   (handler-case
+		       (destructuring-bind (type ast) sexp
+			 (case type
+			   (%defun
+			    ;;handle-definition
+			    (%handle-definition ast))
+			   (%extern
+			    ;;handle-extern
+			    (%handle-extern ast))
+			   (%toplevel
+			    ;;handle-top-level-expression
+			    (%handle-top-level-expression ast))
+			   (%comment)))
+		     (kaleidoscope-error (e) (format *output?* "error: ~a~%" e))))
 	       ;;from 6.0.0/docs/tutorial/BuildingAJIT1.html
 	       ;;All resources will be cleaned up when your JIT class is destructed
 	       ))
