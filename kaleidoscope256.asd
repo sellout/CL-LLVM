@@ -4,18 +4,16 @@
 (asdf:defsystem #:kaleidoscope256
   :description "A translation of the language created in the LLVM tutorial."
   :depends-on
-  (;#:llvm256
-   #:cffi
-   #:filesystem-util
-   #:split-sequence)
+  (#:cffi
+   #:utility
+   #:filesystem-util)
   :components
-  ((:module "tutorial"
-	     :serial t
-	     :components
-	     (#+nil
-	      (:file "cffi")
-	      (:file "package")
-	      (:file "geez")
-	      (:file "shared")
-	      (:file "chapter")
-	      (:file "testcases")))))
+  ((:module
+    "tutorial"
+    :serial t
+    :components
+    ((:file "package")
+     (:file "c-bindings")
+     (:file "shared")
+     (:file "chapter")
+     (:file "testcases")))))

@@ -489,3 +489,37 @@
      (setf (gethash (operator-name prototype)
 		    *binop-precedence*)
 	   (prototype.precedence prototype)))))
+
+
+;;;;symbols exported from k-shared
+;;;lexer
+(:export
+ :*identifier-string*
+ :*number-value*
+ :*current-token*
+ :*token-types*
+ :get-next-token
+ :reset-token-reader
+ :chap-tokens
+ :with-tokens)
+
+;;;parser
+(:export
+ :*binop-precedence*
+ :get-precedence
+ :parse-identifier-expression
+ :parse-number-expression
+ :parse-paren-expression
+ :parse-primary
+ :parse-prototype
+ :parse-bin-op-rhs
+ :parse-expression
+ :parse-definition
+ :parse-top-level-expression
+ :parse-extern
+ :parse-if-expression
+ :parse-for-expression
+ :parse-unary
+ :parse-var-expression)
+
+:set-binop-precedence
