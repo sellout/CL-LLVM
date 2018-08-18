@@ -1,4 +1,4 @@
-(in-package :k-test)
+(in-package :k-shared)
 
 (define-chapter-test 2
  ((%defun

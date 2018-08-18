@@ -40,29 +40,3 @@
        (concatenate 'string "chapter" str ".k")
        (lambda () (toplevel n)))))
   (values))
-#+nil
-(defun test2 (&optional (n *chapter*))
-  (let ((str (write-to-string n)))
-    (flet ((%test (out in toplevel)
-	     (let ((k-shared::*ast2-stuff* nil))
-	       (with-output-to-string (stream)
-		 (let ((input-file-name (merge-pathnames in *test-directory*))
-		       (output-file-name (merge-pathnames out *test-directory*)))
-		   (with-open-file (file input-file-name)
-		     (let ((*input?* file))
-		       (funcall toplevel)))
-		   (with-open-file (file output-file-name :direction :output :if-exists :append)
-		     (let ((*print-case* :downcase))
-		       (print `(define-chapter-test ,n ,(nreverse k-shared::*ast2-stuff*)) file))))))))
-      (%test
-       "testcases.lisp"
-       (concatenate 'string "chapter" str ".k")
-       (lambda () (toplevel n)))))
-  (values))
-
-(eval-when (:compile-toplevel :load-toplevel :execute)
-  (defparameter *chapter-test-cases* (make-array 16)))
-
-(defmacro define-chapter-test (chapter-number data)
-  (setf (aref *chapter-test-cases* chapter-number) data)
-  (values))

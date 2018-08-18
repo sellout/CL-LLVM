@@ -133,16 +133,6 @@
 (defparameter *fpm?* t)
 (defparameter *compile-to-object-code?* nil)
 
-;;; install standard binary operators
-;;; 1 is lowest precedence
-(defun set-binop-precedence (&optional (n *chapter*))
-  (case n
-    ((7) (setf (gethash #\= *binop-precedence*) 2)))
-  (setf (gethash #\< *binop-precedence*) 10
-	(gethash #\+ *binop-precedence*) 20
-	(gethash #\- *binop-precedence*) 30
-	(gethash #\* *binop-precedence*) 40))
-
 (defmacro with-llvm-message ((ptr-var) ptr-form  &body body)
   `(let ((,ptr-var ,ptr-form))      
      (prog1 (progn ,@body)
@@ -271,6 +261,23 @@
 #+nil
 (cffi:defcfun (dispose-message "LLVMDisposeMessage") :void
   (target-machine--ref :pointer))
+
+(eval-when (:compile-toplevel :load-toplevel :execute)
+  (defparameter *chapter-test-cases* (make-array 16)))
+
+(defmacro define-chapter-test (chapter-number data)
+  (setf (aref *chapter-test-cases* chapter-number) data)
+  (values))
+
+(defun test-all ()
+  (loop for i from 2 to 7 do
+       (progn
+	 (format
+	  t
+	  "~%----------------------------------CHAPTER ~s----------------------------------~%" i)
+	 (toplevel i)))
+  (values))
+
 
 ;;;;other llvm funs
 (in-package :llvm)
