@@ -40,7 +40,7 @@
        (concatenate 'string "chapter" str ".k")
        (lambda () (toplevel n)))))
   (values))
-
+#+nil
 (defun test2 (&optional (n *chapter*))
   (let ((str (write-to-string n)))
     (flet ((%test (out in toplevel)
@@ -64,4 +64,5 @@
   (defparameter *chapter-test-cases* (make-array 16)))
 
 (defmacro define-chapter-test (chapter-number data)
-  (setf (aref *chapter-test-cases* chapter-number) data))
+  (setf (aref *chapter-test-cases* chapter-number) data)
+  (values))

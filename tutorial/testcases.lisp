@@ -1,6 +1,6 @@
 (in-package :k-test)
 
-(k-test::define-chapter-test 2
+(define-chapter-test 2
  ((%defun
    (function-definition (prototype "foo" #("x" "y") nil 0)
     (binary-expression #\+ (variable-expression "x")
@@ -17,7 +17,7 @@
     (binary-expression #\+ (variable-expression "x")
      (variable-expression "y"))))
   (%extern (prototype "sin" #("a") nil 0)))) 
-(k-test::define-chapter-test 3
+(define-chapter-test 3
  ((%toplevel
    (function-definition (prototype "0" #() nil 0)
     (binary-expression #\+ (number-expression 4) (number-expression 5))))
@@ -42,7 +42,7 @@
   (%toplevel
    (function-definition (prototype "1" #() nil 0)
     (call-expression "cos" ((number-expression 1.234))))))) 
-(k-test::define-chapter-test 4
+(define-chapter-test 4
  ((%toplevel
    (function-definition (prototype "0" #() nil 0)
     (binary-expression #\+ (number-expression 4) (number-expression 5))))
@@ -69,7 +69,7 @@
   (%toplevel
    (function-definition (prototype "3" #() nil 0)
     (call-expression "foo" ((number-expression 4.0))))))) 
-(k-test::define-chapter-test 5
+(define-chapter-test 5
  ((%defun
    (function-definition (prototype "fib" #("x") nil 0)
     (if-expression
@@ -99,7 +99,7 @@
   (%toplevel
    (function-definition (prototype "0" #() nil 0)
     (call-expression "printstar" ((number-expression 100))))))) 
-(k-test::define-chapter-test 6
+(define-chapter-test 6
  ((%extern (prototype "printd" #("x") nil 30))
   (%defun
    (function-definition (prototype "binary:" #("x" "y") 2 1)
@@ -275,7 +275,7 @@
      ((unary-expression #\- (number-expression 0.9))
       (unary-expression #\- (number-expression 1.4)) (number-expression 0.02)
       (number-expression 0.03))))))) 
-(k-test::define-chapter-test 7
+(define-chapter-test 7
  ((%comment
    (" Define ':' for sequencing: as a low-precedence operator that ignores operands"
     " and just returns the RHS."))
