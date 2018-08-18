@@ -1226,7 +1226,8 @@
     (when (and *interactive*
 	       (not *compile-to-object-code?*))
       (format *output?* "~&ready> "))
-    (when *comments*
+    (when (and (not *interactive*)
+	       *comments*)
       (dump-ast2 `(%comment ,(nreverse *comments*)))
       (setf *comments* nil))
     (handler-case
@@ -1270,10 +1271,10 @@
   (when *dump-ast?*
     (let ((*print-case* :downcase))
       (format *output?* "~2%DUMP-AST:: ~s~&~%" ast))))
+(defparameter *ast2-stuff* nil)
 (defun dump-ast2 (ast)
-  (when *dump-ast?*
-    (let ((*print-case* :downcase))
-      (format *output?* "~%~s~%" ast))))
+  (print ast)
+  (push ast *ast2-stuff*))
 
 ;;; top-level 4 5 6 7
 (defvar *execution-engine*)

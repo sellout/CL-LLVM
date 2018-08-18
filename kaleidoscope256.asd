@@ -18,4 +18,5 @@
 	      (:file "geez")
 	      (:file "shared")
 	      (:file "chapter")
-	      (:file "test")))))
+	      (:file "test")
+	      (:file "testcases")))))

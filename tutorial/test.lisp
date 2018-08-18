@@ -17,67 +17,51 @@
       (princ item)
       (incf line-number))))
 
-(defun wow (n)
-  (let ((str (write-to-string n)))
-    (values
-     (concatenate 'string "chapter" str ".out")
-     (concatenate 'string "chapter" str ".k")
-     (lambda () (toplevel n)))))
 
-(defun testfoo ()
+(defun testfoo (&optional (testfunc (function test)))
   (loop for i from 2 to 7 do
-       (test i))
+       (funcall testfunc i))
   (values))
 
 (defun test (&optional (n *chapter*))
-  (multiple-value-bind (out in toplevel) (wow n)
-    (%test out in toplevel))
+  (let ((str (write-to-string n)))
+    (flet ((%test (ref in toplevel)
+	     (with-output-to-string (stream)
+	       (let ((all (make-broadcast-stream stream
+						 *standard-output*
+						 )))
+		 (let ((input-file-name (merge-pathnames in *test-directory*)))
+		   (with-open-file (file input-file-name)
+		     (let ((*output?*  all)
+			   (*input?* file))
+		       (funcall toplevel))))))))
+      (%test
+       (concatenate 'string "chapter" str ".out")
+       (concatenate 'string "chapter" str ".k")
+       (lambda () (toplevel n)))))
   (values))
 
-(defun %test (ref in toplevel)
-  (with-output-to-string (stream)
-    (let ((all (make-broadcast-stream stream
-				      *standard-output*
-				      )))
-      (let ((input-file-name (merge-pathnames in *test-directory*)))
-	(print input-file-name)
-	(terpri)
-	(with-open-file (file input-file-name)
-	  (let ((*output?*  all)
-		(*input?* file))
-	    (funcall toplevel))))))
-  #+nil
-  (let (
-	#+nil
-	(ref
-	 (trim-empty-lines
-	  (alexandria:read-file-into-string
-	   (merge-pathnames ref *test-directory*))))
-	(output
-	 (trim-empty-lines
-	  )))
-    #+nil
-    (progn
-      (format t "~&test ~a" n)
-      (print-with-lines output)
-      (print-with-lines ref))
-    #+nil
-    (let ((line-number 0))
-      (cond ((block out
-	       (mapc 
-		(lambda (x y)
-		  (unless (string= x y)
-		    (return-from out t))
-		  (incf line-number))
-		ref
-		output)
-	       nil)
-	     (print-with-lines ref)
-	     (print-with-lines output)
-	     (format t "~&line # ~s different" line-number))
-	    (t
-	     (terpri)
-	     (terpri)
-	     (format *output?* "test ~a OK" n)
-	     (terpri)
-	     (terpri))))))
+(defun test2 (&optional (n *chapter*))
+  (let ((str (write-to-string n)))
+    (flet ((%test (out in toplevel)
+	     (let ((k-shared::*ast2-stuff* nil))
+	       (with-output-to-string (stream)
+		 (let ((input-file-name (merge-pathnames in *test-directory*))
+		       (output-file-name (merge-pathnames out *test-directory*)))
+		   (with-open-file (file input-file-name)
+		     (let ((*input?* file))
+		       (funcall toplevel)))
+		   (with-open-file (file output-file-name :direction :output :if-exists :append)
+		     (let ((*print-case* :downcase))
+		       (print `(define-chapter-test ,n ,(nreverse k-shared::*ast2-stuff*)) file))))))))
+      (%test
+       "testcases.lisp"
+       (concatenate 'string "chapter" str ".k")
+       (lambda () (toplevel n)))))
+  (values))
+
+(eval-when (:compile-toplevel :load-toplevel :execute)
+  (defparameter *chapter-test-cases* (make-array 16)))
+
+(defmacro define-chapter-test (chapter-number data)
+  (setf (aref *chapter-test-cases* chapter-number) data))
