@@ -6,14 +6,13 @@
   :depends-on
   (#:cffi
    #:utility
-   #:filesystem-util)
+   #:filesystem-util
+   #:llvm256)
   :components
   ((:module
     "tutorial"
     :serial t
     :components
-    ((:file "package")
-     (:file "c-bindings")
-     (:file "shared")
+    ((:file "shared")
      (:file "chapter")
      (:file "testcases")))))
