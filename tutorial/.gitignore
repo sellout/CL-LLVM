@@ -11,3 +11,4 @@ kaleidoscope-extern.lo
 kaleidoscope-extern.o
 libkaleidoscope.la
 libtool
+*.so.*

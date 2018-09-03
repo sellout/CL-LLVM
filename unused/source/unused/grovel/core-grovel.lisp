@@ -1,5 +1,6 @@
 (in-package :llvm)
 
+;;;;see old/cffi.lisp for version feature code
 (cc-flags "-D__STDC_LIMIT_MACROS"
           "-D__STDC_CONSTANT_MACROS"
           #+:llvm-config "-I"

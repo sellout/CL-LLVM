@@ -1,6 +1,6 @@
 ready> 
 ready> 
-define double @0() {
+define double @"0"() {
 entry:
   ret double 9.000000e+00
 }
@@ -11,14 +11,14 @@ ready> Read function definition:
 define double @testfunc(double %x, double %y) {
 entry:
   %multmp = fmul double %y, 2.000000e+00
-  %addtmp = fadd double %multmp, %x
+  %addtmp = fadd double %x, %multmp
   ret double %addtmp
 }
 
 
 ready> 
 ready> 
-define double @1() {
+define double @"1"() {
 entry:
   %calltmp = call double @testfunc(double 4.000000e+00, double 1.000000e+01)
   ret double %calltmp
@@ -37,7 +37,7 @@ declare double @cos(double)
 
 ready> 
 ready> 
-define double @2() {
+define double @"2"() {
 entry:
   ret double 0x3FEAED548F090CEE
 }
@@ -60,7 +60,7 @@ entry:
 
 ready> 
 ready> 
-define double @3() {
+define double @"3"() {
 entry:
   %calltmp = call double @foo(double 4.000000e+00)
   ret double %calltmp
@@ -81,7 +81,7 @@ entry:
   ret double %addtmp
 }
 
-define double @1() {
+define double @"1"() {
 entry:
   %calltmp = call double @testfunc(double 4.000000e+00, double 1.000000e+01)
   ret double %calltmp
@@ -91,7 +91,7 @@ declare double @sin(double)
 
 declare double @cos(double)
 
-define double @2() {
+define double @"2"() {
 entry:
   ret double 0x3FEAED548F090CEE
 }
@@ -108,7 +108,7 @@ entry:
   ret double %addtmp
 }
 
-define double @3() {
+define double @"3"() {
 entry:
   %calltmp = call double @foo(double 4.000000e+00)
   ret double %calltmp
