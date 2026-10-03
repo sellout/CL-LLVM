@@ -390,7 +390,7 @@
 (defmethod codegen ((expression variable-expression))
   (let ((v (gethash (name expression) *named-values*)))
     (if v
-        (llvm:build-load *builder* v (name expression))
+        (llvm:build-load *builder* v (name expression) (llvm:double-type))
         (error 'kaleidoscope-error :message "unknown variable name"))))
 
 (defmethod codegen ((expression unary-expression))
@@ -504,7 +504,8 @@
                   (when end-cond
                     (let* ((cur-var (llvm:build-load *builder*
                                                      alloca
-                                                     (var-name expression)))
+                                                     (var-name expression)
+                                                     (llvm:double-type)))
                            (next-var (llvm:build-f-add *builder*
                                                        cur-var
                                                        step-val
@@ -688,7 +689,7 @@
                       (*module* llvm:module "my cool jit")
                       (*execution-engine* llvm:execution-engine *module*)
                       (*fpm* llvm:function-pass-manager *module*))
-    (llvm:add-target-data (llvm:target-data *execution-engine*) *fpm*)
+    (llvm:set-module-data-layout *module* (llvm:target-data *execution-engine*))
     (llvm:add-promote-memory-to-register-pass *fpm*)
     (llvm:add-instruction-combining-pass *fpm*)
     (llvm:add-reassociate-pass *fpm*)

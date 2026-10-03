@@ -362,7 +362,7 @@
                       (*module* llvm:module "my cool jit")
                       (*execution-engine* llvm:execution-engine *module*)
                       (*fpm* llvm:function-pass-manager *module*))
-    (llvm:add-target-data (llvm:target-data *execution-engine*) *fpm*)
+    (llvm:set-module-data-layout *module* (llvm:target-data *execution-engine*))
     (llvm:add-instruction-combining-pass *fpm*)
     (llvm:add-reassociate-pass *fpm*)
     (llvm:add-gvn-pass *fpm*)

@@ -13,7 +13,6 @@
 
 (cenum opcode
        ((:ret "LLVMRet"))
-       ((:br "LLVMBr"))
        ((:switch "LLVMSwitch"))
        ((:indirect-br "LLVMIndirectBr"))
        ((:invoke "LLVMInvoke"))
@@ -63,13 +62,23 @@
        ((:shuffle-vector "LLVMShuffleVector"))
        ((:extract-value "LLVMExtractValue"))
        ((:insert-value "LLVMInsertValue"))
+       ((:freeze "LLVMFreeze"))
        ((:fence "LLVMFence"))
        ((:atomic-cas "LLVMAtomicCmpXchg"))
+       ((:atomic-rmw "LLVMAtomicRMW"))
        ((:resume "LLVMResume"))
-       ((:landing-pad "LLVMLandingPad")))
+       ((:landing-pad "LLVMLandingPad"))
+       ((:addr-space-cast "LLVMAddrSpaceCast"))
+       ((:cleanup-ret "LLVMCleanupRet"))
+       ((:catch-ret "LLVMCatchRet"))
+       ((:catch-pad "LLVMCatchPad"))
+       ((:cleanup-pad "LLVMCleanupPad"))
+       ((:catch-switch "LLVMCatchSwitch"))
+       ((:ptr-to-addr "LLVMPtrToAddr")))
 
 (cenum type-kind
        ((:void "LLVMVoidTypeKind"))
+       ((:half "LLVMHalfTypeKind"))
        ((:float "LLVMFloatTypeKind"))
        ((:double "LLVMDoubleTypeKind"))
        ((:x86-fp80 "LLVMX86_FP80TypeKind"))
@@ -83,7 +92,12 @@
        ((:pointer "LLVMPointerTypeKind"))
        ((:vector "LLVMVectorTypeKind"))
        ((:metadata "LLVMMetadataTypeKind"))
-       ((:x86-mmx "LLVMX86_MMXTypeKind")))
+       ((:token "LLVMTokenTypeKind"))
+       ((:scalable-vector "LLVMScalableVectorTypeKind"))
+       ((:bfloat "LLVMBFloatTypeKind"))
+       ((:x86-amx "LLVMX86_AMXTypeKind"))
+       ((:target-ext "LLVMTargetExtTypeKind"))
+       ((:byte "LLVMByteTypeKind")))
 
 (cenum linkage
        ((:external "LLVMExternalLinkage"))
@@ -117,6 +131,12 @@
        ((:x86-stdcall "LLVMX86StdcallCallConv"))
        ((:x86-fastcall "LLVMX86FastcallCallConv")))
 
+(cenum tail-call-kind
+       ((:none "LLVMTailCallKindNone"))
+       ((:tail "LLVMTailCallKindTail"))
+       ((:must-tail "LLVMTailCallKindMustTail"))
+       ((:no-tail "LLVMTailCallKindNoTail")))
+
 (cenum int-predicate
        ((:= "LLVMIntEQ"))
        ((:/= "LLVMIntNE"))
@@ -146,7 +166,3 @@
        ((:unordered-<= "LLVMRealULE"))
        ((:unordered-/= "LLVMRealUNE"))
        ((:true "LLVMRealPredicateTrue")))
-
-(cenum landing-pad-clause-type
-       ((:catch "LLVMLandingPadCatch"))
-       ((:filter "LLVMLandingPadFilter")))

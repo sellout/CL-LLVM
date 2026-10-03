@@ -113,6 +113,7 @@
            #:instruction-calling-convention #:add-instruction-attributes
            #:remove-instruction-attributes #:instruction-param-alignment
            #:tail-call-p
+           #:tail-call-kind #:set-tail-call-kind
            #:add-incoming #:count-incoming #:incoming-value #:incoming-block
            ;; instruction builders
            #:builder #:with-builder #:make-builder #:dispose-builder
@@ -175,6 +176,7 @@
            #:initialize-native-target
            #:target-data
            #:add-target-data
+           #:set-module-data-layout
            #:string-representation
            #:byte-order
            #:pointer-size

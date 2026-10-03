@@ -1,5 +1,9 @@
 #!/bin/sh
 
-autoreconf
+set -eu
+
+cd "$(dirname "$0")"
+
+autoreconf -fi
 ./configure
 make

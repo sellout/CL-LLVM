@@ -38,11 +38,12 @@
   (builder builder) (if value) (then basic-block) (else basic-block))
 (defcfun* "LLVMBuildSwitch" value
   (builder builder) (v value) (else basic-block) (num-cases :unsigned-int))
-(defcfun (%build-invoke "LLVMBuildInvoke") value
-  (builder builder) (fn value) (args (carray value)) (num-args :unsigned-int)
+(defcfun (%build-invoke "LLVMBuildInvoke2") value
+  (builder builder) (fn-type type) (fn value)
+  (args (carray value)) (num-args :unsigned-int)
   (then basic-block) (catch basic-block) (name :string))
 (defun build-invoke (builder fn args then catch name)
-  (%build-invoke builder fn args (length args) then catch name))
+  (%build-invoke builder (global-value-type fn) fn args (length args) then catch name))
 (defcfun* "LLVMBuildUnwind" value (builder builder))
 (defcfun* "LLVMBuildUnreachable" value (builder builder))
 
@@ -109,23 +110,38 @@
 (defcfun* "LLVMBuildArrayAlloca" value
   (builder builder) (ty type) (val value) (name :string))
 (defcfun* "LLVMBuildFree" value (builder builder) (pointer-val value))
-(defcfun* "LLVMBuildLoad" value
-  (builder builder) (pointer-val value) (name :string))
+(defcfun (%build-load "LLVMBuildLoad2") value
+  (builder builder) (ty type) (pointer-val value) (name :string))
+(defun build-load (builder pointer-val name &optional type)
+  "Load POINTER-VAL as TYPE.
+
+LLVM's opaque pointers require the pointee type to be supplied explicitly."
+  (unless type
+    (error "BUILD-LOAD requires an explicit pointee type with LLVM 23."))
+  (%build-load builder type pointer-val name))
 (defcfun* "LLVMBuildStore" value (builder builder) (val value) (ptr value))
-(defcfun (%build-gep "LLVMBuildGEP") value
-  (b builder)
+(defcfun (%build-gep "LLVMBuildGEP2") value
+  (b builder) (element-type type)
   (pointer value) (indices (carray value)) (num-indices :unsigned-int)
   (name :string))
-(defun build-gep (b pointer indices name)
-  (%build-gep b pointer indices (length indices) name))
-(defcfun (%build-in-bounds-gep "LLVMBuildInBoundsGEP") value
-  (b builder)
+(defun build-gep (b pointer indices name &optional element-type)
+  (unless element-type
+    (error "BUILD-GEP requires an explicit element type with LLVM 23."))
+  (%build-gep b element-type pointer indices (length indices) name))
+(defcfun (%build-in-bounds-gep "LLVMBuildInBoundsGEP2") value
+  (b builder) (element-type type)
   (pointer value) (indices (carray value)) (num-indices :unsigned-int)
   (name :string))
-(defun build-in-bounds-gep (b pointer indices name)
-  (%build-in-bounds-gep b pointer indices (length indices) name))
-(defcfun* "LLVMBuildStructGEP" value
-  (b builder) (pointer value) (idx :unsigned-int) (name :string))
+(defun build-in-bounds-gep (b pointer indices name &optional element-type)
+  (unless element-type
+    (error "BUILD-IN-BOUNDS-GEP requires an explicit element type with LLVM 23."))
+  (%build-in-bounds-gep b element-type pointer indices (length indices) name))
+(defcfun (%build-struct-gep "LLVMBuildStructGEP2") value
+  (b builder) (element-type type) (pointer value) (idx :unsigned-int) (name :string))
+(defun build-struct-gep (b pointer idx name &optional element-type)
+  (unless element-type
+    (error "BUILD-STRUCT-GEP requires an explicit element type with LLVM 23."))
+  (%build-struct-gep b element-type pointer idx name))
 (defcfun* "LLVMBuildGlobalString" value
   (b builder) (str :string) (name :string))
 (defcfun (build-global-string-pointer "LLVMBuildGlobalStringPtr") value
@@ -174,17 +190,12 @@
   (builder builder) (op real-predicate) (lhs value) (rhs value) (name :string))
 
 (defcfun* "LLVMBuildPhi" value (builder builder) (ty type) (name :string))
-(defcfun (%build-call "LLVMBuildCall") value
-  (builder builder)
+(defcfun (%build-call "LLVMBuildCall2") value
+  (builder builder) (fn-type type)
   (fn value) (args (carray value)) (num-args :unsigned-int)
   (name :string))
-(defcfun (build-call-void "LLVMBuildCall") value
-  (builder builder)
-  (fn value) (args (carray value)) (num-args :unsigned-int))
 (defun build-call (builder fn args &optional name)
-  (if name
-      (%build-call builder fn args (length args) name)
-      (build-call-void builder fn args (length args))))
+  (%build-call builder (global-value-type fn) fn args (length args) (or name "")))
 
 (defcfun* "LLVMBuildSelect" value
   (builder builder) (if value) (then value) (else value) (name :string))

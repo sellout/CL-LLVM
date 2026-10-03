@@ -82,28 +82,41 @@
          ,return-type ,@arguments)))
 
 (define-foreign-library libllvm
-  (:darwin (:or (:default "libLLVM")
+  (:darwin (:or "libLLVM.dylib"
+                (:default "libLLVM")
+                (:default "libLLVM-23")
                 (:default "libLLVM-3.6")
                 (:default "libLLVM-3.5")
                 (:default "libLLVM-3.1")
                 (:default "libLLVM-3.1svn")
                 (:default "libLLVM-3.0")))
-  (:unix (:or "libLLVM.so" "libLLVM.so.1" "libLLVM-3.6.so"
+  (:unix (:or "libLLVM.so" "libLLVM.so.23" "libLLVM.so.1" "libLLVM-3.6.so"
               "libLLVM-3.1.so" "libLLVM-3.1.so.1" "libLLVM-3.1svn.so"
               "libLLVM-3.1svn.so.1" "libLLVM-3.0.so" "libLLVM-3.0.so.1"))
   (t (:or (:default "libLLVM")
+          (:default "libLLVM-23")
           (:default "libLLVM-3.6")
           (:default "libLLVM-3.1")
           (:default "libLLVM-3.1svn")
           (:default "libLLVM-3.0"))))
 
-(use-foreign-library libllvm)
+(flet ((llvm-config-library ()
+         (multiple-value-bind (libraries err)
+             (trivial-shell:shell-command "llvm-config --libfiles")
+           (when (zerop (length err))
+             (find-if (lambda (library) (plusp (length library)))
+                      (split-sequence:split-sequence #\Newline libraries))))))
+  (let ((library (llvm-config-library)))
+    (if library
+        (load-foreign-library library)
+        (use-foreign-library libllvm))))
 
 (flet ((parse-version (version)
           (let ((splitted (split-sequence:split-sequence #\. version)))
             (when (and (>= (length splitted) 2)
-                       (>= (parse-integer (car splitted)) 3)
-                       (>= (parse-integer (cadr splitted)) 4))
+                       (or (> (parse-integer (car splitted)) 3)
+                           (and (= (parse-integer (car splitted)) 3)
+                                (>= (parse-integer (cadr splitted)) 4))))
               (push :libllvm-upper-3.4.0 *features*)))))
   (multiple-value-bind (version err) (trivial-shell:shell-command "llvm-config --version")
     (if (zerop (length err))

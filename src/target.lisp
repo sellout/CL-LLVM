@@ -46,8 +46,16 @@
 
 (defcfun* "LLVMCreateTargetData" target-data (string-rep :string))
 
-(defcfun* "LLVMAddTargetData" :void
-  (target-data target-data) (pass-manager pass-manager))
+(defcfun* "LLVMSetModuleDataLayout" :void
+  (module module) (target-data target-data))
+
+(defun add-target-data (target-data pass-manager)
+  "Compatibility shim for LLVMAddTargetData, removed from the LLVM C API.
+
+Modern LLVM obtains layout information from the module.  Set it with
+SET-MODULE-DATA-LAYOUT before initializing the pass manager."
+  (declare (ignore target-data pass-manager))
+  nil)
 
 (defcfun* "LLVMCopyStringRepOfTargetData" (:pointer :char)
   (target-data target-data))
